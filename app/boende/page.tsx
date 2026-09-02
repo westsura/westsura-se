@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Hero, DogBand } from "@/components/Blocks";
-import Booking from "@/components/Booking";
+import Booking, { type Enhet } from "@/components/Booking";
+import { supabasePublik } from "@/lib/supabase";
 import { img } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -11,7 +12,15 @@ export const metadata: Metadata = {
   alternates: { canonical: "/boende" },
 };
 
-export default function Boende() {
+export const revalidate = 300; // enheter och priser hämtas på nytt var femte minut
+
+export default async function Boende() {
+  let enheter: Enhet[] = [];
+  try {
+    const { data } = await supabasePublik().from("enheter_publik").select("*").order("ordning");
+    enheter = (data ?? []) as Enhet[];
+  } catch (e) { console.error("Kunde inte hämta enheter", e); }
+
   return (
     <>
       <Hero remote sub src={img.sangStor} alt="Bäddad säng i en av flyglarna från 1680" label="Boende" title="bo i våra flyglar från 1680"
@@ -40,7 +49,7 @@ export default function Boende() {
       </section>
 
       <Suspense fallback={<section className="section section--tight tint"><div className="container"><p className="empty">Laddar bokningen…</p></div></section>}>
-        <Booking />
+        <Booking enheter={enheter} />
       </Suspense>
 
       <DogBand short />

@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { Hero } from "@/components/Blocks";
-import Tillfallen from "@/components/Tillfallen";
+import Tillfallen, { type Tillfalle } from "@/components/Tillfallen";
 import { img, site } from "@/lib/site";
-import { jakttillfallen, hundtraning, jaktkurser } from "@/lib/jakt";
+import { supabasePublik } from "@/lib/supabase";
 
 export const metadata: Metadata = {
   title: "Jakt, jaktkurser och jakthundsträning i Västmanland",
@@ -13,7 +13,18 @@ export const metadata: Metadata = {
   alternates: { canonical: "/jakt" },
 };
 
-export default function Jakt() {
+export const revalidate = 300;
+
+export default async function Jakt() {
+  let alla: Tillfalle[] = [];
+  try {
+    const { data } = await supabasePublik().from("tillfallen_publik").select("*").in("typ", ["jakt", "hundtraning", "jaktkurs"]).order("datum");
+    alla = (data ?? []) as Tillfalle[];
+  } catch (e) { console.error("Kunde inte hämta tillfällen", e); }
+  const jakttillfallen = alla.filter((t) => t.typ === "jakt");
+  const hundtraning = alla.filter((t) => t.typ === "hundtraning");
+  const jaktkurser = alla.filter((t) => t.typ === "jaktkurs");
+
   return (
     <>
       <Hero src="/bilder/jakt.png" alt="Jakthund med fågel på Westsura Herrgårds marker" sub label="Upplev jakten på Westsura" title="där natur och tradition möts"

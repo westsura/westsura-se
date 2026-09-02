@@ -1,36 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { skapaForfragan } from "@/app/actions";
 import { site } from "@/lib/site";
 
-/** Förfrågan för event, firande och konferens. Skickas till inkorgen i admin i etapp II — tills dess öppnas ett färdigt mejl. */
+/** Förfrågan för event, firande, konferens och jakt. Sparas i databasen och bekräftas per mejl. */
 export default function InquiryForm({ typ = "Firande", alternativ }: { typ?: string; alternativ?: string[] }) {
-  const [sent, setSent] = useState(false);
+  const [nummer, setNummer] = useState<number | null>(null);
+  const [fel, setFel] = useState<string | null>(null);
+  const [pending, start] = useTransition();
   const val = alternativ ?? ["Bröllop", "Födelsedag eller jubileum", "Lunch eller middag för förening", "Minnesstund", "Företagsevent eller kick off", "Annat"];
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const rader = [
-      `Typ av tillställning: ${f.get("typ")}`,
-      `Önskat datum: ${f.get("datum") || "ej bestämt"}`,
-      `Antal gäster: ${f.get("antal")}`,
-      `Hundar: ${f.get("hund") ? "ja" : "nej"}`,
-      `Namn: ${f.get("namn")}`,
-      `Telefon: ${f.get("telefon")}`,
-      `E-post: ${f.get("epost")}`,
-      "",
-      `${f.get("meddelande") || ""}`,
-    ];
-    const body = encodeURIComponent(rader.join("\n"));
-    window.location.href = `mailto:${site.email}?subject=${encodeURIComponent("Förfrågan: " + f.get("typ"))}&body=${body}`;
-    setSent(true);
+    const fd = new FormData(e.currentTarget);
+    setFel(null);
+    start(async () => {
+      const r = await skapaForfragan(fd);
+      if (r.ok) setNummer(r.data.nummer); else setFel(r.fel);
+    });
   }
 
-  if (sent) {
+  if (nummer) {
     return (
       <div className="notice" style={{ fontSize: 18 }}>
-        <strong>Tack för din förfrågan.</strong> Vi hör av oss inom en vardag. Vill du hellre prata direkt: <a href={site.phoneHref}>{site.phone}</a>.
+        <strong>Tack för din förfrågan.</strong> Vi har tagit emot den (nummer {nummer}) och hör av oss inom en vardag. Vill du hellre prata direkt: <a href={site.phoneHref}>{site.phone}</a>.
       </div>
     );
   }
@@ -74,8 +68,9 @@ export default function InquiryForm({ typ = "Firande", alternativ }: { typ?: str
           <span>Det kommer hundar till festen</span>
         </label>
       </div>
+      {fel && <div className="notice field--full" style={{ borderLeftColor: "#a33" }}>{fel}</div>}
       <div className="field--full cta-row">
-        <button className="btn" type="submit">Skicka förfrågan</button>
+        <button className="btn" type="submit" disabled={pending}>{pending ? "Skickar…" : "Skicka förfrågan"}</button>
         <a className="btn btn--ghost" href={site.phoneHref}>Ring {site.phone}</a>
       </div>
     </form>

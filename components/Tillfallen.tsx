@@ -1,53 +1,72 @@
 "use client";
 
-import { useState } from "react";
-import InquiryForm from "@/components/InquiryForm";
+import { useState, useTransition } from "react";
+import { skapaAnmalan } from "@/app/actions";
 import { site } from "@/lib/site";
 
 export type Tillfalle = {
   id: string;
-  datum: string;        // ISO
-  tid?: string;
+  typ: "jakt" | "hundtraning" | "jaktkurs" | "evenemang";
   titel: string;
-  typ: "Jakttillfälle" | "Hundträning" | "Jaktkurs";
-  platser: number;      // kvar
-  pris: string;
-  text: string;
+  beskrivning: string | null;
+  datum: string;        // ISO
+  tid: string | null;
+  pris: number | null;
+  vanpris: number | null;
+  platser: number;
+  kvar: number;
 };
 
+const TYP: Record<Tillfalle["typ"], string> = { jakt: "Jakttillfälle", hundtraning: "Hundträning", jaktkurs: "Jaktkurs", evenemang: "Evenemang" };
 const MAN = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
 function fmt(iso: string) {
-  const d = new Date(iso);
-  const dag = ["sön", "mån", "tis", "ons", "tor", "fre", "lör"][d.getDay()];
-  return { dag, d: d.getDate(), m: MAN[d.getMonth()] };
+  const d = new Date(iso + "T12:00:00");
+  return { dag: ["sön", "mån", "tis", "ons", "tor", "fre", "lör"][d.getDay()], d: d.getDate(), m: MAN[d.getMonth()] };
 }
+const kr = (n: number | null) => (n == null ? "" : n === 0 ? "Fri entré" : n.toLocaleString("sv-SE") + " kr");
 
-/** Lista över utlysta tillfällen med anmälan. Tillfällena läggs i databasen i etapp II. */
+/** Lista över utlysta tillfällen med anmälan direkt till databasen. */
 export default function Tillfallen({ tillfallen, rubrik = "Kommande tillfällen" }: { tillfallen: Tillfalle[]; rubrik?: string }) {
   const [valt, setValt] = useState<Tillfalle | null>(null);
+  const [resultat, setResultat] = useState<{ status: string; titel: string } | null>(null);
+  const [fel, setFel] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  function anmal(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!valt) return;
+    const fd = new FormData(e.currentTarget);
+    fd.set("tillfalle", valt.id);
+    setFel(null);
+    start(async () => {
+      const r = await skapaAnmalan(fd);
+      if (r.ok) setResultat({ status: r.data.status, titel: valt.titel }); else setFel(r.fel);
+    });
+  }
 
   return (
     <div>
       <p className="label">{rubrik}</p>
-      {tillfallen.length === 0 && <p className="empty">Inga tillfällen är utlysta just nu. Skicka en intresseanmälan så hör vi av oss när nästa datum är satt.</p>}
+      {tillfallen.length === 0 && <p className="empty">Inga tillfällen är utlysta just nu. Ring oss på {site.phone} så hör vi av oss när nästa datum är satt.</p>}
       <ul className="tf">
         {tillfallen.map((t) => {
           const f = fmt(t.datum);
-          const full = t.platser <= 0;
+          const full = t.kvar <= 0;
+          const ar = valt?.id === t.id;
           return (
-            <li key={t.id} className={`tf-item${valt?.id === t.id ? " is-selected" : ""}${full ? " is-full" : ""}`}>
+            <li key={t.id} className={`tf-item${ar ? " is-selected" : ""}${full ? " is-full" : ""}`}>
               <div className="tf-date"><b>{f.d}</b><span>{f.m}</span><small>{f.dag}</small></div>
               <div className="tf-body">
                 <div className="tf-top">
                   <h3>{t.titel}</h3>
-                  <span className="tf-price">{t.pris}</span>
+                  {t.pris != null && <span className="tf-price">{kr(t.pris)}</span>}
                 </div>
-                <p>{t.text}</p>
+                {t.beskrivning && <p>{t.beskrivning}</p>}
                 <div className="tf-foot">
-                  <span className="tf-meta">{t.typ}{t.tid ? ` · ${t.tid}` : ""} · {full ? "Fullbokat" : `${t.platser} ${t.platser === 1 ? "plats" : "platser"} kvar`}</span>
-                  {full
-                    ? <button className="btn btn--ghost" type="button" onClick={() => setValt(t)}>Ställ mig på väntelista</button>
-                    : <button className={`btn${valt?.id === t.id ? " btn--ghost" : ""}`} type="button" onClick={() => setValt(t)}>{valt?.id === t.id ? "Vald" : "Boka plats"}</button>}
+                  <span className="tf-meta">{TYP[t.typ]}{t.tid ? ` · ${t.tid}` : ""} · {full ? "Fullbokat" : `${t.kvar} ${t.kvar === 1 ? "plats" : "platser"} kvar`}</span>
+                  <button className={`btn${ar || full ? " btn--ghost" : ""}`} type="button" onClick={() => { setValt(t); setResultat(null); setFel(null); }}>
+                    {ar ? "Vald" : full ? "Ställ mig på väntelista" : "Boka plats"}
+                  </button>
                 </div>
               </div>
             </li>
@@ -56,12 +75,28 @@ export default function Tillfallen({ tillfallen, rubrik = "Kommande tillfällen"
       </ul>
 
       <div id="forfragan" style={{ marginTop: 40 }}>
-        {valt ? (
+        {resultat ? (
+          <div className="notice" style={{ fontSize: 18 }}>
+            <strong>{resultat.status === "vantelista" ? "Du står på väntelistan." : "Tack för din anmälan."}</strong>{" "}
+            {resultat.status === "vantelista" ? "Vi hör av oss om en plats blir ledig." : "Vi bekräftar platsen inom en vardag."} En bekräftelse har skickats till din e-post.
+          </div>
+        ) : valt ? (
           <div className="card" style={{ borderTopColor: "var(--accent)" }}>
-            <p className="label">{valt.platser <= 0 ? "Väntelista" : "Anmälan"}</p>
+            <p className="label">{valt.kvar <= 0 ? "Väntelista" : "Anmälan"}</p>
             <h3>{valt.titel} · {fmt(valt.datum).d} {fmt(valt.datum).m}</h3>
             <p style={{ fontSize: 16 }}>Fyll i uppgifterna så bekräftar vi platsen inom en vardag. Anmälan är bindande först när ni fått vår bekräftelse.</p>
-            <InquiryForm key={valt.id} typ={`${valt.typ}: ${valt.titel} ${valt.datum}`} alternativ={[`${valt.typ}: ${valt.titel} ${valt.datum}`]} />
+            <form className="form" onSubmit={anmal}>
+              <div className="field"><label htmlFor="a-namn">Namn</label><input id="a-namn" name="namn" required autoComplete="name" /></div>
+              <div className="field"><label htmlFor="a-antal">Antal personer</label><input id="a-antal" name="antal" type="number" min={1} max={20} defaultValue={1} required /></div>
+              <div className="field"><label htmlFor="a-epost">E-post</label><input id="a-epost" name="epost" type="email" required autoComplete="email" /></div>
+              <div className="field"><label htmlFor="a-tel">Telefon</label><input id="a-tel" name="telefon" type="tel" autoComplete="tel" /></div>
+              <div className="field field--full"><label htmlFor="a-medd">Meddelande</label><textarea id="a-medd" name="meddelande" style={{ minHeight: 90 }} placeholder="Hundens ras och ålder, erfarenhet, önskemål…" /></div>
+              {fel && <div className="notice field--full" style={{ borderLeftColor: "#a33" }}>{fel}</div>}
+              <div className="field--full cta-row">
+                <button className="btn" type="submit" disabled={pending}>{pending ? "Skickar…" : valt.kvar <= 0 ? "Ställ mig på väntelista" : "Skicka anmälan"}</button>
+                <a className="btn btn--ghost" href={site.phoneHref}>Ring {site.phone}</a>
+              </div>
+            </form>
           </div>
         ) : (
           <p style={{ fontSize: 15, color: "var(--ws-ink-40)" }}>Välj ett tillfälle ovan för att anmäla dig — eller ring <a href={site.phoneHref}>{site.phone}</a>.</p>

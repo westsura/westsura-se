@@ -31,8 +31,16 @@ Projektet deployas på Vercel som `westsura-se`. Koppla ett GitHub-repo så bygg
     git remote add origin git@github.com:westsura/westsura-se.git
     git push -u origin main
 
+## Miljövariabler
+
+Se `.env.example`. På Vercel: Settings → Environment Variables. `SUPABASE_SERVICE_ROLE_KEY` och `RESEND_API_KEY` är hemliga och får aldrig ligga i koden.
+
+## Admin
+
+`/admin` — inloggning med engångslänk per e-post. Behöriga adresser ligger i tabellen `admin_inbjudan` i Supabase (superadmin lägger till fler). Roller: superadmin, vardskap, kommunikation, jaktadmin, jaktledare.
+
 ## Kommande etapper
 
-- **II** Bokningskalender och prisregler i Supabase, förfrågningsinkorg, admin.
+- **II** ✔ Bokningskalender, prisregler, förfrågningsinkorg, tillfällen och admin.
 - **III** Westsuras Vänner: register, nyhetsbrev, rabattkoder, kalendarium.
 - **IV** Jaktklubben.
