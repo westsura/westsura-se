@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Hero, Ornament } from "@/components/Blocks";
+import Timeline, { type Epok } from "@/components/Timeline";
+import { img } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Om oss — herrgårdens historia från 1354 och vår vision",
@@ -9,10 +11,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/om-oss" },
 };
 
-const epoker: { rubrik: string; under: string; stycken: string[] }[] = [
+const epoker: Epok[] = [
   {
+    ar: "1655",
     rubrik: "1600-talet",
     under: "Ursprung som säteri och tidiga brukspatroner",
+    bild: { src: "/bilder/herrgard-linje-gron.png", alt: "Herrgården som linjeteckning", text: "Herrgården i logotypens linjeteckning. Anno 1680.", portratt: true },
     stycken: [
       "Westsura är en av de äldsta bosättningarna i Surahammar. Namnet finns noterat i ett fastebrev redan år 1354 och skrevs då ”Westsururm”. Herrgårdens tidigaste dokumenterade ägande dateras till 1655, då egendomen ingick i riksrådet och landshövdingen Bengt Skytte af Duderhofs säteri tillsammans med Hovgården. Skytte var en framträdande figur i svensk adel och administration under stormaktstiden.",
       "Runt 1680 övergick egendomen till brukspatronen Erik Christiersson (Christiernin), som var aktiv i regionens järnindustri. En minnesvärd händelse inträffade 1687 då kung Karl XI besökte Westsura under en jaktresa. Kungen noterade i sin almanacka en kort passage om måltiden, övernattningen och att han skjutit en björn under jakten.",
@@ -20,16 +24,20 @@ const epoker: { rubrik: string; under: string; stycken: string[] }[] = [
     ],
   },
   {
+    ar: "1760",
     rubrik: "1700-talet",
     under: "Familjeövergångar och nybyggnation",
+    bild: { src: img.hist1760, alt: "Huvudbyggnaden från 1760 på ett äldre fotografi", text: "Huvudbyggnaden i nyklassicistisk stil, uppförd 1760 av Jacob Tersmeden." },
     stycken: [
       "Efter Erik Christierssons död 1702 ärvdes egendomen av hans änka Agneta von Glan, som innehade den fram till 1721. Därefter tog brukspatronen Carl Wendelin över, följd av hans änka Magdalena Petré fram till 1749. Herrgården var på det annars fattiga 1700-talet en jämförelsevis stor jordbruksfastighet med ett 60-tal nötkreatur, varav tio oxar. Stengrunden efter den stora ladugården finns kvar ännu i dag.",
       "År 1749 köptes Westsura av brukspatronen och assessorn Jacob Jacobsson Tersmeden, en medlem av den inflytelserika adliga släkten Tersmeden. Jacob Tersmeden flyttade till Ramnäs 1756 men behöll ägandet. En betydande förändring skedde 1760 då han lät uppföra en ny huvudbyggnad i nyklassicistisk stil, vilket gav herrgården dess nuvarande utseende. Efter hans död 1767 övertogs Westsura av änkan Magdalena Elisabeth Söderhielm fram till hennes död 1787.",
     ],
   },
   {
+    ar: "1843",
     rubrik: "1800-talet",
     under: "Arvingar, skogsinstitut och industri",
+    bild: { src: img.histTersmeden, alt: "Porträtt av Per Reinhold Tersmeden", text: "Per Reinhold Tersmeden, ensam ägare från 1804.", portratt: true },
     stycken: [
       "Från 1787 till 1842 ägdes Westsura av Magdalena Elisabeth Söderhielms arvingar, inledningsvis tio barn. Genom åren löstes andelar in, och kring 1800 kvarstod främst syskonen Hedvig Charlotta, Per Reinhold och Lars Gustaf Tersmeden. Lars Gustaf arrenderade herrgården 1794–1805. År 1804 blev Per Reinhold ensam ägare; han dog ogift och barnlös 1842.",
       "Arvet fördelades då bland 25 syskonbarn, med brukspatronen Wilhelm Fredrik Tersmeden och hans hustru Jacquette Elisabeth Tersmeden som huvudägare fram till 1872. Under denna period etablerade Brukssocieteten ett skogsinstitut på egendomen 1843, lett av den tyske skogsmannen Carl Ludvig Obbarius. Institutet utbildade i skogsbruk men flyttades till Nora 1855. Wilhelm Fredrik Tersmeden hyllades vid sin död 1879 med en utförlig dödsruna som underströk hans bidrag till regionens bruksnäring.",
@@ -37,8 +45,10 @@ const epoker: { rubrik: string; under: string; stycken: string[] }[] = [
     ],
   },
   {
+    ar: "1926",
     rubrik: "Tidigt 1900-tal",
     under: "Snabbväxlande ägare och sociala konflikter",
+    bild: { src: img.hist1928, alt: "Westsura Herrgård fotograferad 1928", text: "Herrgården 1928, två år efter lantarbetarstrejken." },
     stycken: [
       "Från 1911 skedde flera snabba ägarbyten: Herman Andersson (1911–1912), notarien Gunnar Fritiof Johansson Cederfeldt (1912–1915) och godsägaren David André från 1915 till 1917. Köpeskillingen för Andrés förvärv var 150 000 kronor, inklusive inventarier och gröda.",
       "År 1917 övertog David Andrés son, agronomen Ragnar André, egendomen fram till 1930. Perioden präglades av en uppmärksammad lantarbetarstrejk i juli 1926, som varade till april 1927 och slutade i en seger för arbetarna. Tidningen Arbetaren var mycket kritisk mot André och uttryckte skadeglädje när han hamnade på obestånd 1930.",
@@ -46,16 +56,20 @@ const epoker: { rubrik: string; under: string; stycken: string[] }[] = [
     ],
   },
   {
+    ar: "1949",
     rubrik: "Senare 1900-tal",
     under: "Statlig förvaltning, utbildning och brand",
+    bild: { src: img.histSkola, alt: "Elever vid skogsbruksskolan på Westsura", text: "Skogsbruksskolan, som drevs på Westsura från 1949 till 1997.", portratt: true },
     stycken: [
       "Skogsvårdsstyrelsen förvärvade egendomen 1949 och startade en skogsbruksskola. Verksamheten fortsatte under Västmanlands läns landsting från 1972 till 2001. Skolan blev en filial till Ösby naturbruksgymnasium i Sala och flyttades slutligen dit 1997.",
       "En dramatisk händelse inträffade i oktober 1998, då herrgården brann efter ett pyromandåd. Byggnaden renoverades och återuppbyggdes, och fungerade därefter som konferensanläggning.",
     ],
   },
   {
+    ar: "2024",
     rubrik: "2000-talet",
     under: "Moderna ägare och nya användningsområden",
+    bild: { src: "/bilder/fasad.jpg", alt: "Westsura Herrgård i dag, med gul fasad", text: "Herrgården i dag." },
     stycken: [
       "Från 2001 till 2006 ägdes Westsura av Matsvision AB, följt av Vikingaskeppet AB och Laborit II AB. Under denna tid drev Sven-Åke Larsson och Åsa Söderberg hotell- och restaurangverksamhet på herrgården. År 2006 tog Attendo Individ och Familj Resurs AB över fram till 2018. Från 2018 till 2024 ägdes herrgården av Anders Gollne och Fernando Ruiz, och sedan 2024 ägs Westsura av Björn Elmqvist.",
       "Herrgårdens ägarbyten speglar samhällsutvecklingen i Sverige — från adliga godsägare och brukspatroner till statliga institutioner och moderna företag.",
@@ -85,7 +99,7 @@ export default function OmOss() {
       <section className="section tint">
         <div className="container split">
           <div style={{ aspectRatio: "3 / 2", overflow: "hidden", position: "relative" }}>
-            <Image src="/bilder/picknick.jpg" alt="Familj på picknickfilt framför herrgården" fill sizes="(max-width: 860px) 100vw, 50vw" style={{ objectFit: "cover", objectPosition: "50% 88%" }} />
+            <Image src="/bilder/picknick.jpg" alt="Familj på picknickfilt framför herrgården" fill sizes="(max-width: 860px) 100vw, 50vw" style={{ objectFit: "cover", objectPosition: "50% 64%" }} />
           </div>
           <div>
             <p className="label">I dag</p>
@@ -103,19 +117,7 @@ export default function OmOss() {
             <h2 className="lower">historien om westsura herrgård</h2>
             <p className="lede">Herrgården har en rik historia som sträcker sig tillbaka till 1600-talet och har genom åren fungerat som säteri, bruksegendom, skogsinstitut, skola, asylboende och konferensanläggning.</p>
           </div>
-          <div className="epoker">
-            {epoker.map((e) => (
-              <div key={e.rubrik} className="epok">
-                <div className="epok__ar">
-                  <b>{e.rubrik}</b>
-                  <span>{e.under}</span>
-                </div>
-                <div className="epok__text prose">
-                  {e.stycken.map((s, i) => <p key={i}>{s}</p>)}
-                </div>
-              </div>
-            ))}
-          </div>
+          <Timeline epoker={epoker} />
         </div>
       </section>
     </>

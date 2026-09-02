@@ -34,6 +34,11 @@ export const img = {
   fasan: wp + "2026/03/Hemsida-Framsida3-958x1024.jpg",
   brud: wp + "2024/11/brud.png",
   konferensrum: wp + "2026/05/foretagsfotograf-stockholm-vasteras-brandingfoto-lumavisual-21.jpg",
+  /* Historiska bilder från Om oss på nuvarande sajt */
+  hist1760: wp + "2025/10/Westsura_Herrgard.jpg",
+  histTersmeden: wp + "2025/10/PerReinholdTersmeden.jpg",
+  hist1928: wp + "2025/10/westsura-1928-1536x1139.jpg",
+  histSkola: wp + "2025/10/Skogsbruksskola.jpg",
 };
 
 export const kungCitat =

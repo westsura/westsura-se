@@ -520,11 +520,50 @@ p { margin:0 0 20px; max-width:66ch; }
 .page-head h1 { margin-bottom:12px; }
 .page-head .lede { margin-bottom:0; }
 
-/* --- Historik per epok --- */
-.epoker { border-top: var(--rule-gold); }
-.epok { display:grid; grid-template-columns:240px 1fr; gap:48px; padding:44px 0; border-bottom:1px solid var(--border-subtle); }
-.epok__ar { position:sticky; top:120px; align-self:start; }
-.epok__ar b { display:block; font-family:var(--font-display); font-weight:400; font-size:30px; line-height:1.1; color:var(--accent-strong); margin-bottom:8px; }
-.epok__ar span { display:block; font-family:var(--font-serif); font-style:italic; font-size:19px; line-height:1.35; color:var(--text-heading); }
-.epok__text p:last-child { margin-bottom:0; }
-@media (max-width:760px) { .epok { grid-template-columns:1fr; gap:16px; padding:32px 0; } .epok__ar { position:static; } }
+/* --- Tidslinje --- */
+.tl { list-style:none; margin:0; padding:0; position:relative; }
+.tl::before {
+  content:""; position:absolute; left:50%; top:0; bottom:0; width:1px;
+  background:linear-gradient(180deg, transparent 0, var(--border-gold) 60px, var(--border-gold) calc(100% - 60px), transparent 100%);
+  transform:translateX(-.5px);
+}
+.tl-item { position:relative; display:grid; grid-template-columns:1fr 1fr; gap:0 96px; padding:24px 0 72px; }
+.tl-item:last-child { padding-bottom:16px; }
+.tl-mark {
+  position:absolute; left:50%; top:24px; transform:translateX(-50%);
+  width:96px; text-align:center; z-index:2;
+}
+.tl-mark::before {
+  content:""; display:block; width:12px; height:12px; margin:0 auto 10px;
+  background:var(--accent); border:3px solid var(--surface-page); outline:1px solid var(--border-gold);
+  border-radius:50%;
+}
+.tl-mark span {
+  display:inline-block; font-family:var(--font-display); font-size:20px; color:var(--accent-strong);
+  background:var(--surface-page); padding:2px 8px; font-variant-numeric:tabular-nums; letter-spacing:.04em;
+}
+.tl-card { grid-column:1; padding-top:56px; }
+.tl-item--right .tl-card { grid-column:2; }
+.tl-fig { margin:0 0 22px; }
+.tl-fig img { width:100%; height:auto; display:block; filter:sepia(.12) contrast(1.02); }
+.tl-fig--portratt img { max-width:320px; }
+.tl-fig figcaption { font-size:13px; letter-spacing:.06em; color:var(--ws-ink-40); margin-top:8px; }
+.tl-text h3 { margin-bottom:12px; }
+.tl-text p { font-size:17px; }
+.tl-text p:last-child { margin-bottom:0; }
+.tl-item--left .tl-text { text-align:left; }
+
+/* intoning */
+.tl-item { opacity:0; transform:translateY(24px); transition:opacity .7s var(--ease), transform .7s var(--ease); }
+.tl-item.is-in { opacity:1; transform:none; }
+.tl-item--right .tl-card { transition-delay:.05s; }
+@media (prefers-reduced-motion: reduce) { .tl-item { opacity:1; transform:none; transition:none; } }
+
+@media (max-width:860px) {
+  .tl::before { left:14px; }
+  .tl-item { grid-template-columns:1fr; padding:0 0 48px 48px; }
+  .tl-mark { left:14px; top:0; transform:translateX(-50%); width:auto; text-align:left; }
+  .tl-mark::before { margin:0; }
+  .tl-mark span { position:absolute; left:22px; top:-8px; white-space:nowrap; }
+  .tl-card, .tl-item--right .tl-card { grid-column:1; padding-top:28px; }
+}
