@@ -21,9 +21,18 @@ export default function Kontakt() {
             <p>{site.name}<br />{site.address.street}<br />{site.address.zip} {site.address.city}</p>
             <h2 className="lower">hitta hit</h2>
             <p>Från Västerås: väg 66 mot Fagersta, avfart Surahammar, sedan skyltat mot Westsura. Cirka 30 minuter med bil. Från Stockholm drygt en och en halv timme. Gott om parkering vid huset.</p>
-            <p><a className="link-more" href="https://maps.google.com/?q=Lisj%C3%B6v%C3%A4gen+50,+735+91+Surahammar" target="_blank" rel="noopener">Öppna i kartan →</a></p>
+            <p><a className="link-more" href="https://maps.google.com/?q=Lisj%C3%B6v%C3%A4gen+50,+735+91+Surahammar" target="_blank" rel="noopener">Öppna i Google Maps →</a></p>
           </div>
           <div>
+            <div className="map" style={{ marginBottom: 24 }}>
+              <iframe
+                title="Karta till Westsura Herrgård"
+                src="https://www.google.com/maps?q=Lisj%C3%B6v%C3%A4gen+50,+735+91+Surahammar&z=12&output=embed"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+              />
+            </div>
             <div className="card">
               <h3>Bokningar</h3>
               <p style={{ fontSize: 16 }}>Boende bokas direkt på sajten. Fest, bröllop, konferens och jakt börjar med en förfrågan eller ett samtal.</p>

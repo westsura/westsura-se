@@ -34,10 +34,17 @@ export default function Hundar() {
             <p>Assistanshundar är alltid varmt välkomna hos oss.</p>
             <h2 className="lower">ansvar</h2>
             <p>Hundägaren ansvarar för sin hund under hela vistelsen och ersätter eventuella skador eller extra städkostnader. Om en hund blir mycket stressad eller upprepade gånger stör andra gäster hittar vi en lösning i dialog med hundägaren — i enstaka fall kan besöket behöva avslutas tidigare.</p>
-            <p><Link className="btn" href="/boende#bokning">Se lediga rum</Link></p>
           </div>
-          <div style={{ aspectRatio: "3 / 4", overflow: "hidden", position: "relative" }}>
-            <Image src="/bilder/jakt.png" alt="Hund på Westsura Herrgårds marker" fill sizes="(max-width: 860px) 100vw, 50vw" style={{ objectFit: "cover" }} />
+          <div>
+            <div className="card" style={{ borderTopColor: "var(--accent)", marginBottom: 24 }}>
+              <p className="label">Boka med hund</p>
+              <h3>Alla rum, utan tillägg</h3>
+              <p style={{ fontSize: 16 }}>Kryssa i <em>Vi har med hund</em> när du bokar, så står vattenskålen framme när ni kommer.</p>
+              <Link className="btn btn--block" href="/boende#bokning">Se lediga rum</Link>
+            </div>
+            <div style={{ aspectRatio: "3 / 4", overflow: "hidden", position: "relative" }}>
+              <Image src="/bilder/jakt.png" alt="Hund på Westsura Herrgårds marker" fill sizes="(max-width: 860px) 100vw, 50vw" style={{ objectFit: "cover" }} />
+            </div>
           </div>
         </div>
       </section>

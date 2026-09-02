@@ -39,6 +39,12 @@ export const img = {
   histTersmeden: wp + "2025/10/PerReinholdTersmeden.jpg",
   hist1928: wp + "2025/10/westsura-1928-1536x1139.jpg",
   histSkola: wp + "2025/10/Skogsbruksskola.jpg",
+  /* Paketbilder från nuvarande sajt */
+  paketKanotDag: wp + "2026/08/Div.-mallar-600-x-400-px3.jpg",
+  paketKanotKvall: wp + "2026/08/Div.-mallar-600-x-400-px4.jpg",
+  paketGlod: wp + "2026/08/Laga-mat-utomus-i-Westsura-1.jpg",
+  paketGolf: wp + "2026/05/4.jpg",
+  eld: wp + "2026/08/Mat-over-oppen-eld-wetsura-herrgard.jpg",
 };
 
 export const kungCitat =

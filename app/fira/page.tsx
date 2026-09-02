@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function Fira() {
   return (
     <Landing
-      hero={{ src: "/bilder/gast-buffe.jpg", alt: "Gäst som tar för sig vid buffén under kristallkronan" }}
+      hero={{ src: "/bilder/gaster.jpg", alt: "Gäster i samtal vid bordet i salongen" }}
       label="Fest & firande"
       title="fira livets stunder hos oss"
       lede="Födelsedagen, jubileet, släktträffen — eller föreningens lunch. En stämningsfull och flexibel miljö för ert firande."
