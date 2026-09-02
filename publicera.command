@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 if [ ! -d .git ]; then
   echo "Första gången: kopplar mappen till GitHub…"
   git init -b main
-  git remote add origin git@github.com:westsura/westsura-se.git
+  git remote add origin https://github.com/westsura/westsura-se.git
 fi
 
 git add -A
