@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 /** Håller admin-sessionen vid liv och skickar utloggade till inloggningen. */
 export async function middleware(req: NextRequest) {
@@ -8,7 +8,7 @@ export async function middleware(req: NextRequest) {
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
       getAll() { return req.cookies.getAll(); },
-      setAll(all) {
+      setAll(all: { name: string; value: string; options?: CookieOptions }[]) {
         all.forEach(({ name, value }) => req.cookies.set(name, value));
         res = NextResponse.next({ request: req });
         all.forEach(({ name, value, options }) => res.cookies.set(name, value, options));

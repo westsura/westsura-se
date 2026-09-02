@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -25,7 +25,7 @@ export async function supabaseServer() {
   return createServerClient(url, anon, {
     cookies: {
       getAll() { return store.getAll(); },
-      setAll(all) {
+      setAll(all: { name: string; value: string; options?: CookieOptions }[]) {
         try { all.forEach(({ name, value, options }) => store.set(name, value, options)); } catch { /* i server components går det inte att sätta cookies */ }
       },
     },
