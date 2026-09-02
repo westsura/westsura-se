@@ -12,7 +12,7 @@ function LoginForm() {
   const [fel, setFel] = useState<string | null>(params.get("fel") === "ingen-behorighet" ? "Kontot har inte behörighet till admin." : null);
   const [pending, start] = useTransition();
   return (
-    <div className="admin__login">
+    <div className="admin__login" style={{ minHeight: "60vh" }}>
       <Image src="/bilder/logo-lockup-gron.png" alt="Westsura Herrgård" width={640} height={390} style={{ height: 80, width: "auto", margin: "0 auto 28px" }} />
       <div className="card" style={{ borderTopColor: "var(--accent)" }}>
         <p className="label">Admin</p>

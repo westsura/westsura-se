@@ -15,7 +15,6 @@ const menu = [
 
 export default function AdminNav() {
   const p = usePathname();
-  if (p.startsWith("/admin/login") || p.startsWith("/admin/auth")) return null;
   return (
     <nav className="admin__nav" aria-label="Admin">
       <p className="label" style={{ marginBottom: 6 }}>Westsura</p>

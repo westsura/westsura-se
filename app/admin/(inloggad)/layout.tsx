@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import AdminNav from "@/app/admin/AdminNav";
+import AdminNav from "./AdminNav";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false, follow: false } };
 
