@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { Hero, DogBand } from "@/components/Blocks";
+import { Hero } from "@/components/Blocks";
 import InquiryForm from "@/components/InquiryForm";
 import { img } from "@/lib/site";
 
@@ -60,7 +60,6 @@ export default function Event() {
         </div>
       </section>
 
-      <DogBand />
     </>
   );
 }

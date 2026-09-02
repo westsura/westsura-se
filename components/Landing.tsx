@@ -5,7 +5,7 @@ export type Faq = { q: string; a: string };
 
 /** Landningssida för en sökintention: bröllop, firande, minnesstund, konferens… */
 export default function Landing({
-  hero, label, title, lede, intro, sections, faq, formTyp, formAlternativ, facts, dog = true,
+  hero, label, title, lede, intro, sections, faq, formTyp, formAlternativ, facts, dog = false,
 }: {
   hero: { src: string; alt: string; remote?: boolean };
   label: string; title: string; lede: string;

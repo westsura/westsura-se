@@ -8,25 +8,17 @@ import { nav, site } from "@/lib/site";
 
 export default function SiteHeader() {
   const pathname = usePathname();
-  const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 80);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
   return (
-    <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
+    <header className="site-header">
       <div className="container">
         <Link className="brand" href="/" aria-label="Westsura Herrgård — till startsidan">
-          <Image src="/bilder/logo-lockup-gron.png" alt="Westsura Herrgård" width={1200} height={732} priority />
+          <Image src="/bilder/logo-lockup-gron.png" alt="Westsura Herrgård" width={640} height={390} priority />
         </Link>
         <nav className="nav" aria-label="Huvudmeny">
           {nav.map((n) => (
