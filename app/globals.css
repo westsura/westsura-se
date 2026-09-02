@@ -554,8 +554,8 @@ p { margin:0 0 20px; max-width:66ch; }
 .tl-item--left .tl-text { text-align:left; }
 
 /* intoning */
-.tl-item { opacity:0; transform:translateY(24px); transition:opacity .7s var(--ease), transform .7s var(--ease); }
-.tl-item.is-in { opacity:1; transform:none; }
+.tl--js .tl-item { opacity:0; transform:translateY(24px); transition:opacity .7s var(--ease), transform .7s var(--ease); }
+.tl--js .tl-item.is-in { opacity:1; transform:none; }
 .tl-item--right .tl-card { transition-delay:.05s; }
 @media (prefers-reduced-motion: reduce) { .tl-item { opacity:1; transform:none; transition:none; } }
 

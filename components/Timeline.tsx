@@ -10,7 +10,8 @@ export type Epok = {
   bild?: { src: string; alt: string; text?: string; portratt?: boolean };
 };
 
-/** Tidslinje med bilder, växelvis vänster och höger, som tonas in när man scrollar. */
+/** Tidslinje med bilder, växelvis vänster och höger, som tonas in när man scrollar.
+ *  Utan JavaScript, eller om något går fel, visas allt direkt. */
 export default function Timeline({ epoker }: { epoker: Epok[] }) {
   const ref = useRef<HTMLOListElement>(null);
 
@@ -18,16 +19,29 @@ export default function Timeline({ epoker }: { epoker: Epok[] }) {
     const el = ref.current;
     if (!el) return;
     const items = Array.from(el.querySelectorAll<HTMLElement>(".tl-item"));
-    if (!("IntersectionObserver" in window) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      items.forEach((i) => i.classList.add("is-in"));
-      return;
-    }
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || !("IntersectionObserver" in window)) return; // allt synligt från start
+
+    el.classList.add("tl--js"); // först nu döljs det som inte scrollats fram
+
+    const visa = (i: HTMLElement) => i.classList.add("is-in");
+    const kolla = () => {
+      const h = window.innerHeight;
+      items.forEach((i) => { if (i.getBoundingClientRect().top < h * 0.88) visa(i); });
+    };
+
     const io = new IntersectionObserver(
-      (entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("is-in"); io.unobserve(e.target); } }),
-      { rootMargin: "0px 0px -12% 0px", threshold: 0.15 },
+      (entries) => entries.forEach((e) => { if (e.isIntersecting) { visa(e.target as HTMLElement); io.unobserve(e.target); } }),
+      { rootMargin: "0px 0px -12% 0px", threshold: 0.1 },
     );
     items.forEach((i) => io.observe(i));
-    return () => io.disconnect();
+
+    kolla();
+    window.addEventListener("scroll", kolla, { passive: true });
+    window.addEventListener("resize", kolla);
+    const t = window.setTimeout(() => items.forEach(visa), 6000); // sista skyddsnät
+
+    return () => { io.disconnect(); window.removeEventListener("scroll", kolla); window.removeEventListener("resize", kolla); window.clearTimeout(t); };
   }, []);
 
   return (
