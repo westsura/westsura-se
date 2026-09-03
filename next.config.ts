@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "westsura.se", pathname: "/wp-content/uploads/**" },
     ],
   },
+  async headers() {
+    if (process.env.INDEXERA === "1") return [];
+    return [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }] }];
+  },
   async redirects() {
     // Gamla WordPress-adresser pekas om så att inarbetad synlighet på Google följer med.
     return [

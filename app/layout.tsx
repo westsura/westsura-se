@@ -3,7 +3,7 @@ import { Cinzel, Cormorant_Garamond, Karla } from "next/font/google";
 import "./globals.css";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
-import { site } from "@/lib/site";
+import { site, indexera } from "@/lib/site";
 
 const cinzel = Cinzel({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--next-cinzel", display: "swap" });
 const cormorant = Cormorant_Garamond({
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   description:
     "Historisk herrgård från 1680 i Surahammar. Boende i flyglarna, dagskonferens, bröllop och fest, jakt och jakthundsträning. Hundvänligt i samtliga rum.",
   openGraph: { type: "website", locale: "sv_SE", siteName: site.name },
-  robots: { index: true, follow: true },
+  robots: indexera ? { index: true, follow: true } : { index: false, follow: false, nocache: true },
 };
 
 const orgJsonLd = {

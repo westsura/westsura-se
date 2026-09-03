@@ -14,6 +14,9 @@ export const site = {
   },
 };
 
+/** Sökmotorer släpps på först när den riktiga domänen är kopplad: sätt INDEXERA=1 i Vercel. */
+export const indexera = process.env.INDEXERA === "1";
+
 export const nav = [
   { href: "/boende", label: "Boende" },
   { href: "/konferens", label: "Konferens" },
