@@ -65,7 +65,7 @@ export default async function Jakt() {
               </div>
               <h3>Jaktklubben</h3>
               <p>Sluten klubb med begränsat antal platser, egna jaktdagar och bokning av vak- och pyrschdygn.</p>
-              <span className="link-more">Logga in eller ansök →</span>
+              <span className="link-more">Ansök eller logga in →</span>
             </Link>
           </div>
         </div>
@@ -115,10 +115,10 @@ export default async function Jakt() {
             <p className="label">Jaktklubben</p>
             <h2 className="lower" style={{ color: "var(--ws-cream)" }}>för den som vill höra till</h2>
             <p>En sluten jaktklubb med begränsat antal platser i tre nivåer. Medlemmar får egna gemensamma jaktdagar, ingående vak- och pyrschdygn, förtur till bokning och tillgång till kartor, regler och dokument.</p>
-            <p style={{ marginBottom: 0 }}>Medlemskap beviljas av herrgården. Är du medlem loggar du in här; är du intresserad kan du anmäla ditt intresse.</p>
+            <p style={{ marginBottom: 0 }}>Medlemskap söks, och beviljas av herrgården. Läs om de tre nivåerna och ansök — eller logga in om du redan är medlem.</p>
             <div className="cta-row" style={{ marginTop: 24 }}>
-              <Link className="btn" href="/jaktklubben">Logga in</Link>
-              <Link className="btn btn--ghost" href="/jaktklubben#intresse" style={{ color: "var(--ws-cream)", borderColor: "rgba(215,174,98,.5)" }}>Anmäl intresse</Link>
+              <Link className="btn" href="/jaktklubben#ansokan">Ansök om medlemskap</Link>
+              <Link className="btn btn--ghost" href="/jaktklubben#medlem" style={{ color: "var(--ws-cream)", borderColor: "rgba(215,174,98,.5)" }}>Logga in</Link>
             </div>
           </div>
           <div style={{ display: "grid", placeItems: "center" }}>

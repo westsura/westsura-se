@@ -1,7 +1,7 @@
 "use server";
 
 import { supabaseAdmin, supabasePublik } from "@/lib/supabase";
-import { mejlBokning, mejlForfragan, mejlAnmalan } from "@/lib/epost";
+import { mejlBokning, mejlForfragan, mejlAnmalan, mejlMedlemsansokan } from "@/lib/epost";
 
 export type Svar<T = undefined> = { ok: true; data: T } | { ok: false; fel: string };
 
@@ -75,6 +75,22 @@ export async function skapaForfragan(fd: FormData): Promise<Svar<{ nummer: numbe
   try {
     await mejlForfragan({ epost, namn, typ, nummer: data.nummer, datum: s(fd.get("datum")), antal: s(fd.get("antal")), meddelande: s(fd.get("meddelande")), telefon: s(fd.get("telefon")) });
   } catch (e) { console.error("mejl misslyckades", e); }
+  return { ok: true, data: { nummer: data.nummer } };
+}
+
+/* ---------- Medlemsansökan jaktklubben ---------- */
+export async function skapaMedlemsansokan(fd: FormData): Promise<Svar<{ nummer: number }>> {
+  const namn = s(fd.get("namn")), epost = s(fd.get("epost")).toLowerCase(), telefon = s(fd.get("telefon")), ort = s(fd.get("ort")), text = s(fd.get("text"));
+  if (!namn || !epost.includes("@")) return { ok: false, fel: "Fyll i namn och en giltig e-postadress." };
+  if (!telefon) return { ok: false, fel: "Fyll i ett telefonnummer så vi kan ringa dig." };
+  if (text.length < 20) return { ok: false, fel: "Berätta lite mer om dig själv — några meningar räcker." };
+  const db = supabaseAdmin();
+  const { data, error } = await db.from("forfragan").insert({
+    typ: "Medlemsansökan jaktklubben", namn, epost, telefon,
+    meddelande: (ort ? `Ort: ${ort}\n\n` : "") + text,
+  }).select("nummer").single();
+  if (error) return { ok: false, fel: error.message };
+  try { await mejlMedlemsansokan({ epost, namn, telefon, ort, nummer: data.nummer, text }); } catch (e) { console.error("mejl misslyckades", e); }
   return { ok: true, data: { nummer: data.nummer } };
 }
 

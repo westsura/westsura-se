@@ -45,6 +45,17 @@ export async function mejlForfragan(o: { epost: string; namn: string; typ: strin
   ], ""), o.epost);
 }
 
+export async function mejlMedlemsansokan(o: { epost: string; namn: string; telefon?: string; ort?: string; nummer: number; text: string }) {
+  await skicka([o.epost], `Din ansökan till Westsura Herrgårds jaktklubb`, html("Tack för din ansökan", [
+    `Hej ${o.namn}, vi har tagit emot din ansökan om medlemskap i jaktklubben (nummer ${o.nummer}).`,
+    `Medlemskap beviljas av herrgården och antalet platser är begränsat. Vi läser din ansökan och hör av oss personligen — räkna med några dagar.`,
+    `Frågor under tiden? Ring ${site.phone}.`,
+  ], "Med vänliga hälsningar, Westsura Herrgård"));
+  await skicka([site.email], `Medlemsansökan jaktklubben ${o.nummer}: ${o.namn}`, html("Ny medlemsansökan till jaktklubben", [
+    `${o.namn} · ${o.epost}${o.telefon ? " · " + o.telefon : ""}${o.ort ? " · " + o.ort : ""}`, o.text.replace(/\n/g, "<br>"), `Hantera i admin under Förfrågningar.`,
+  ], ""), o.epost);
+}
+
 export async function mejlAnmalan(o: { epost: string; namn: string; titel: string; datum: string; status: string; antal: number }) {
   const vantelista = o.status === "vantelista";
   await skicka([o.epost], vantelista ? `Du står på väntelista: ${o.titel}` : `Din anmälan: ${o.titel}`, html(

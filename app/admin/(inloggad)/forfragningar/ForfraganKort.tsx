@@ -19,7 +19,7 @@ export default function ForfraganKort({ f, underlag }: { f: F; underlag?: { id: 
         <div>
           <span className={`pill pill--${status}`}>{STATUS.find((x) => x[0] === status)?.[1]}</span>
           <b style={{ marginLeft: 10 }}>{f.typ}</b> · {f.namn}
-          <div className="admin__meta">#{f.nummer} · {new Date(f.skapad).toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" })} · {f.onskat_datum || "datum ej satt"} · {f.antal_gaster || "?"} gäster{f.hundar ? " · hundar" : ""}</div>
+          <div className="admin__meta">#{f.nummer} · {new Date(f.skapad).toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" })}{f.typ.startsWith("Medlemsansökan") ? "" : ` · ${f.onskat_datum || "datum ej satt"} · ${f.antal_gaster || "?"} gäster`}{f.hundar ? " · hundar" : ""}</div>
         </div>
         <div className="admin__meta"><a href={`tel:${f.telefon}`}>{f.telefon}</a><br /><a href={`mailto:${f.epost}?subject=${encodeURIComponent("Er förfrågan till Westsura Herrgård")}`}>{f.epost}</a></div>
       </div>

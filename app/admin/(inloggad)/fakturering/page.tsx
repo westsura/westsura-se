@@ -2,6 +2,7 @@ import Link from "next/link";
 import { kravAdmin, kr, FAKTURASTATUS as STATUS } from "@/lib/admin";
 import { supabaseServer } from "@/lib/supabase";
 import NyttUnderlag from "./NyttUnderlag";
+import TaBortKnapp from "./TaBortKnapp";
 
 export const dynamic = "force-dynamic";
 
@@ -41,9 +42,9 @@ export default async function Fakturering({ searchParams }: { searchParams: Prom
       <div className="admin__panel">
         <div className="tablewrap">
           <table className="admin__table">
-            <thead><tr><th>Nr</th><th>Kund</th><th>Avser</th><th>Källa</th><th className="num">Summa</th><th>Förfaller</th><th>Status</th><th>Fortnox</th></tr></thead>
+            <thead><tr><th>Nr</th><th>Kund</th><th>Avser</th><th>Källa</th><th className="num">Summa</th><th>Förfaller</th><th>Status</th><th>Fortnox</th><th></th></tr></thead>
             <tbody>
-              {!rader?.length && <tr><td colSpan={8} className="empty">Inget här. Underlag skapas från en bokning eller förfrågan, eller med knappen Nytt.</td></tr>}
+              {!rader?.length && <tr><td colSpan={9} className="empty">Inget här. Underlag skapas från en bokning eller förfrågan, eller med knappen Nytt.</td></tr>}
               {rader?.map((u) => {
                 const sen = u.status === "fakturerad" && u.forfallodatum && u.forfallodatum < idag;
                 return (
@@ -56,6 +57,7 @@ export default async function Fakturering({ searchParams }: { searchParams: Prom
                     <td style={sen ? { color: "#a33", fontWeight: 700 } : undefined}>{u.forfallodatum ?? "—"}</td>
                     <td><span className={`pill pill--${u.status}`}>{STATUS[u.status]}</span></td>
                     <td>{u.fortnox_nummer ?? <small>—</small>}</td>
+                    <td className="admin__actions"><Link className="btn btn--sm" href={`/admin/fakturering/${u.id}`}>Öppna</Link><TaBortKnapp id={u.id} nummer={u.nummer} /></td>
                   </tr>
                 );
               })}
