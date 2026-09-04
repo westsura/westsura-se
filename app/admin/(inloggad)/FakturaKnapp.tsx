@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { skapaUnderlagFranBokning, skapaUnderlagFranForfragan } from "@/app/admin/actions";
-import { FAKTURASTATUS } from "@/lib/admin";
+import { FAKTURASTATUS } from "@/lib/faktura";
 
 /** Länk till befintligt fakturaunderlag, eller knapp som skapar ett. */
 export default function FakturaKnapp({ bokningId, forfraganId, underlagId, status }: { bokningId?: string; forfraganId?: string; underlagId?: string | null; status?: string | null }) {

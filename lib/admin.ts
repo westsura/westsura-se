@@ -19,6 +19,4 @@ export async function kravAdmin(...roller: Roll[]): Promise<Admin> {
 export const harRoll = (a: Admin, r: Roll) => a.roller.includes("superadmin") || a.roller.includes(r);
 
 export const datum = (d: string | Date) => new Date(d).toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
-export const kr = (n: number) => n.toLocaleString("sv-SE") + " kr";
-
-export const FAKTURASTATUS: Record<string, string> = { ej_fakturerad: "Att fakturera", fakturerad: "Fakturerad", betald: "Betald", krediterad: "Krediterad" };
+export { kr, FAKTURASTATUS } from "@/lib/faktura";

@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { sparaUnderlag, taBortUnderlag, type Fakturarad } from "@/app/admin/actions";
-import { FAKTURASTATUS, kr } from "@/lib/admin";
+import { FAKTURASTATUS, kr } from "@/lib/faktura";
 
 type U = {
   id: string; nummer: number; rubrik: string; status: string;
