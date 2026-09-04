@@ -9,6 +9,7 @@ const menu = [
   { href: "/admin/kalender", label: "Kalender" },
   { href: "/admin/bokningar", label: "Bokningar" },
   { href: "/admin/forfragningar", label: "Förfrågningar" },
+  { href: "/admin/fakturering", label: "Fakturering" },
   { href: "/admin/tillfallen", label: "Tillfällen" },
   { href: "/admin/vanner", label: "Vänner" },
 ];

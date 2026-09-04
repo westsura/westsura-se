@@ -253,6 +253,8 @@ p { margin:0 0 20px; max-width:66ch; }
 .cat { text-decoration:none; display:flex; flex-direction:column; color:var(--text-body); height:100%; }
 .cat__img { overflow:hidden; aspect-ratio:9/11; background:var(--ws-green-100); }
 .cat__img img { width:100%; height:100%; object-fit:cover; transition:transform 1.2s var(--ease); }
+.cat__img--vapen { display:grid; place-items:center; background:var(--ws-cream); padding:8%; }
+.cat__img--vapen img { width:100%; height:auto; object-fit:contain; }
 .cat:hover .cat__img img { transform:scale(1.04); }
 .cat h3 { margin:22px 0 8px; transition:color .3s var(--ease); }
 .cat:hover h3 { color:var(--accent-strong); }
@@ -404,10 +406,18 @@ p { margin:0 0 20px; max-width:66ch; }
   position:relative; overflow:hidden; text-align:center;
   background:var(--surface-band); padding:120px 0 116px;
 }
+/* Jaktklubbens emblemhuvud */
+.emblem { padding:64px 0 60px; }
+.emblem__vapen { color:var(--ws-gold-400); }
+.emblem h1 { font-family:var(--font-display); font-weight:400; font-size:clamp(30px,4vw,44px); letter-spacing:.02em; }
+.emblem__lede { max-width:52ch; margin:0 auto; font-family:var(--font-serif); font-size:20px; line-height:1.5; }
+/* Vapnet som linjeteckning: färgas via color, maskas från SVG */
+.vapen { display:inline-block; background-color:currentColor; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-size:contain; mask-size:contain; -webkit-mask-position:center; mask-position:center; pointer-events:none; user-select:none; }
 .kung__art {
-  position:absolute; left:50%; top:50%; transform:translate(-50%,-54%);
-  width:min(960px, 130%); opacity:.11; pointer-events:none; user-select:none;
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  color:var(--text-heading); opacity:.09; max-width:none;
 }
+@media (max-width:700px) { .kung__art { width:100vw !important; height:auto !important; aspect-ratio:1288/1269; } }
 .kung .container { position:relative; }
 .kung blockquote {
   margin:0 auto; max-width:24ch;
@@ -622,7 +632,7 @@ p { margin:0 0 20px; max-width:66ch; }
 .admin__filter { display:flex; gap:4px; flex-wrap:wrap; }
 .admin__filter a { text-decoration:none; font-size:12px; letter-spacing:.1em; text-transform:uppercase; padding:8px 12px; border:1px solid var(--border-subtle); color:var(--text-heading); background:var(--ws-white); }
 .admin__filter a[aria-current="page"] { background:var(--text-heading); color:var(--ws-cream); border-color:var(--text-heading); }
-.admin__stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+.admin__stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-bottom:24px; }
 .stat { background:var(--ws-white); border:1px solid var(--border-subtle); border-top:2px solid var(--border-gold); padding:18px 20px; text-decoration:none; color:inherit; }
 .stat b { display:block; font-family:var(--font-display); font-size:30px; color:var(--text-heading); line-height:1; }
 .stat span { font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--ws-ink-40); }
@@ -648,6 +658,35 @@ p { margin:0 0 20px; max-width:66ch; }
 .ff__head { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; }
 .ff__foot { display:flex; gap:10px; margin-top: 12px; }
 .ff select, .ff input, .admin__table select { font-family:var(--font-sans); font-size:14px; padding:8px 10px; border:1px solid var(--border-subtle); background:var(--ws-white); }
+.pill--ej_fakturerad { background:var(--ws-gold-100); border-color:var(--border-gold); }
+.pill--fakturerad { background:#e8ecf3; border-color:#9aa8c2; }
+.pill--betald { background:#e3ede6; border-color:#8fb39e; }
+.pill--krediterad { background:#f1eeea; color:var(--ws-ink-40); }
+
+/* Fakturaunderlag */
+.underlag__bar { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+.underlag__grid { display:grid; grid-template-columns:1.2fr 1fr; gap:16px; }
+.underlag .form .field input, .underlag .form .field textarea, .underlag .form .field select, .underlag__rader input, .underlag__rader select { font-family:var(--font-sans); font-size:14px; padding:8px 10px; border:1px solid var(--border-subtle); background:var(--ws-white); }
+.underlag__rader td { vertical-align:middle; }
+.underlag__rader tfoot td { border-bottom:0; padding:6px 10px; }
+.underlag__rader tfoot .underlag__sub td { padding:2px 10px; color:var(--ws-ink-40); }
+.underlag__rader tfoot .underlag__total td { font-weight:700; font-size:16px; border-top:1px solid var(--border-gold); padding-top:10px; }
+.print-only { display:none; }
+@media (max-width:900px) { .underlag__grid { grid-template-columns:1fr; } }
+@media print {
+  .site-header, .site-footer, .admin__nav, .print-hide { display:none !important; }
+  .admin { display:block; background:#fff; }
+  .admin__main { padding:0; }
+  .admin__panel { border:0; padding:0 0 18px; }
+  .underlag__grid { display:block; }
+  .underlag .form { display:none; }
+  .print-only { display:block; }
+  .underlag__rader input, .underlag__rader select { display:none; }
+  .underlag__rader td .print-only { display:inline; }
+  .underlag__kund { font-size:15px; line-height:1.5; margin-bottom:12px; }
+  body { color:#000; }
+}
+
 .admin__login { max-width:420px; margin:80px auto; padding:0 24px; text-align:center; }
 .admin__login .card { text-align:left; }
 

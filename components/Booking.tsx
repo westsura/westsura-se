@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
+import Fakturafalt from "@/components/Fakturafalt";
 import { hamtaTillganglighet, hamtaPris, skapaBokning } from "@/app/actions";
 import { img, site } from "@/lib/site";
 
@@ -219,6 +220,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                     <div className="field"><label htmlFor="b-epost">E-post</label><input id="b-epost" name="epost" type="email" required autoComplete="email" /></div>
                     <div className="field"><label htmlFor="b-tel">Telefon</label><input id="b-tel" name="telefon" type="tel" required autoComplete="tel" /></div>
                     <div className="field"><label htmlFor="b-medd">Önskemål</label><textarea id="b-medd" name="meddelande" style={{ minHeight: 80 }} placeholder="Sen ankomst, allergier, hundens namn…" /></div>
+                    <Fakturafalt prefix="bf" />
                     <button className="btn btn--block" type="submit" disabled={pending}>{pending ? "Skickar…" : `Boka för ${kr(summa)}`}</button>
                     <button type="button" className="link-more" style={{ background: "none", border: 0, borderBottom: "1px solid var(--border-gold)", cursor: "pointer", justifySelf: "center" }} onClick={() => setSteg("valj")}>Ändra valet</button>
                     <p style={{ fontSize: 13, color: "var(--ws-ink-40)", margin: 0 }}>Bokningen blir preliminär direkt och bindande när ni fått vår bekräftelse. Fri avbokning fram till 7 dagar före ankomst.</p>

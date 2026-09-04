@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { skapaForfragan } from "@/app/actions";
 import { site } from "@/lib/site";
+import Fakturafalt from "@/components/Fakturafalt";
 
 /** Förfrågan för event, firande, konferens och jakt. Sparas i databasen och bekräftas per mejl. */
 export default function InquiryForm({ typ = "Firande", alternativ }: { typ?: string; alternativ?: string[] }) {
@@ -68,6 +69,7 @@ export default function InquiryForm({ typ = "Firande", alternativ }: { typ?: str
           <span>Det kommer hundar till festen</span>
         </label>
       </div>
+      <Fakturafalt prefix="ff" full />
       {fel && <div className="notice field--full" style={{ borderLeftColor: "#a33" }}>{fel}</div>}
       <div className="field--full cta-row">
         <button className="btn" type="submit" disabled={pending}>{pending ? "Skickar…" : "Skicka förfrågan"}</button>

@@ -3,6 +3,7 @@ import { supabaseServer } from "@/lib/supabase";
 import BokningsKnappar from "./BokningsKnappar";
 import ManuellBokning from "./ManuellBokning";
 import Link from "next/link";
+import FakturaKnapp from "../FakturaKnapp";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,11 @@ export default async function Bokningar({ searchParams }: { searchParams: Promis
                   <td className="num">{b.antal_personer}</td>
                   <td className="num">{kr(b.summa)}</td>
                   <td><span className={`pill pill--${b.status}`}>{b.status}</span><br /><small>{b.kalla}</small></td>
-                  <td><BokningsKnappar id={b.id} status={b.status} /></td>
+                  <td>
+                    <BokningsKnappar id={b.id} status={b.status} />
+                    <div style={{ marginTop: 6 }}><FakturaKnapp bokningId={b.id} underlagId={b.underlag_id} status={b.fakturastatus} /></div>
+                    {b.faktura && <small title={[b.faktura.foretag, b.faktura.orgnr, b.faktura.adress, b.faktura.referens, b.faktura.epost].filter(Boolean).join(" · ")}>Fakturauppgifter lämnade</small>}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -10,12 +10,13 @@ export default async function Oversikt() {
   const idag = new Date().toISOString().slice(0, 10);
   const omEnVecka = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
-  const [{ data: ankomster }, { data: avresor }, { data: nyaBokningar }, { data: nyaForfragningar }, { count: vanner }] = await Promise.all([
+  const [{ data: ankomster }, { data: avresor }, { data: nyaBokningar }, { data: nyaForfragningar }, { count: vanner }, { count: attFakturera }] = await Promise.all([
     db.from("bokningar_admin").select("*").neq("status", "avbokad").gte("ankomst", idag).lte("ankomst", omEnVecka).order("ankomst"),
     db.from("bokningar_admin").select("*").neq("status", "avbokad").eq("avresa", idag),
     db.from("bokningar_admin").select("*").eq("status", "preliminar").order("skapad", { ascending: false }),
     db.from("forfragan").select("*").in("status", ["ny", "pagar"]).order("skapad", { ascending: false }),
     db.from("van").select("*", { count: "exact", head: true }).is("avanmald_tid", null),
+    db.from("fakturaunderlag").select("*", { count: "exact", head: true }).eq("status", "ej_fakturerad"),
   ]);
 
   return (
@@ -29,6 +30,7 @@ export default async function Oversikt() {
         <Link href="/admin/bokningar?status=preliminar" className="stat"><b>{nyaBokningar?.length ?? 0}</b><span>Bokningar att bekräfta</span></Link>
         <Link href="/admin/forfragningar" className="stat"><b>{nyaForfragningar?.length ?? 0}</b><span>Obesvarade förfrågningar</span></Link>
         <Link href="/admin/kalender" className="stat"><b>{ankomster?.length ?? 0}</b><span>Ankomster inom en vecka</span></Link>
+        <Link href="/admin/fakturering" className="stat"><b>{attFakturera ?? 0}</b><span>Att fakturera</span></Link>
         <Link href="/admin/vanner" className="stat"><b>{vanner ?? 0}</b><span>Westsuras Vänner</span></Link>
       </div>
 

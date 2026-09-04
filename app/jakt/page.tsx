@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { Hero } from "@/components/Blocks";
+import { Hero, Vapen } from "@/components/Blocks";
 import Tillfallen, { type Tillfalle } from "@/components/Tillfallen";
 import { img, site } from "@/lib/site";
 import { supabasePublik } from "@/lib/supabase";
@@ -60,8 +60,8 @@ export default async function Jakt() {
               <span className="link-more">Se datum →</span>
             </a>
             <Link className="cat" href="/jaktklubben">
-              <div className="cat__img" style={{ position: "relative" }}>
-                <Image src="/bilder/matsal.jpg" alt="Biblioteket på herrgården" fill sizes="(max-width: 980px) 50vw, 25vw" style={{ objectFit: "cover" }} />
+              <div className="cat__img cat__img--vapen">
+                <Vapen variant="farg" size={200} />
               </div>
               <h3>Jaktklubben</h3>
               <p>Sluten klubb med begränsat antal platser, egna jaktdagar och bokning av vak- och pyrschdygn.</p>
@@ -121,8 +121,8 @@ export default async function Jakt() {
               <Link className="btn btn--ghost" href="/jaktklubben#intresse" style={{ color: "var(--ws-cream)", borderColor: "rgba(215,174,98,.5)" }}>Anmäl intresse</Link>
             </div>
           </div>
-          <div style={{ aspectRatio: "4 / 3", overflow: "hidden", position: "relative" }}>
-            <Image src="/bilder/matsal.jpg" alt="Salongen där jaktlaget samlas" fill sizes="(max-width: 860px) 100vw, 50vw" style={{ objectFit: "cover" }} />
+          <div style={{ display: "grid", placeItems: "center" }}>
+            <Vapen size={300} style={{ color: "var(--ws-gold-400)" }} />
           </div>
         </div>
       </section>

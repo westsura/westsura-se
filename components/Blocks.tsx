@@ -40,11 +40,25 @@ export function PageHead({ label, title, lede }: { label?: string; title: string
   );
 }
 
+/* ---------- Vapnet ----------
+   Westsura Herrgårds vapen (Sven-Åke Larsson & riksheraldikern, ca 2000).
+   "linje" = enfärgad linjeteckning som tar färg från `color`; "skold" = bara skölden; "farg" = fullfärg. */
+export function Vapen({ variant = "linje", size = 240, className, style }: { variant?: "linje" | "skold" | "farg"; size?: number; className?: string; style?: React.CSSProperties }) {
+  if (variant === "farg") {
+    return <Image className={className} src="/bilder/vapen.png" alt="Westsura Herrgårds vapen" width={size} height={Math.round(size * 0.985)} style={style} />;
+  }
+  const src = variant === "skold" ? "/bilder/skold-linje.svg" : "/bilder/vapen-linje.svg";
+  const ratio = variant === "skold" ? 626 / 497 : 1269 / 1288;
+  return (
+    <span className={`vapen${className ? " " + className : ""}`} aria-hidden style={{ width: size, height: Math.round(size * ratio), WebkitMaskImage: `url(${src})`, maskImage: `url(${src})`, ...style }} />
+  );
+}
+
 /* ---------- Kungens almanacka ---------- */
 export function Kung() {
   return (
     <section className="kung" id="almanackan">
-      <Image className="kung__art" src="/bilder/herrgard-linje-gron.png" alt="" aria-hidden width={553} height={231} />
+      <Vapen className="kung__art" size={470} />
       <div className="container">
         <p className="label">Ur Karl XI:s almanacka · 1687</p>
         <blockquote>

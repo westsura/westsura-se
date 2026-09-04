@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PageHead } from "@/components/Blocks";
+import { Vapen } from "@/components/Blocks";
 import InquiryForm from "@/components/InquiryForm";
 import { site } from "@/lib/site";
 
@@ -13,8 +13,16 @@ export const metadata: Metadata = {
 export default function Jaktklubben() {
   return (
     <>
-      <PageHead label="Jaktklubben" title="för medlemmar" lede="En sluten jaktklubb med begränsat antal platser. Medlemmar bokar jaktdagar, vak- och pyrschdygn och hittar kartor, regler och dokument här." />
-      <section style={{ paddingBottom: 96 }}>
+      {/* Emblemhuvud: vapnet i guld på mörk botten — jaktklubbens egen signatur */}
+      <section className="section dark emblem">
+        <div className="container" style={{ textAlign: "center" }}>
+          <Vapen size={190} className="emblem__vapen" />
+          <p className="label" style={{ marginTop: 26 }}>Westsura Herrgårds jaktklubb</p>
+          <h1 className="lower" style={{ color: "var(--ws-cream)", margin: "6px 0 14px" }}>för medlemmar</h1>
+          <p className="emblem__lede">En sluten jaktklubb med begränsat antal platser. Medlemmar bokar jaktdagar, vak- och pyrschdygn och hittar kartor, regler och dokument här.</p>
+        </div>
+      </section>
+      <section style={{ padding: "72px 0 96px" }}>
         <div className="container split" style={{ alignItems: "start" }}>
           <div className="card" style={{ borderTopColor: "var(--accent)" }}>
             <p className="label">Logga in</p>

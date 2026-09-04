@@ -7,6 +7,12 @@ export type Svar<T = undefined> = { ok: true; data: T } | { ok: false; fel: stri
 
 const s = (v: FormDataEntryValue | null) => (typeof v === "string" ? v.trim() : "");
 
+/** Frivilliga fakturauppgifter från formuläret, eller null om inget fyllts i. */
+function fakturaFran(fd: FormData) {
+  const f = { foretag: s(fd.get("faktura_foretag")), orgnr: s(fd.get("faktura_orgnr")), adress: s(fd.get("faktura_adress")), referens: s(fd.get("faktura_referens")), epost: s(fd.get("faktura_epost")) };
+  return Object.values(f).some(Boolean) ? f : null;
+}
+
 /* ---------- Tillgänglighet och pris (publikt) ---------- */
 export async function hamtaTillganglighet(ankomst: string, avresa: string): Promise<Svar<Record<string, boolean>>> {
   const db = supabasePublik();
@@ -44,6 +50,8 @@ export async function skapaBokning(fd: FormData): Promise<Svar<{ nummer: number;
     return { ok: false, fel: msg };
   }
   const rad = (data as { bokning_id: string; nummer: number; summa: number }[])[0];
+  const faktura = fakturaFran(fd);
+  if (faktura) await db.from("bokning").update({ faktura }).eq("id", rad.bokning_id);
 
   const { data: namnrader } = await db.from("enhet").select("id, namn").in("id", enheter);
   const namnlista = enheter.map((id) => namnrader?.find((r) => r.id === id)?.namn ?? id);
@@ -61,7 +69,7 @@ export async function skapaForfragan(fd: FormData): Promise<Svar<{ nummer: numbe
   const { data, error } = await db.from("forfragan").insert({
     typ, onskat_datum: s(fd.get("datum")) || null, antal_gaster: s(fd.get("antal")) || null,
     hundar: !!fd.get("hund"), namn, telefon: s(fd.get("telefon")) || null, epost: epost.toLowerCase(),
-    meddelande: s(fd.get("meddelande")) || null,
+    meddelande: s(fd.get("meddelande")) || null, faktura: fakturaFran(fd),
   }).select("nummer").single();
   if (error) return { ok: false, fel: error.message };
   try {
