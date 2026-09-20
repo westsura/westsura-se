@@ -84,35 +84,35 @@ export default function OmOss() {
         lede="Säteri, bruksegendom, skogsinstitut, skola, konferensanläggning — och i dag en plats där historia och samtid lever sida vid sida." />
 
       <section className="section section--tight">
-        <div className="container" style={{ maxWidth: 800, textAlign: "center" }}>
+        <div className="container narrow--md center prose--center">
           <Ornament />
           <p className="label">Vår vision</p>
           <h2 className="lower">att bli sveriges mest levande herrgårdsdestination</h2>
-          <p className="lede" style={{ margin: "0 auto 20px" }}>Där historia, jakt, lokal mat och dryck, hantverk och natur möts i genuina upplevelser året runt.</p>
-          <p style={{ margin: "0 auto 20px" }}>Westsura Herrgård ska vara en levande plats som lockar både lokalbor och internationella gäster att uppleva det bästa av det svenska landskapet och kulturarvet. Här möts människor kring matbordet, i naturen, på jaktmarkerna, i handelsboden och under herrgårdens tak.</p>
-          <p style={{ margin: "0 auto 20px" }}>Vi vill skapa en destination där historia och samtid lever sida vid sida. Där lokala råvaror, producenter och hantverkare får ta plats. Där måltider berättar om platsen, årstiderna och människorna bakom råvarorna. Där jakt och naturupplevelser förvaltar en flera hundra år gammal tradition och blir en naturlig del av helheten.</p>
-          <p style={{ margin: "0 auto 20px" }}>Westsura Herrgård ska vara lika självklar för en söndagsutflykt som för konferensen, bröllopet, weekendvistelsen eller den exklusiva jaktupplevelsen. En plats med låg tröskel att besöka, men med en kvalitet och omtanke som gör att gästerna vill återvända.</p>
-          <p style={{ margin: "0 auto", fontFamily: "var(--font-serif)", fontSize: 22, fontStyle: "italic", color: "var(--text-heading)" }}>En levande herrgård. En levande destination. En plats att längta tillbaka till.</p>
+          <p className="lede">Där historia, jakt, lokal mat och dryck, hantverk och natur möts i genuina upplevelser året runt.</p>
+          <p>Westsura Herrgård ska vara en levande plats som lockar både lokalbor och internationella gäster att uppleva det bästa av det svenska landskapet och kulturarvet. Här möts människor kring matbordet, i naturen, på jaktmarkerna, i handelsboden och under herrgårdens tak.</p>
+          <p>Vi vill skapa en destination där historia och samtid lever sida vid sida. Där lokala råvaror, producenter och hantverkare får ta plats. Där måltider berättar om platsen, årstiderna och människorna bakom råvarorna. Där jakt och naturupplevelser förvaltar en flera hundra år gammal tradition och blir en naturlig del av helheten.</p>
+          <p>Westsura Herrgård ska vara lika självklar för en söndagsutflykt som för konferensen, bröllopet, weekendvistelsen eller den exklusiva jaktupplevelsen. En plats med låg tröskel att besöka, men med en kvalitet och omtanke som gör att gästerna vill återvända.</p>
+          <p className="motto mb-0">En levande herrgård. En levande destination. En plats att längta tillbaka till.</p>
         </div>
       </section>
 
       <section className="section tint">
         <div className="container split">
-          <div style={{ aspectRatio: "3 / 2", overflow: "hidden", position: "relative" }}>
-            <Image src="/bilder/picknick.jpg" alt="Familj på picknickfilt framför herrgården" fill sizes="(max-width: 860px) 100vw, 50vw" style={{ objectFit: "cover", objectPosition: "50% 64%" }} />
+          <div className="fig fig--32">
+            <Image src="/bilder/picknick.jpg" alt="Familj på picknickfilt framför herrgården" fill sizes="(max-width: 860px) 100vw, 50vw" style={{ objectPosition: "50% 64%" }} />
           </div>
           <div>
             <p className="label">I dag</p>
             <h2 className="lower">en mötesplats året runt</h2>
             <p>Herrgården drivs med ambitionen att skapa en levande destination där både lokalbor och långväga gäster känner sig välkomna. En plats där historien får leva vidare samtidigt som nya minnen skapas.</p>
-            <p style={{ marginBottom: 0 }}>Våra måltider bygger på omsorg, säsong och så lokala råvaror som möjligt — alltid med respekt för platsen och människorna bakom råvarorna.</p>
+            <p className="mb-0">Våra måltider bygger på omsorg, säsong och så lokala råvaror som möjligt — alltid med respekt för platsen och människorna bakom råvarorna.</p>
           </div>
         </div>
       </section>
 
       <section className="section">
         <div className="container">
-          <div style={{ maxWidth: 800, marginBottom: 56 }}>
+          <div className="intro-block">
             <p className="label">Historik</p>
             <h2 className="lower">historien om westsura herrgård</h2>
             <p className="lede">Herrgården har en rik historia som sträcker sig tillbaka till 1600-talet och har genom åren fungerat som säteri, bruksegendom, skogsinstitut, skola, asylboende och konferensanläggning.</p>

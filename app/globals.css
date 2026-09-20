@@ -116,12 +116,13 @@ p { margin:0 0 20px; max-width:66ch; }
 .rule { border:0; border-top:var(--rule-gold); margin:0; }
 
 /* --- Knappar --- */
+/* Två storlekar, inga lokala överstyrningar: .btn = 52 px, .btn--sm = 40 px */
 .btn {
-  display:inline-block;
+  display:inline-flex; align-items:center; justify-content:center;
   font-family:var(--font-sans);
-  font-size:13px; font-weight:700;
+  font-size:13px; font-weight:700; line-height:18px;
   letter-spacing:var(--tracking-caps); text-transform:uppercase;
-  padding:16px 30px; border:1px solid transparent; border-radius:0;
+  height:52px; padding:0 30px; border:1px solid transparent; border-radius:0;
   background:var(--ws-gold-400); color:var(--ws-green-700); text-decoration:none;
   cursor:pointer; transition:background var(--ease) .3s, color var(--ease) .3s;
 }
@@ -131,8 +132,11 @@ p { margin:0 0 20px; max-width:66ch; }
 .btn--onDark { background:var(--ws-gold-400); color:var(--ws-green-700); }
 .dark .btn:hover, .dark .btn:focus-visible { background:var(--ws-cream); color:var(--ws-green-700); }
 .dark .btn--ghost:hover, .dark .btn--ghost:focus-visible { background:var(--ws-cream); color:var(--ws-green-700) !important; border-color:var(--ws-cream); }
-.btn--block { display:block; width:100%; text-align:center; }
+.btn--block { display:flex; width:100%; }
+.btn--sm { height:40px; padding:0 18px; font-size:12px; letter-spacing:.14em; }
 .btn[disabled] { opacity:.45; cursor:not-allowed; }
+/* Spökknapp på mörk botten */
+.dark .btn--ghost { color:var(--ws-cream); border-color:rgba(215,174,98,.5); }
 .link-more {
   font-size:13px; font-weight:700; letter-spacing:var(--tracking-caps);
   text-transform:uppercase; text-decoration:none; color:var(--ws-gold-700);
@@ -177,7 +181,7 @@ p { margin:0 0 20px; max-width:66ch; }
   .site-header .container { min-height:74px; gap:10px; }
   .tel { display:none; }
   .header-actions { gap:8px; margin-left:auto; }
-  .header-actions .btn { padding:11px 16px; font-size:12px; letter-spacing:.14em; }
+  .header-actions .btn { height:40px; padding:0 16px; font-size:12px; letter-spacing:.14em; }
 }
 
 /* --- Hero --- */
@@ -241,18 +245,64 @@ p { margin:0 0 20px; max-width:66ch; }
   letter-spacing:0; text-transform:none; font-weight:400;
 }
 .checkfield--bare { border:0; padding:0; height:auto; background:transparent; }
-.searchbar .btn { height:52px; padding-top:0; padding-bottom:0; display:inline-flex; align-items:center; white-space:nowrap; }
+.searchbar .btn { white-space:nowrap; }
 
 /* --- Rutnät --- */
 .grid { display:grid; gap:32px; align-items:stretch; }
 .grid-2 { grid-template-columns:repeat(2,1fr); }
 .grid-3 { grid-template-columns:repeat(3,1fr); }
 .grid-4 { grid-template-columns:repeat(4,1fr); }
+.grid--wide { gap:48px; }
+/* Vanliga frågor */
+.faq__label { margin-top:40px; }
+.faq { border-top:1px solid var(--border-subtle); padding:12px 0; }
+.faq summary { cursor:pointer; color:var(--text-heading); font-weight:500; }
+.faq p { margin:10px 0 0; font-size:16px; }
 @media (max-width:980px) { .grid-4 { grid-template-columns:repeat(2,1fr); } .grid-3 { grid-template-columns:repeat(2,1fr); } }
 @media (max-width:680px) { .grid-2, .grid-3, .grid-4 { grid-template-columns:1fr; } }
 
 .split { display:grid; gap:56px; grid-template-columns:1fr 1fr; align-items:center; }
-@media (max-width:860px) { .split { grid-template-columns:1fr; gap:32px; } }
+.split--start { align-items:start; }
+.split--wide { grid-template-columns:minmax(0,1fr) minmax(0,1.4fr); }   /* text | lista */
+.split--form { grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); }   /* text | formulär */
+@media (max-width:860px) { .split, .split--wide, .split--form { grid-template-columns:1fr; gap:32px; } }
+
+/* --- Bildrutor --- */
+.fig { position:relative; overflow:hidden; background:var(--ws-green-100); }
+.fig img { object-fit:cover; }
+.fig--43 { aspect-ratio:4/3; }
+.fig--32 { aspect-ratio:3/2; }
+.fig--34 { aspect-ratio:3/4; }
+.fig--54 { aspect-ratio:5/4; }
+.hero__img img { object-fit:cover; }
+.dark .link-more { color:var(--ws-gold-400); border-bottom-color:rgba(215,174,98,.5); }
+.dark .link-more:hover { color:var(--ws-cream); border-bottom-color:var(--ws-cream); }
+
+/* --- Hjälpklasser (används i stället för inline-stilar) --- */
+.center { text-align:center; }
+.narrow { max-width:760px; margin-left:auto; margin-right:auto; }
+.narrow--md { max-width:800px; margin-left:auto; margin-right:auto; }
+.mx-auto { margin-left:auto; margin-right:auto; }
+.mb-0 { margin-bottom:0 !important; }
+.mt-0 { margin-top:0 !important; }
+.stack { display:grid; gap:16px; }
+.stack--lg { gap:24px; }
+.contact-lead { font-size:22px; }
+.prose--center p { margin-left:auto; margin-right:auto; }
+.motto { font-family:var(--font-serif); font-size:22px; font-style:italic; color:var(--text-heading); }
+.intro-block { max-width:800px; margin-bottom:56px; }
+.small { font-size:16px; }
+.muted { font-size:15px; color:var(--ws-ink-40); }
+.section--after-head { padding:0 0 var(--section); }
+.section--lead { padding:64px 0 40px; }
+.section--tail { padding:0 0 var(--section); }
+.search-overlap { margin-top:-46px; position:relative; z-index:10; }
+.split--space { margin-bottom:64px; }
+.split--after { margin-top:72px; }
+.label--tight { margin-bottom:8px; }
+.h2--space { margin-bottom:48px; }
+.title-row { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+.title-row h3 { margin:0; }
 
 /* --- Kort --- */
 .cat { text-decoration:none; display:flex; flex-direction:column; color:var(--text-body); height:100%; }
@@ -286,6 +336,8 @@ p { margin:0 0 20px; max-width:66ch; }
   display:flex; flex-direction:column;
 }
 .card p:last-child, .card ul:last-child { margin-bottom:0; }
+.card--accent { border-top-color:var(--accent); }   /* för formulär och val — inte för information */
+.card--plain { border-top:1px solid var(--border-subtle); }
 .card > .link-more { align-self:flex-start; margin-top:auto; }
 .card--paket { transition:border-color .3s var(--ease), transform .3s var(--ease); }
 .card--paket:hover { border-top-color:var(--accent); transform:translateY(-2px); }
@@ -328,11 +380,10 @@ p { margin:0 0 20px; max-width:66ch; }
   color:var(--ws-ink-70); border:1px solid var(--border-subtle);
   padding:6px 8px; white-space:nowrap;
 }
-.unit__meta li.dog { border-color:var(--border-gold); color:var(--accent-strong); }
+.unit__meta li.dog { border-color:var(--border-gold); color:var(--ws-gold-700); }
 .unit p { font-size:15.5px; line-height:1.5; margin:0; color:var(--text-body); }
 .unit__note { font-size:13.5px; color:var(--ws-ink-40); font-style:italic; }
 .unit__foot { display:flex; justify-content:flex-end; align-items:center; gap:14px; margin-top:auto; padding-top:6px; }
-.unit__foot .btn { padding:12px 22px; font-size:12px; }
 .unit__status { font-size:13px; color:var(--ws-ink-40); letter-spacing:.06em; text-transform:uppercase; }
 .unit.is-selected { border-color:var(--accent); box-shadow:inset 3px 0 0 var(--accent); }
 .unit.is-unavailable { opacity:.55; }
@@ -348,6 +399,19 @@ p { margin:0 0 20px; max-width:66ch; }
 .summary { background:var(--ws-white); border:1px solid var(--border-subtle); border-top:3px solid var(--accent); padding:26px 26px 22px; }
 @media (min-width:1061px) { .summary { position:sticky; top:112px; } }
 .summary h3 { margin-bottom:16px; }
+.summary { scroll-margin-top:100px; }
+.summary__opts { margin-top:20px; }
+.summary__opts .checkfield { margin-bottom:16px; }
+.summary__opts .field { margin-bottom:16px; }
+.checkfield--top { align-items:flex-start; }
+.checkfield--top input { margin-top:2px; }
+.unit__toggle { margin-right:auto; }
+.unit__status--vald { color:var(--ws-gold-700); }
+.unit--hela { margin-top:28px; }
+.unit--hela p { font-size:17px; }
+.card--roomy { padding:40px; }
+.h2--tight { margin-bottom:28px; }
+.notice--gap { margin-bottom:20px; }
 .sumrow { display:flex; justify-content:space-between; gap:16px; padding:11px 0; border-bottom:1px solid var(--border-subtle); font-size:16px; }
 .sumrow span:last-child { font-variant-numeric:tabular-nums; white-space:nowrap; color:var(--text-heading); }
 .sumrow--total { border-bottom:0; border-top:var(--rule-gold); margin-top:8px; padding-top:16px; font-size:19px; font-weight:700; color:var(--text-heading); }
@@ -366,7 +430,7 @@ p { margin:0 0 20px; max-width:66ch; }
 .stickybar__txt { display:flex; flex-direction:column; min-width:0; }
 .stickybar__txt small { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ws-gold-400); }
 .stickybar__txt strong { font-family:var(--font-display); font-size:20px; line-height:1.1; font-variant-numeric:tabular-nums; }
-.stickybar .btn { flex:none; padding:13px 20px; font-size:12px; }
+.stickybar .btn { flex:none; }
 @media (max-width:1060px) { .stickybar { display:block; } body:has(.stickybar.is-on) { padding-bottom:84px; } }
 .empty { color:var(--ws-ink-40); font-size:16px; }
 
@@ -378,7 +442,8 @@ p { margin:0 0 20px; max-width:66ch; }
 
 /* --- Knapprad --- */
 .cta-row { display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-top:6px; }
-.cta-row .btn { display:inline-flex; align-items:center; height:52px; padding-top:0; padding-bottom:0; }
+.cta-row--center { justify-content:center; }
+.cta-row--space { margin-top:24px; }
 
 /* --- Nyhetsbrev --- */
 .signup { display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; }
@@ -430,7 +495,8 @@ p { margin:0 0 20px; max-width:66ch; }
 /* Jaktklubbens emblemhuvud */
 .emblem { padding:64px 0 60px; }
 .emblem__vapen { color:var(--ws-gold-400); }
-.emblem h1 { font-family:var(--font-display); font-weight:400; font-size:clamp(30px,4vw,44px); letter-spacing:.02em; }
+.emblem__label { margin:26px auto 0; }
+.emblem__h1 { font-family:var(--font-display); font-weight:400; font-size:clamp(30px,4vw,44px); letter-spacing:.02em; color:var(--ws-cream); margin:6px 0 14px; }
 .emblem__lede { max-width:52ch; margin:0 auto; font-family:var(--font-serif); font-size:20px; line-height:1.5; }
 /* Vapnet som linjeteckning: färgas via color, maskas från SVG */
 .vapen { display:inline-block; background-color:currentColor; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-size:contain; mask-size:contain; -webkit-mask-position:center; mask-position:center; pointer-events:none; user-select:none; }
@@ -518,8 +584,24 @@ p { margin:0 0 20px; max-width:66ch; }
   background:var(--ws-white); min-height:140px; width:100%; resize:vertical;
 }
 .form textarea:focus { border-color:var(--accent); outline:none; box-shadow:0 0 0 3px rgba(182,142,64,.18); }
+.form--1 { grid-template-columns:1fr; }
+.form--sub { margin-top:14px; }
+.form textarea.ta--xs { min-height:64px; }
+.form textarea.ta--s { min-height:90px; }
+.form textarea.ta--m { min-height:160px; }
 @media (max-width:640px) { .form { grid-template-columns:1fr; } }
 .notice { background:var(--ws-paper); border-left:2px solid var(--accent); padding:16px 20px; font-size:16px; }
+.notice--fel { border-left-color:#a33; }
+.notice--lg { font-size:18px; }
+.hint { font-size:14px; color:var(--ws-ink-40); margin:0; }
+.hint--center { text-align:center; margin-top:16px; }
+.hint--after { margin-top:18px; }
+.fel { color:#a33; font-size:15px; margin:12px 0 0; }
+.motto--gold { color:var(--ws-gold-700); margin-top:8px; }
+/* Knapp som ser ut som en textlänk */
+.linkbtn { background:none; border:0; border-bottom:1px solid var(--border-gold); padding:0 0 3px; cursor:pointer; font:inherit;
+  font-size:13px; font-weight:700; letter-spacing:var(--tracking-caps); text-transform:uppercase; color:var(--ws-gold-700); }
+.linkbtn:hover { color:var(--text-heading); border-color:var(--text-heading); }
 
 /* --- Mobilmeny --- */
 .menu-btn {
@@ -618,9 +700,9 @@ p { margin:0 0 20px; max-width:66ch; }
 .tf-top h3 { margin:0; font-size:22px; }
 .tf-price { font-family:var(--font-display); font-size:18px; color:var(--text-heading); white-space:nowrap; font-variant-numeric:tabular-nums; }
 .tf-body p { font-size:15.5px; line-height:1.5; margin:8px 0 12px; }
+.tf-anmalan { margin-top:40px; }
 .tf-foot { display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; }
 .tf-meta { font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--ws-ink-40); }
-.tf-foot .btn { padding:11px 20px; font-size:12px; }
 @media (max-width:520px) { .tf-item { grid-template-columns:1fr; } .tf-date { border-right:0; border-bottom:1px solid var(--border-subtle); padding:0 0 10px; display:flex; gap:8px; align-items:baseline; } }
 
 /* --- Paket --- */
@@ -630,6 +712,8 @@ p { margin:0 0 20px; max-width:66ch; }
 .paket__body { padding:40px 44px; display:flex; flex-direction:column; }
 .paket:nth-child(even) .paket__img { order:2; }
 .paket__body h2 { font-size:clamp(22px,2.6vw,30px); margin-bottom:6px; }
+.paket__body > p:not(.label):not(.price):not(.muted) { font-size:16.5px; }
+.paket__ingar { margin:6px 0; }
 .paket__body .ticks li { font-size:15.5px; padding:7px 0 7px 24px; }
 .paket__body .btn { align-self:flex-start; margin-top:auto; }
 @media (max-width:860px) { .paket { grid-template-columns:1fr; } .paket:nth-child(even) .paket__img { order:0; } .paket__img { min-height:240px; aspect-ratio:3/2; } .paket__body { padding:28px 24px; } }
@@ -669,7 +753,6 @@ p { margin:0 0 20px; max-width:66ch; }
 .admin__table .num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .admin__table tr.st-avbokad td { opacity:.5; }
 .admin__actions { display:flex; gap:6px; flex-wrap:wrap; }
-.btn--sm { padding:8px 14px; font-size:11px; }
 .pill { display:inline-block; font-size:11px; letter-spacing:.1em; text-transform:uppercase; padding:3px 8px; border:1px solid var(--border-subtle); background:var(--ws-paper); color:var(--text-heading); }
 .pill--bekraftad, .pill--bokad { background:#e3ede6; border-color:#8fb39e; }
 .pill--preliminar, .pill--ny, .pill--anmald { background:var(--ws-gold-100); border-color:var(--border-gold); }

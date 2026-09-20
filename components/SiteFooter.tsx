@@ -34,10 +34,10 @@ export default function SiteFooter() {
           </div>
           <div>
             <h4>Kontakt</h4>
-            <p style={{ marginBottom: 8 }}>
+            <p className="label--tight">
               {site.name}<br />{site.address.street}<br />{site.address.zip} {site.address.city}
             </p>
-            <p style={{ marginBottom: 0 }}>
+            <p className="mb-0">
               <a href={site.phoneHref}>{site.phone}</a><br />
               <a href={`mailto:${site.email}`}>{site.email}</a>
             </p>

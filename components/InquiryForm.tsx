@@ -24,7 +24,7 @@ export default function InquiryForm({ typ = "Firande", alternativ }: { typ?: str
 
   if (nummer) {
     return (
-      <div className="notice" style={{ fontSize: 18 }}>
+      <div className="notice notice--lg">
         <strong>Tack för din förfrågan.</strong> Vi har tagit emot den (nummer {nummer}) och hör av oss inom en vardag. Vill du hellre prata direkt: <a href={site.phoneHref}>{site.phone}</a>.
       </div>
     );
@@ -70,7 +70,7 @@ export default function InquiryForm({ typ = "Firande", alternativ }: { typ?: str
         </label>
       </div>
       <Fakturafalt prefix="ff" full />
-      {fel && <div className="notice field--full" style={{ borderLeftColor: "#a33" }}>{fel}</div>}
+      {fel && <div className="notice notice--fel field--full" role="alert">{fel}</div>}
       <div className="field--full cta-row">
         <button className="btn" type="submit" disabled={pending}>{pending ? "Skickar…" : "Skicka förfrågan"}</button>
         <a className="btn btn--ghost" href={site.phoneHref}>Ring {site.phone}</a>

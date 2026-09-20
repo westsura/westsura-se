@@ -15,7 +15,7 @@ export default function Hundar() {
       <Hero src="/bilder/hund.jpg" alt="Hund och barn i soffan på herrgården" sub label="Hunden följer med" title="hundar på westsura herrgård"
         lede="Hos oss är hundar varmt välkomna — i alla gästrum, utan tillägg, och gärna vid festen." />
       <section className="section section--tight">
-        <div className="container split" style={{ alignItems: "start" }}>
+        <div className="container split split--start">
           <div className="prose">
             <p>Vi vet att hunden för många är en självklar familjemedlem, och vi tycker om att även våra fyrbenta gäster ska känna sig hemma hos oss. Alla våra rum är hundvänliga, så du är välkommen att ta med din hund oavsett vilket rum du bokar. Ange gärna det i din bokning så att vi kan förbereda inför ert besök.</p>
             <p>Hos oss får hundar gärna hoppa upp i möblerna tillsammans med sina ägare. Vi uppskattar däremot om du hjälper oss att hålla dem rena genom att använda en filt eller handduk om hunden gärna ligger i säng eller soffa.</p>
@@ -35,15 +35,15 @@ export default function Hundar() {
             <h2 className="lower">ansvar</h2>
             <p>Hundägaren ansvarar för sin hund under hela vistelsen och ersätter eventuella skador eller extra städkostnader. Om en hund blir mycket stressad eller upprepade gånger stör andra gäster hittar vi en lösning i dialog med hundägaren — i enstaka fall kan besöket behöva avslutas tidigare.</p>
           </div>
-          <div>
-            <div className="card" style={{ borderTopColor: "var(--accent)", marginBottom: 24 }}>
+          <div className="stack stack--lg">
+            <div className="card card--accent">
               <p className="label">Boka med hund</p>
               <h3>Alla rum, utan tillägg</h3>
-              <p style={{ fontSize: 16 }}>Kryssa i <em>Vi har med hund</em> när du bokar, så står vattenskålen framme när ni kommer.</p>
+              <p className="small">Kryssa i <em>Vi har med hund</em> när du bokar, så står vattenskålen framme när ni kommer.</p>
               <Link className="btn btn--block" href="/boende#bokning">Se lediga rum</Link>
             </div>
-            <div style={{ aspectRatio: "3 / 4", overflow: "hidden", position: "relative" }}>
-              <Image src="/bilder/jakt.png" alt="Hund på Westsura Herrgårds marker" fill sizes="(max-width: 860px) 100vw, 50vw" style={{ objectFit: "cover" }} />
+            <div className="fig fig--34">
+              <Image src="/bilder/jakt.png" alt="Hund på Westsura Herrgårds marker" fill sizes="(max-width: 860px) 100vw, 50vw" />
             </div>
           </div>
         </div>

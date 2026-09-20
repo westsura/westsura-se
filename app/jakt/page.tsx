@@ -35,7 +35,7 @@ export default async function Jakt() {
         <div className="container">
           <div className="grid grid-4">
             <a className="cat" href="#jakttillfallen">
-              <div className="cat__img" style={{ position: "relative" }}>
+              <div className="cat__img fig">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={img.fasan} alt="Fasan i markerna kring Westsura" loading="lazy" />
               </div>
@@ -44,16 +44,16 @@ export default async function Jakt() {
               <span className="link-more">Se datum →</span>
             </a>
             <a className="cat" href="#hundtraning">
-              <div className="cat__img" style={{ position: "relative" }}>
-                <Image src="/bilder/jakt.png" alt="Jakthund i arbete" fill sizes="(max-width: 980px) 50vw, 25vw" style={{ objectFit: "cover" }} />
+              <div className="cat__img fig">
+                <Image src="/bilder/jakt.png" alt="Jakthund i arbete" fill sizes="(max-width: 980px) 50vw, 25vw" />
               </div>
               <h3>Hundträning</h3>
               <p>Träningsdagar för hund och förare — apportering, spår och eftersök, i alla nivåer.</p>
               <span className="link-more">Se datum →</span>
             </a>
             <a className="cat" href="#jaktkurser">
-              <div className="cat__img" style={{ position: "relative" }}>
-                <Image src="/bilder/ravaror.jpg" alt="Vilt hanteras i köket" fill sizes="(max-width: 980px) 50vw, 25vw" style={{ objectFit: "cover" }} />
+              <div className="cat__img fig">
+                <Image src="/bilder/ravaror.jpg" alt="Vilt hanteras i köket" fill sizes="(max-width: 980px) 50vw, 25vw" />
               </div>
               <h3>Jaktkurser</h3>
               <p>Vilthantering, säkerhet och skytte. Teori och praktik under en dag, med mat i herrgården.</p>
@@ -72,7 +72,7 @@ export default async function Jakt() {
       </section>
 
       <section className="section tint" id="jakttillfallen">
-        <div className="container split" style={{ alignItems: "start", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.4fr)" }}>
+        <div className="container split split--start split--wide">
           <div className="prose">
             <p className="label">Enstaka jakttillfällen</p>
             <h2 className="lower">jaga en dag på westsura</h2>
@@ -86,7 +86,7 @@ export default async function Jakt() {
       </section>
 
       <section className="section" id="hundtraning">
-        <div className="container split" style={{ alignItems: "start", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.4fr)" }}>
+        <div className="container split split--start split--wide">
           <div className="prose">
             <p className="label">Hundträning</p>
             <h2 className="lower">för hund och förare</h2>
@@ -98,7 +98,7 @@ export default async function Jakt() {
       </section>
 
       <section className="section tint" id="jaktkurser">
-        <div className="container split" style={{ alignItems: "start", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.4fr)" }}>
+        <div className="container split split--start split--wide">
           <div className="prose">
             <p className="label">Jaktkurser</p>
             <h2 className="lower">lär dig mer om jakten</h2>
@@ -113,16 +113,16 @@ export default async function Jakt() {
         <div className="container split">
           <div>
             <p className="label">Jaktklubben</p>
-            <h2 className="lower" style={{ color: "var(--ws-cream)" }}>för den som vill höra till</h2>
+            <h2 className="lower">för den som vill höra till</h2>
             <p>En sluten jaktklubb med begränsat antal platser i tre nivåer. Medlemmar får egna gemensamma jaktdagar, ingående vak- och pyrschdygn, förtur till bokning och tillgång till kartor, regler och dokument.</p>
-            <p style={{ marginBottom: 0 }}>Medlemskap söks, och beviljas av herrgården. Läs om de tre nivåerna och ansök — eller logga in om du redan är medlem.</p>
-            <div className="cta-row" style={{ marginTop: 24 }}>
+            <p className="mb-0">Medlemskap söks, och beviljas av herrgården. Läs om de tre nivåerna och ansök — eller logga in om du redan är medlem.</p>
+            <div className="cta-row cta-row--space">
               <Link className="btn" href="/jaktklubben#ansokan">Ansök om medlemskap</Link>
-              <Link className="btn btn--ghost" href="/jaktklubben#medlem" style={{ color: "var(--ws-cream)", borderColor: "rgba(215,174,98,.5)" }}>Logga in</Link>
+              <Link className="btn btn--ghost" href="/jaktklubben#medlem">Logga in</Link>
             </div>
           </div>
-          <div style={{ display: "grid", placeItems: "center" }}>
-            <Vapen size={300} style={{ color: "var(--ws-gold-400)" }} />
+          <div className="center">
+            <Vapen size={300} className="emblem__vapen" />
           </div>
         </div>
       </section>

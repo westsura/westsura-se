@@ -66,10 +66,10 @@ export default function Paket() {
                 <p className="label">{p.label}</p>
                 <h2 className="lower">{p.titel}</h2>
                 <p className="price price--lg">{p.pris}<small>{p.per}</small></p>
-                {p.text.map((t, i) => <p key={i} style={{ fontSize: 16.5 }}>{t}</p>)}
-                <p className="label" style={{ marginTop: 6, marginBottom: 6 }}>I paketet ingår</p>
+                {p.text.map((t, i) => <p key={i}>{t}</p>)}
+                <p className="label paket__ingar">I paketet ingår</p>
                 <ul className="ticks">{p.ingar.map((i) => <li key={i}>{i}</li>)}</ul>
-                {p.extra && <p style={{ fontSize: 15, color: "var(--ws-ink-40)" }}>{p.extra}</p>}
+                {p.extra && <p className="muted">{p.extra}</p>}
                 <Link className="btn" href="/boende#bokning">Boka med boende</Link>
               </div>
             </article>

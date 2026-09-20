@@ -18,26 +18,26 @@ export default function GodaGrannar() {
   return (
     <>
       <PageHead label="Goda grannar" title="i samarbete med trakten" lede="Maten och dryckerna på Westsura kommer så långt det går från producenter i närheten. Här är några av dem vi arbetar med." />
-      <section style={{ paddingBottom: 96 }}>
+      <section className="section--after-head">
         <div className="container">
           <div className="grid grid-3">
             {partners.map((p) => (
               <article key={p.namn} className="card">
-                <p className="label" style={{ marginBottom: 8 }}>{p.kategori}</p>
+                <p className="label label--tight">{p.kategori}</p>
                 <h3>{p.namn}</h3>
-                <p style={{ fontSize: 16 }}>{p.text}</p>
+                <p className="small">{p.text}</p>
                 <a className="link-more" href={p.url} rel="noopener" target="_blank">Besök {p.namn} →</a>
               </article>
             ))}
           </div>
-          <div className="split" style={{ marginTop: 72 }}>
-            <div style={{ aspectRatio: "4 / 3", overflow: "hidden", position: "relative" }}>
-              <Image src="/bilder/lingon.jpg" alt="Skålar med lingon och groddar i köket" fill sizes="(max-width: 860px) 100vw, 50vw" style={{ objectFit: "cover" }} />
+          <div className="split split--after">
+            <div className="fig fig--43">
+              <Image src="/bilder/lingon.jpg" alt="Skålar med lingon och groddar i köket" fill sizes="(max-width: 860px) 100vw, 50vw" />
             </div>
             <div>
               <h2 className="lower">därför</h2>
               <p>Måltiderna på herrgården ska berätta om platsen, årstiderna och människorna bakom råvarorna. Det går inte att göra med varor från andra sidan jorden. Därför köper vi från grannarna — och därför lyfter vi fram dem här.</p>
-              <p style={{ marginBottom: 0 }}>Är du producent i trakten och vill samarbeta? Hör av dig till <a href="mailto:boka@westsura.se">boka@westsura.se</a>.</p>
+              <p className="mb-0">Är du producent i trakten och vill samarbeta? Hör av dig till <a href="mailto:boka@westsura.se">boka@westsura.se</a>.</p>
             </div>
           </div>
         </div>

@@ -8,7 +8,7 @@ export default function Integritet() {
   return (
     <>
       <PageHead label="Bra att veta" title="integritetspolicy" lede="På Westsura Herrgård värnar vi om din personliga integritet. Här förklarar vi hur vi samlar in, använder och skyddar dina personuppgifter." />
-      <section style={{ paddingBottom: 96 }}>
+      <section className="section--after-head">
         <div className="container prose">
           <h2 className="lower">personuppgiftsansvarig</h2>
           <p>{site.company}, org.nr {site.orgNr}, {site.address.street}, {site.address.zip} {site.address.city}.</p>

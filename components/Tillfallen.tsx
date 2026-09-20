@@ -74,24 +74,24 @@ export default function Tillfallen({ tillfallen, rubrik = "Kommande tillfällen"
         })}
       </ul>
 
-      <div id="forfragan" style={{ marginTop: 40 }}>
+      <div id="forfragan" className="tf-anmalan">
         {resultat ? (
-          <div className="notice" style={{ fontSize: 18 }}>
+          <div className="notice notice--lg" role="status">
             <strong>{resultat.status === "vantelista" ? "Du står på väntelistan." : "Tack för din anmälan."}</strong>{" "}
             {resultat.status === "vantelista" ? "Vi hör av oss om en plats blir ledig." : "Vi bekräftar platsen inom en vardag."} En bekräftelse har skickats till din e-post.
           </div>
         ) : valt ? (
-          <div className="card" style={{ borderTopColor: "var(--accent)" }}>
+          <div className="card card--accent">
             <p className="label">{valt.kvar <= 0 ? "Väntelista" : "Anmälan"}</p>
             <h3>{valt.titel} · {fmt(valt.datum).d} {fmt(valt.datum).m}</h3>
-            <p style={{ fontSize: 16 }}>Fyll i uppgifterna så bekräftar vi platsen inom en vardag. Anmälan är bindande först när ni fått vår bekräftelse.</p>
+            <p className="small">Fyll i uppgifterna så bekräftar vi platsen inom en vardag. Anmälan är bindande först när ni fått vår bekräftelse.</p>
             <form className="form" onSubmit={anmal}>
               <div className="field"><label htmlFor="a-namn">Namn</label><input id="a-namn" name="namn" required autoComplete="name" /></div>
               <div className="field"><label htmlFor="a-antal">Antal personer</label><input id="a-antal" name="antal" type="number" min={1} max={20} defaultValue={1} required /></div>
               <div className="field"><label htmlFor="a-epost">E-post</label><input id="a-epost" name="epost" type="email" required autoComplete="email" /></div>
               <div className="field"><label htmlFor="a-tel">Telefon</label><input id="a-tel" name="telefon" type="tel" autoComplete="tel" /></div>
-              <div className="field field--full"><label htmlFor="a-medd">Meddelande</label><textarea id="a-medd" name="meddelande" style={{ minHeight: 90 }} placeholder="Hundens ras och ålder, erfarenhet, önskemål…" /></div>
-              {fel && <div className="notice field--full" style={{ borderLeftColor: "#a33" }}>{fel}</div>}
+              <div className="field field--full"><label htmlFor="a-medd">Meddelande</label><textarea id="a-medd" name="meddelande" className="ta--s" placeholder="Hundens ras och ålder, erfarenhet, önskemål…" /></div>
+              {fel && <div className="notice notice--fel field--full" role="alert">{fel}</div>}
               <div className="field--full cta-row">
                 <button className="btn" type="submit" disabled={pending}>{pending ? "Skickar…" : valt.kvar <= 0 ? "Ställ mig på väntelista" : "Skicka anmälan"}</button>
                 <a className="btn btn--ghost" href={site.phoneHref}>Ring {site.phone}</a>
@@ -99,7 +99,7 @@ export default function Tillfallen({ tillfallen, rubrik = "Kommande tillfällen"
             </form>
           </div>
         ) : (
-          <p style={{ fontSize: 15, color: "var(--ws-ink-40)" }}>Välj ett tillfälle ovan för att anmäla dig — eller ring <a href={site.phoneHref}>{site.phone}</a>.</p>
+          <p className="muted">Välj ett tillfälle ovan för att anmäla dig — eller ring <a href={site.phoneHref}>{site.phone}</a>.</p>
         )}
       </div>
     </div>

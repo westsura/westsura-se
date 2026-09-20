@@ -17,6 +17,20 @@ Nya webbplatsen för Westsura Herrgård. Next.js 15, React 19, TypeScript. Inga 
 - `app/globals.css` — hela designsystemet som CSS. Tokens överst.
 - `public/bilder/` — fotografier och logotyper.
 
+## Stilregler
+
+Inga inline-stilar i sidorna — allt ligger som klasser i `globals.css`. De som används mest:
+
+- Knappar: `btn` (52 px) och `btn--sm` (40 px). Varianter `btn--ghost`, `btn--block`. Inga andra storlekar.
+- Kort: `card` (information), `card--accent` (formulär och val, guldkant), `card--plain`, `card--roomy`.
+- Två spalter: `split`, med `split--start` (toppjusterat), `split--wide` (text | lista), `split--form` (text | formulär).
+- Bild i ruta: `fig fig--43` / `fig--32` / `fig--34` / `fig--54`, med `<Image fill>` inuti.
+- Sektioner: `section`, `section--tight`, `section--lead` (ingress före bokning), `section--after-head` (efter PageHead).
+- Text: `lede`, `small` (16 px), `muted` (15 px dämpad), `hint` (14 px), `motto` (kursiv serif), `center`, `narrow`, `mb-0`.
+- Formulär: `form`, `form--1` (en spalt), `field--full`, `ta--xs/s/m` (textarea-höjd), `notice`, `notice--fel`, `notice--lg`.
+
+Undantag som får vara inline: `objectPosition` för en enskild bilds beskärning, och vapnets mask i `Vapen`.
+
 ## Bilder
 
 Några bilder hämtas tills vidare från nuvarande westsura.se (se `lib/site.ts`, `img`). När fotografen varit här läggs de nya filerna i `public/bilder/` och adresserna byts.

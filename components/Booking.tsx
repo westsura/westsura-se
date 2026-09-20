@@ -124,12 +124,12 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
   if (steg === "klar" && kvitto) {
     return (
       <section className="section section--tight tint" id="bokning">
-        <div className="container" style={{ maxWidth: 720 }}>
-          <div className="card" style={{ borderTopColor: "var(--accent)", padding: 40 }}>
+        <div className="container narrow">
+          <div className="card card--accent card--roomy">
             <p className="label">Bokning {kvitto.nummer}</p>
             <h2 className="lower">tack, vi har tagit emot din bokning</h2>
             <p>En bekräftelse är på väg till din e-post. Bokningen är preliminär tills du fått vår bekräftelse, som kommer inom en vardag. Summa {kr(kvitto.summa)} — betalning senast 7 dagar före ankomst.</p>
-            <p style={{ marginBottom: 0 }}>Frågor? Ring <a href={site.phoneHref}>{site.phone}</a>.</p>
+            <p className="mb-0">Frågor? Ring <a href={site.phoneHref}>{site.phone}</a>.</p>
           </div>
         </div>
       </section>
@@ -140,7 +140,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
     <section className="section section--tight tint" id="bokning">
       <div className="container">
         <p className="label">Boka din vistelse</p>
-        <h2 className="lower" style={{ marginBottom: 28 }}>se vad som är ledigt</h2>
+        <h2 className="lower h2--tight">se vad som är ledigt</h2>
 
         <SearchBar inline onSearch={sok} />
 
@@ -148,7 +148,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
           <p>{laddar ? "Söker…" : `Lediga enheter · ${q.in} till ${q.out} · ${n} ${n === 1 ? "natt" : "nätter"}`}</p>
           <p><strong>{antalLediga} av {vanliga.filter((e) => !e.ingar_i).length}</strong> lediga</p>
         </div>
-        {fel && <div className="notice" role="alert" style={{ borderLeftColor: "#a33", marginBottom: 20 }}>{fel}</div>}
+        {fel && <div className="notice notice--fel notice--gap" role="alert">{fel}</div>}
 
         <div className="booking">
           <div>
@@ -175,7 +175,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                     {e.notering && <p className="unit__note">{e.notering}</p>}
                     <div className="unit__foot">
                       {e.id === "f2" && !vald && (
-                        <button type="button" className="link-more" style={{ background: "none", border: 0, borderBottom: "1px solid var(--border-gold)", cursor: "pointer", marginRight: "auto" }} onClick={() => setVisaDelrum(!visaDelrum)}>
+                        <button type="button" className="linkbtn unit__toggle" onClick={() => setVisaDelrum(!visaDelrum)}>
                           {visaDelrum ? "Dölj rummen" : "Visa rummen var för sig"}
                         </button>
                       )}
@@ -184,8 +184,8 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                         : block && !vald ? <span className="unit__status">{helaVald ? "Ingår i hela boendet" : "Upptagen av ditt val"}</span>
                         : (
                           <>
-                            {vald && <span className="unit__status" style={{ color: "var(--accent-strong)" }}>Vald</span>}
-                            <button className={`btn${vald ? " btn--ghost" : ""}`} type="button" onClick={() => toggla(e.id)}>{vald ? "Ta bort" : "Välj"}</button>
+                            {vald && <span className="unit__status unit__status--vald">Vald</span>}
+                            <button className={`btn btn--sm${vald ? " btn--ghost" : ""}`} type="button" onClick={() => toggla(e.id)}>{vald ? "Ta bort" : "Välj"}</button>
                           </>
                         )}
                     </div>
@@ -195,9 +195,9 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
             })}
 
             {hela && (
-              <div className="card" style={{ borderTopColor: "var(--accent)", marginTop: 28 }}>
+              <div className="card card--accent unit--hela">
                 <h3>{hela.namn}</h3>
-                <p style={{ fontSize: 17 }}>{hela.beskrivning}</p>
+                <p>{hela.beskrivning}</p>
                 <p className="price price--lg">{kr(hela.grundpris)}<small>per natt</small></p>
                 {!laddar && ledig[hela.id] === false
                   ? <span className="unit__status">Någon enhet är bokad dessa datum — hela boendet går inte att boka</span>
@@ -207,7 +207,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
           </div>
 
           <aside>
-            <div className="summary" ref={summaryRef} style={{ scrollMarginTop: 100 }}>
+            <div className="summary" ref={summaryRef}>
               <h3>Din bokning</h3>
               {rader.length === 0 ? (
                 <p className="empty">Välj en eller flera enheter i listan, så räknar vi fram priset här.</p>
@@ -217,12 +217,12 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                   <div className="sumrow sumrow--total"><span>Totalt</span><span>{kr(summa)}</span></div>
                 </>
               )}
-              <div style={{ marginTop: 20 }}>
-                <label className="checkfield checkfield--bare" htmlFor="frukost" style={{ marginBottom: 16, alignItems: "flex-start" }}>
-                  <input type="checkbox" id="frukost" checked={frukost} onChange={(e) => setFrukost(e.target.checked)} style={{ marginTop: 2 }} />
+              <div className="summary__opts">
+                <label className="checkfield checkfield--bare checkfield--top" htmlFor="frukost">
+                  <input type="checkbox" id="frukost" checked={frukost} onChange={(e) => setFrukost(e.target.checked)} />
                   <span>Frukostkorg, 95&nbsp;kr per person och natt</span>
                 </label>
-                <div className="field" style={{ marginBottom: 16 }}>
+                <div className="field">
                   <label htmlFor="kod">Rabattkod från nyhetsbrevet</label>
                   <input type="text" id="kod" placeholder="t.ex. VANNER10" value={kod} onChange={(e) => setKod(e.target.value)} />
                 </div>
@@ -230,18 +230,18 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                 {steg === "valj" ? (
                   <button className="btn btn--block" type="button" disabled={valda.size === 0 || !pris} onClick={gaVidare}>Gå vidare till bokning</button>
                 ) : (
-                  <form onSubmit={boka} className="form" style={{ gridTemplateColumns: "1fr" }}>
+                  <form onSubmit={boka} className="form form--1">
                     <div className="field"><label htmlFor="b-namn">Namn</label><input id="b-namn" name="namn" required autoComplete="name" /></div>
                     <div className="field"><label htmlFor="b-epost">E-post</label><input id="b-epost" name="epost" type="email" required autoComplete="email" /></div>
                     <div className="field"><label htmlFor="b-tel">Telefon</label><input id="b-tel" name="telefon" type="tel" required autoComplete="tel" /></div>
-                    <div className="field"><label htmlFor="b-medd">Önskemål</label><textarea id="b-medd" name="meddelande" style={{ minHeight: 80 }} placeholder="Sen ankomst, allergier, hundens namn…" /></div>
+                    <div className="field"><label htmlFor="b-medd">Önskemål</label><textarea id="b-medd" name="meddelande" className="ta--s" placeholder="Sen ankomst, allergier, hundens namn…" /></div>
                     <Fakturafalt prefix="bf" />
                     <button className="btn btn--block" type="submit" disabled={pending}>{pending ? "Skickar…" : `Boka för ${kr(summa)}`}</button>
-                    <button type="button" className="link-more" style={{ background: "none", border: 0, borderBottom: "1px solid var(--border-gold)", cursor: "pointer", justifySelf: "center" }} onClick={() => setSteg("valj")}>Ändra valet</button>
-                    <p style={{ fontSize: 13, color: "var(--ws-ink-40)", margin: 0 }}>Bokningen blir preliminär direkt och bindande när ni fått vår bekräftelse. Fri avbokning fram till 7 dagar före ankomst.</p>
+                    <button type="button" className="linkbtn mx-auto" onClick={() => setSteg("valj")}>Ändra valet</button>
+                    <p className="hint">Bokningen blir preliminär direkt och bindande när ni fått vår bekräftelse. Fri avbokning fram till 7 dagar före ankomst.</p>
                   </form>
                 )}
-                <p style={{ fontSize: 14, margin: "16px 0 0", textAlign: "center", color: "var(--ws-ink-40)" }}>
+                <p className="hint hint--center">
                   Vill du hellre boka per telefon?<br /><a className="tel" href={site.phoneHref}>{site.phone}</a>
                 </p>
               </div>

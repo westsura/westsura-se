@@ -12,9 +12,7 @@ export default function Signup() {
 
   if (done) {
     return (
-      <p style={{ margin: "8px auto 0", color: "var(--accent-strong)", fontFamily: "var(--font-serif)", fontSize: 22, fontStyle: "italic" }}>
-        Tack! Ett välkomstbrev är på väg till din inkorg.
-      </p>
+      <p className="motto motto--gold mx-auto" role="status">Tack! Ett välkomstbrev är på väg till din inkorg.</p>
     );
   }
 
@@ -25,8 +23,8 @@ export default function Signup() {
         <input type="email" name="epost" placeholder="Din e-postadress" aria-label="Din e-postadress" required autoComplete="email" />
         <button className="btn" type="submit" disabled={pending}>{pending ? "Skickar…" : "Prenumerera"}</button>
       </form>
-      {fel && <p style={{ color: "#a33", fontSize: 15, marginTop: 12 }}>{fel}</p>}
-      <p style={{ fontSize: 14, marginTop: 18, marginBottom: 0, color: "var(--ws-ink-40)" }}>
+      {fel && <p className="fel" role="alert">{fel}</p>}
+      <p className="hint hint--after">
         Några brev om året. Avsluta när du vill. Vi följer vår <Link href="/integritetspolicy">integritetspolicy</Link>.
       </p>
     </>

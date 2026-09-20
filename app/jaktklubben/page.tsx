@@ -23,14 +23,14 @@ export default function Jaktklubben() {
     <>
       {/* Emblemhuvud: vapnet i guld på mörk botten — jaktklubbens egen signatur */}
       <section className="section dark emblem">
-        <div className="container" style={{ textAlign: "center" }}>
+        <div className="container center">
           <Vapen size={190} className="emblem__vapen" />
-          <p className="label" style={{ margin: "26px auto 0" }}>Westsura Herrgårds jaktklubb</p>
-          <h1 className="lower" style={{ color: "var(--ws-cream)", margin: "6px 0 14px" }}>bli en del av jakten på westsura</h1>
+          <p className="label emblem__label">Westsura Herrgårds jaktklubb</p>
+          <h1 className="lower emblem__h1">bli en del av jakten på westsura</h1>
           <p className="emblem__lede">En sluten jaktklubb med begränsat antal platser på herrgårdens egna marker — där kungen sköt sin björn 1687. Medlemskap söks, och beviljas av herrgården.</p>
-          <div className="cta-row" style={{ justifyContent: "center", marginTop: 28 }}>
+          <div className="cta-row cta-row--center cta-row--space">
             <a className="btn" href="#ansokan">Ansök om medlemskap</a>
-            <a className="btn btn--ghost" href="#medlem" style={{ color: "var(--ws-cream)", borderColor: "rgba(215,174,98,.5)" }}>Redan medlem — logga in</a>
+            <a className="btn btn--ghost" href="#medlem">Redan medlem — logga in</a>
           </div>
         </div>
       </section>
@@ -38,23 +38,23 @@ export default function Jaktklubben() {
       {/* Nivåer */}
       <section className="section">
         <div className="container">
-          <div className="split" style={{ alignItems: "start" }}>
+          <div className="split split--start">
             <div className="prose">
               <p className="label">Att vara medlem</p>
               <h2 className="lower">tre sätt att höra till</h2>
               <p>Klubben har femtio platser fördelade på tre nivåer. Alla medlemmar jagar på samma marker, samlas i samma salong och följer samma regler — skillnaden är hur mycket jakt som ingår och när på våren du får boka.</p>
               <p>Bokningen av säsongens jaktdagar öppnar stegvis: kärnmedlemmar först, därefter jaktmedlemmar och sist associerade. Säkerhets- och skyttekursen på herrgården är obligatorisk inför varje säsong, oavsett nivå.</p>
-              <p style={{ marginBottom: 0 }}>Årsavgiften faktureras vid säsongsstart. Övernattning i flyglarna och mat bokas till efter behov.</p>
+              <p className="mb-0">Årsavgiften faktureras vid säsongsstart. Övernattning i flyglarna och mat bokas till efter behov.</p>
             </div>
-            <div style={{ display: "grid", gap: 16 }}>
+            <div className="stack">
               {nivaer.map((n) => (
-                <div key={n.namn} className="card" style={{ borderTopColor: "var(--accent)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-                    <h3 style={{ margin: 0 }}>{n.namn}</h3>
+                <div key={n.namn} className="card">
+                  <div className="title-row">
+                    <h3>{n.namn}</h3>
                     <span className="price">{kr(n.avgift)}<small> per år</small></span>
                   </div>
-                  <p style={{ margin: "10px 0 12px", fontSize: 16 }}>{n.text}</p>
-                  <p className="admin__meta" style={{ fontSize: 13 }}>{n.platser} platser · bokning öppnar {n.bokning}</p>
+                  <p className="small">{n.text}</p>
+                  <p className="muted">{n.platser} platser · bokning öppnar {n.bokning}</p>
                 </div>
               ))}
             </div>
@@ -64,15 +64,15 @@ export default function Jaktklubben() {
 
       {/* Ansökan */}
       <section className="section tint" id="ansokan">
-        <div className="container split" style={{ alignItems: "start", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.3fr)" }}>
+        <div className="container split split--start split--form">
           <div className="prose">
             <p className="label">Ansök om medlemskap</p>
             <h2 className="lower">berätta vem du är</h2>
             <p>Vi tar in nya medlemmar när platser blir lediga, och vi väljer med omsorg — det är en liten klubb där alla känner alla. Fyll i dina kontaktuppgifter och berätta lite om dig själv: hur du jagar, vad du söker och varför Westsura.</p>
             <p>Så går det till: du skickar ansökan, vi ringer upp för ett samtal, och du får besked personligen. Räkna med några dagar. Jägarexamen och vapenlicens krävs för jaktmedlemskap.</p>
-            <p style={{ marginBottom: 0 }}>Vill du hellre prata direkt? Ring <a href={site.phoneHref}>{site.phone}</a>.</p>
+            <p className="mb-0">Vill du hellre prata direkt? Ring <a href={site.phoneHref}>{site.phone}</a>.</p>
           </div>
-          <div className="card" style={{ borderTopColor: "var(--accent)" }}>
+          <div className="card card--accent">
             <MedlemsansokanForm />
           </div>
         </div>
@@ -80,14 +80,14 @@ export default function Jaktklubben() {
 
       {/* Redan medlem */}
       <section className="section section--tight" id="medlem">
-        <div className="container split" style={{ alignItems: "center" }}>
+        <div className="container split">
           <div className="prose">
             <p className="label">Redan medlem?</p>
             <h2 className="lower">medlemsportalen</h2>
-            <p style={{ marginBottom: 0 }}>Här bokar du jaktdagar, vak- och pyrschdygn och hittar kartor, regler och dokument. Portalen öppnar inför säsongen — du får ett mejl när det är dags. Inloggning sker med en engångslänk till din e-post, inget lösenord att komma ihåg.</p>
+            <p className="mb-0">Här bokar du jaktdagar, vak- och pyrschdygn och hittar kartor, regler och dokument. Portalen öppnar inför säsongen — du får ett mejl när det är dags. Inloggning sker med en engångslänk till din e-post, inget lösenord att komma ihåg.</p>
           </div>
-          <div className="card">
-            <div className="form" style={{ gridTemplateColumns: "1fr" }}>
+          <div className="card card--plain">
+            <div className="form form--1">
               <div className="field">
                 <label htmlFor="jk-epost">E-postadress</label>
                 <input type="email" id="jk-epost" disabled placeholder="Öppnar inför säsongen" />

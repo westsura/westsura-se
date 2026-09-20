@@ -29,7 +29,7 @@ export default function Landing({
 
       <section className="section section--tight">
         <div className="container">
-          <div className="split" style={{ alignItems: "start" }}>
+          <div className="split split--start">
             <div className="prose">{intro}</div>
             <div>
               {facts && (
@@ -47,10 +47,10 @@ export default function Landing({
 
       <section className="section tint">
         <div className="container">
-          <div className="grid grid-2" style={{ gap: 48 }}>
+          <div className="grid grid-2 grid--wide">
             {sections.map((s) => (
               <div key={s.h} className="prose">
-                <h2 className="lower" style={{ fontSize: "clamp(22px,2.6vw,30px)" }}>{s.h}</h2>
+                <h2 className="lower">{s.h}</h2>
                 {s.body}
               </div>
             ))}
@@ -59,16 +59,16 @@ export default function Landing({
       </section>
 
       <section className="section band" id="forfragan">
-        <div className="container split" style={{ alignItems: "start" }}>
+        <div className="container split split--start">
           <div>
             <p className="label">Skicka en förfrågan</p>
             <h2 className="lower">berätta vad ni tänker er</h2>
             <p>Fyll i det ni vet, så ringer vi upp. Ni kan lika gärna ringa direkt — det gör många, och det går ofta fortare.</p>
-            <p className="label" style={{ marginTop: 40 }}>Vanliga frågor</p>
+            <p className="label faq__label">Vanliga frågor</p>
             {faq.map((f) => (
-              <details key={f.q} style={{ borderTop: "1px solid var(--border-subtle)", padding: "12px 0" }}>
-                <summary style={{ cursor: "pointer", color: "var(--text-heading)", fontWeight: 500 }}>{f.q}</summary>
-                <p style={{ margin: "10px 0 0", fontSize: 16 }}>{f.a}</p>
+              <details key={f.q} className="faq">
+                <summary>{f.q}</summary>
+                <p>{f.a}</p>
               </details>
             ))}
           </div>

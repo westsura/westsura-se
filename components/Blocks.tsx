@@ -13,7 +13,7 @@ export function Hero({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={src} alt={alt} />
         ) : (
-          <Image src={src} alt={alt} fill sizes="100vw" priority style={{ objectFit: "cover" }} />
+          <Image src={src} alt={alt} fill sizes="100vw" priority />
         )}
       </div>
       <div className="hero__inner">
@@ -75,17 +75,17 @@ export function DogBand({ short = false }: { short?: boolean }) {
   return (
     <section className="section section--tight dark">
       <div className="container split">
-        <div style={{ aspectRatio: "5 / 4", overflow: "hidden", position: "relative" }}>
-          <Image src="/bilder/hund.jpg" alt="Hund och barn i soffan på herrgården" fill sizes="(max-width: 860px) 100vw, 50vw" style={{ objectFit: "cover", objectPosition: "50% 22%" }} />
+        <div className="fig fig--54">
+          <Image src="/bilder/hund.jpg" alt="Hund och barn i soffan på herrgården" fill sizes="(max-width: 860px) 100vw, 50vw" style={{ objectPosition: "50% 22%" }} />
         </div>
         <div>
           <p className="label">Hunden följer med</p>
-          <h2 className="lower" style={{ color: "var(--ws-cream)" }}>samtliga rum är hundvänliga</h2>
+          <h2 className="lower">samtliga rum är hundvänliga</h2>
           <p>Hos oss är hunden välkommen i alla gästrum, utan tillägg och utan undantag — och gärna upp i soffan, om ni lägger en filt under.</p>
           {!short && (
             <p>Hunden är välkommen även när vi firar. Känn efter om er hund trivs i sällskap med många människor inomhus, och hör av er i förväg så ordnar vi en lugn plats där den kan dra sig undan en stund.</p>
           )}
-          <p style={{ marginBottom: 0 }}><Link className="link-more" href="/hundar" style={{ color: "var(--ws-gold-400)", borderColor: "rgba(215,174,98,.5)" }}>Läs om hundar på Westsura →</Link></p>
+          <p className="mb-0"><Link className="link-more" href="/hundar">Läs om hundar på Westsura →</Link></p>
         </div>
       </div>
     </section>

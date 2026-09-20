@@ -30,12 +30,12 @@ export default function Event() {
           <div className="grid grid-4">
             {typer.map((t) => (
               <Link key={t.href} className="cat" href={t.href}>
-                <div className="cat__img" style={{ position: "relative" }}>
+                <div className="cat__img fig">
                   {t.remote ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={t.bild} alt={t.titel} loading="lazy" />
                   ) : (
-                    <Image src={t.bild} alt={t.titel} fill sizes="(max-width: 980px) 50vw, 25vw" style={{ objectFit: "cover" }} />
+                    <Image src={t.bild} alt={t.titel} fill sizes="(max-width: 980px) 50vw, 25vw" />
                   )}
                 </div>
                 <h3>{t.titel}</h3>
@@ -48,7 +48,7 @@ export default function Event() {
       </section>
 
       <section className="section band" id="forfragan">
-        <div className="container split" style={{ alignItems: "start" }}>
+        <div className="container split split--start">
           <div>
             <p className="label">Skicka en förfrågan</p>
             <h2 className="lower">berätta vad ni tänker er</h2>

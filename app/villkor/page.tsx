@@ -9,7 +9,7 @@ export default function Villkor() {
   return (
     <>
       <PageHead label="Bra att veta" title="bokningsvillkor" lede="Vi vill att det ska kännas tryggt och enkelt att boka en vistelse hos oss. Har du frågor är du alltid välkommen att kontakta oss." />
-      <section style={{ paddingBottom: 96 }}>
+      <section className="section--after-head">
         <div className="container prose">
           <h2 className="lower">bokning</h2>
           <p>Din bokning är bindande när du har fått en bokningsbekräftelse från oss via e-post. En bokning på webben är preliminär tills dess.</p>
