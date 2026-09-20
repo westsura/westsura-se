@@ -1,24 +1,39 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Vapen } from "@/components/Blocks";
-import MedlemsansokanForm from "@/components/MedlemsansokanForm";
+import MedlemsansokanForm, { type Niva } from "@/components/MedlemsansokanForm";
 import { site } from "@/lib/site";
+import { supabasePublik } from "@/lib/supabase";
 
 export const metadata: Metadata = {
   title: "Jaktklubben — ansök om medlemskap",
-  description: "Westsura Herrgårds jaktklubb: en sluten klubb med begränsat antal platser i tre nivåer. Ansök om medlemskap, eller logga in om du redan är medlem.",
+  description: "Westsura Herrgårds jaktklubb: en sluten klubb med begränsat antal platser på herrgårdens egna marker. Ansök om medlemskap, eller logga in om du redan är medlem.",
   alternates: { canonical: "/jaktklubb" },
   robots: { index: false },
 };
 
-type Niva = { namn: string; platser: number; avgift: number; bokning: string; text: string };
-const nivaer: Niva[] = [
-  { namn: "Kärnmedlem", platser: 10, avgift: 19000, bokning: "1 mars", text: "Klubbens kärna. Flest jaktdagar, ingående vak- och pyrschdygn och först till bokningen varje säsong." },
-  { namn: "Jaktmedlem", platser: 22, avgift: 9500, bokning: "15 mars", text: "Gemensamma jaktdagar under säsongen, vak- och pyrschdygn att boka, och tillgång till kartor, regler och dokument." },
-  { namn: "Associerad", platser: 18, avgift: 4900, bokning: "1 april", text: "För dig som vill höra till utan att jaga varje vecka. Utvalda jaktdagar, klubbens sammankomster och bokning i mån av plats." },
-];
-const kr = (n: number) => n.toLocaleString("sv-SE") + " kr";
+export const revalidate = 300;
 
-export default function Jaktklubben() {
+const kr = (n: number) => n.toLocaleString("sv-SE") + " kr";
+const RAKNEORD = ["", "ett", "två", "tre", "fyra", "fem"];
+
+export default async function Jaktklubb() {
+  let nivaer: Niva[] = [];
+  try {
+    const db = supabasePublik();
+    const { data: sasong } = await db.from("jaktsasong").select("id").eq("aktiv", true).maybeSingle();
+    if (sasong) {
+      const { data } = await db.from("medlemsniva").select("id, namn, beskrivning, avgift, platser").eq("sasong_id", sasong.id).order("ordning");
+      // Platser kvar räknas i databasen — jaktmedlem är RLS-skyddad och syns inte härifrån.
+      nivaer = await Promise.all((data ?? []).map(async (n) => {
+        const { data: kvar } = await db.rpc("platser_kvar_niva", { niva: n.id });
+        return { ...n, kvar: typeof kvar === "number" ? kvar : n.platser } as Niva;
+      }));
+    }
+  } catch (e) { console.error("Kunde inte hämta jaktklubbens nivåer", e); }
+
+  const flera = nivaer.length > 1;
+
   return (
     <>
       {/* Emblemhuvud: vapnet i guld på mörk botten — jaktklubbens egen signatur */}
@@ -35,28 +50,33 @@ export default function Jaktklubben() {
         </div>
       </section>
 
-      {/* Nivåer */}
+      {/* Medlemskapet */}
       <section className="section">
         <div className="container">
           <div className="split split--start">
             <div className="prose">
-              <p className="label">Att vara medlem</p>
-              <h2 className="lower">tre sätt att höra till</h2>
-              <p>Klubben har femtio platser fördelade på tre nivåer. Alla medlemmar jagar på samma marker, samlas i samma salong och följer samma regler — skillnaden är hur mycket jakt som ingår och när på våren du får boka.</p>
-              <p>Bokningen av säsongens jaktdagar öppnar stegvis: kärnmedlemmar först, därefter jaktmedlemmar och sist associerade. Säkerhets- och skyttekursen på herrgården är obligatorisk inför varje säsong, oavsett nivå.</p>
-              <p className="mb-0">Årsavgiften faktureras vid säsongsstart. Övernattning i flyglarna och mat bokas till efter behov.</p>
+              <p className="label">Medlemskapet</p>
+              <h2 className="lower">{flera ? `${RAKNEORD[nivaer.length] ?? nivaer.length} sätt att höra till` : "att vara medlem"}</h2>
+              <p>Klubben är sluten och platserna är få. Alla medlemmar jagar på samma marker, samlas i samma salong och följer samma regler.</p>
+              <p>Säsongen följer jaktåret, 1 juli till 30 juni. Årsavgiften faktureras vid säsongsstart. Säkerhets- och skyttekursen på herrgården är obligatorisk inför varje säsong. Övernattning i flyglarna och mat bokas till efter behov.</p>
+              <p className="mb-0">Medlemskap söks här och beviljas av herrgården. Är säsongen fullsatt när du söker sätter vi upp dig på väntelistan och hör av oss när en plats blir ledig.</p>
             </div>
             <div className="stack">
               {nivaer.map((n) => (
-                <div key={n.namn} className="card">
+                <div key={n.id} className="card">
                   <div className="title-row">
                     <h3>{n.namn}</h3>
                     <span className="price">{kr(n.avgift)}<small> per år</small></span>
                   </div>
-                  <p className="small">{n.text}</p>
-                  <p className="muted">{n.platser} platser · bokning öppnar {n.bokning}</p>
+                  {n.beskrivning && <p className="small">{n.beskrivning}</p>}
+                  <p className="muted">{n.kvar > 0 ? `${n.kvar} av ${n.platser} platser lediga` : `Alla ${n.platser} platser är tagna — väntelista`}</p>
                 </div>
               ))}
+              {!nivaer.length && (
+                <div className="card">
+                  <p className="mb-0 small">Säsongens medlemskap läggs upp inom kort. Ring <a href={site.phoneHref}>{site.phone}</a> så berättar vi mer.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -68,12 +88,12 @@ export default function Jaktklubben() {
           <div className="prose">
             <p className="label">Ansök om medlemskap</p>
             <h2 className="lower">berätta vem du är</h2>
-            <p>Vi tar in nya medlemmar när platser blir lediga, och vi väljer med omsorg — det är en liten klubb där alla känner alla. Fyll i dina kontaktuppgifter och berätta lite om dig själv: hur du jagar, vad du söker och varför Westsura.</p>
-            <p>Så går det till: du skickar ansökan, vi ringer upp för ett samtal, och du får besked personligen. Räkna med några dagar. Jägarexamen och vapenlicens krävs för jaktmedlemskap.</p>
+            <p>Vi tar in nya medlemmar när platser blir lediga, och vi väljer med omsorg — det är en liten klubb där alla känner alla. Fyll i dina kontaktuppgifter och berätta om din jakt: hur länge du jagat, vad du helst jagar, och om du har hund.</p>
+            <p>Så går det till: du skickar ansökan, vi ringer upp för ett samtal, och du får besked personligen. Räkna med några dagar. Jägarexamen och vapenlicens krävs.</p>
             <p className="mb-0">Vill du hellre prata direkt? Ring <a href={site.phoneHref}>{site.phone}</a>.</p>
           </div>
           <div className="card card--accent">
-            <MedlemsansokanForm />
+            <MedlemsansokanForm nivaer={nivaer} />
           </div>
         </div>
       </section>
@@ -83,17 +103,12 @@ export default function Jaktklubben() {
         <div className="container split">
           <div className="prose">
             <p className="label">Redan medlem?</p>
-            <h2 className="lower">medlemsportalen</h2>
-            <p className="mb-0">Här bokar du jaktdagar, vak- och pyrschdygn och hittar kartor, regler och dokument. Portalen öppnar inför säsongen — du får ett mejl när det är dags. Inloggning sker med en engångslänk till din e-post, inget lösenord att komma ihåg.</p>
+            <h2 className="lower">medlemsklubben</h2>
+            <p className="mb-0">Här bokar du säsongens jaktdagar, laddar upp jaktkort, ID och älgskyttemärke och hittar kartor, regler och dokument. Inloggning sker med en engångslänk till din e-post, inget lösenord att komma ihåg.</p>
           </div>
           <div className="card card--plain">
-            <div className="form form--1">
-              <div className="field">
-                <label htmlFor="jk-epost">E-postadress</label>
-                <input type="email" id="jk-epost" disabled placeholder="Öppnar inför säsongen" />
-              </div>
-              <button className="btn btn--block" type="button" disabled>Skicka inloggningslänk</button>
-            </div>
+            <p className="small">Logga in med den adress du angav i din ansökan.</p>
+            <Link className="btn btn--block" href="/jaktklubb/login">Till medlemsklubben</Link>
           </div>
         </div>
       </section>

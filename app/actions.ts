@@ -79,19 +79,36 @@ export async function skapaForfragan(fd: FormData): Promise<Svar<{ nummer: numbe
 }
 
 /* ---------- Medlemsansökan jaktklubben ---------- */
-export async function skapaMedlemsansokan(fd: FormData): Promise<Svar<{ nummer: number }>> {
-  const namn = s(fd.get("namn")), epost = s(fd.get("epost")).toLowerCase(), telefon = s(fd.get("telefon")), ort = s(fd.get("ort")), text = s(fd.get("text"));
+export async function skapaMedlemsansokan(fd: FormData): Promise<Svar> {
+  const namn = s(fd.get("namn")), epost = s(fd.get("epost")).toLowerCase(), telefon = s(fd.get("telefon")), ort = s(fd.get("ort"));
+  const jakterfarenhet = s(fd.get("jakterfarenhet")), hund = s(fd.get("hund")), meddelande = s(fd.get("meddelande"));
   if (!namn || !epost.includes("@")) return { ok: false, fel: "Fyll i namn och en giltig e-postadress." };
   if (!telefon) return { ok: false, fel: "Fyll i ett telefonnummer så vi kan ringa dig." };
-  if (text.length < 20) return { ok: false, fel: "Berätta lite mer om dig själv — några meningar räcker." };
+  if (jakterfarenhet.length < 20) return { ok: false, fel: "Berätta lite mer om din jakterfarenhet — några meningar räcker." };
+
   const db = supabaseAdmin();
-  const { data, error } = await db.from("forfragan").insert({
-    typ: "Medlemsansökan jaktklubben", namn, epost, telefon,
-    meddelande: (ort ? `Ort: ${ort}\n\n` : "") + text,
-  }).select("nummer").single();
-  if (error) return { ok: false, fel: error.message };
-  try { await mejlMedlemsansokan({ epost, namn, telefon, ort, nummer: data.nummer, text }); } catch (e) { console.error("mejl misslyckades", e); }
-  return { ok: true, data: { nummer: data.nummer } };
+  const { data: sasong } = await db.from("jaktsasong").select("id").eq("aktiv", true).maybeSingle();
+  const { data: nivaer } = sasong
+    ? await db.from("medlemsniva").select("id, namn").eq("sasong_id", sasong.id).order("ordning")
+    : { data: null };
+  if (!nivaer?.length) return { ok: false, fel: "Ansökan är stängd just nu. Ring oss så hjälper vi dig." };
+
+  // Med en enda nivå i säsongen visar formuläret inget val — då är den nivån given.
+  const vald = nivaer.length === 1 ? nivaer[0] : nivaer.find((n) => n.id === s(fd.get("onskad_niva")));
+  if (!vald) return { ok: false, fel: "Välj vilken nivå du söker." };
+
+  const { error } = await db.from("jaktmedlem").insert({
+    namn, epost, telefon, ort: ort || null, jakterfarenhet, hund: hund || null,
+    meddelande: meddelande || null, onskad_niva_id: vald.id,
+  });
+  if (error) {
+    if (error.code === "23505") return { ok: false, fel: "Det finns redan en ansökan med den adressen – ring oss om du vill ändra något." };
+    return { ok: false, fel: error.message };
+  }
+  try {
+    await mejlMedlemsansokan({ epost, namn, telefon, ort, jakterfarenhet, hund, meddelande, niva: vald.namn, flera: nivaer.length > 1 });
+  } catch (e) { console.error("mejl misslyckades", e); }
+  return { ok: true, data: undefined };
 }
 
 /* ---------- Anmälan till tillfälle ---------- */

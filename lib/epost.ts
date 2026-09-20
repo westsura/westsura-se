@@ -15,6 +15,10 @@ function html(rubrik: string, rader: string[], avslut = "Varmt välkomna till We
   </div></body></html>`;
 }
 
+/** Fritext från ett formulär in i mejlets html: escapa först, radbrytningar sedan. */
+const fritext = (t: string) =>
+  t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
+
 async function skicka(till: string[], amne: string, body: string, svaraTill?: string) {
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.warn("RESEND_API_KEY saknas — mejl skickas inte:", amne); return; }
@@ -45,15 +49,20 @@ export async function mejlForfragan(o: { epost: string; namn: string; typ: strin
   ], ""), o.epost);
 }
 
-export async function mejlMedlemsansokan(o: { epost: string; namn: string; telefon?: string; ort?: string; nummer: number; text: string }) {
+export async function mejlMedlemsansokan(o: { epost: string; namn: string; telefon: string; ort?: string; jakterfarenhet: string; hund?: string; meddelande?: string; niva: string; flera: boolean }) {
   await skicka([o.epost], `Din ansökan till Westsura Herrgårds jaktklubb`, html("Tack för din ansökan", [
-    `Hej ${o.namn}, vi har tagit emot din ansökan om medlemskap i jaktklubben (nummer ${o.nummer}).`,
-    `Medlemskap beviljas av herrgården och antalet platser är begränsat. Vi läser din ansökan och hör av oss personligen — räkna med några dagar.`,
+    `Hej ${o.namn}, vi har tagit emot din ansökan om medlemskap i jaktklubben.`,
+    `Antalet platser är begränsat och medlemskap beviljas av herrgården. Vi läser din ansökan och hör av oss personligen — räkna med några dagar. Är säsongen fullsatt sätter vi upp dig på väntelistan och hör av oss när en plats blir ledig.`,
     `Frågor under tiden? Ring ${site.phone}.`,
   ], "Med vänliga hälsningar, Westsura Herrgård"));
-  await skicka([site.email], `Medlemsansökan jaktklubben ${o.nummer}: ${o.namn}`, html("Ny medlemsansökan till jaktklubben", [
-    `${o.namn} · ${o.epost}${o.telefon ? " · " + o.telefon : ""}${o.ort ? " · " + o.ort : ""}`, o.text.replace(/\n/g, "<br>"), `Hantera i admin under Förfrågningar.`,
-  ], ""), o.epost);
+  await skicka([site.email], `Medlemsansökan jaktklubben: ${o.namn}`, html("Ny medlemsansökan till jaktklubben", [
+    `${fritext(o.namn)} · ${fritext(o.epost)} · ${fritext(o.telefon)}${o.ort ? " · " + fritext(o.ort) : ""}`,
+    o.flera ? `Önskad nivå: <strong>${fritext(o.niva)}</strong>` : "",
+    `<strong>Jakterfarenhet</strong><br>${fritext(o.jakterfarenhet)}`,
+    o.hund ? `<strong>Hund</strong><br>${fritext(o.hund)}` : "",
+    o.meddelande ? `<strong>Meddelande</strong><br>${fritext(o.meddelande)}` : "",
+    `Hantera i admin under Jaktklubb.`,
+  ].filter(Boolean), ""), o.epost);
 }
 
 export async function mejlAnmalan(o: { epost: string; namn: string; titel: string; datum: string; status: string; antal: number }) {
