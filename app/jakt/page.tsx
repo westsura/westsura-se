@@ -9,7 +9,7 @@ import { supabasePublik } from "@/lib/supabase";
 export const metadata: Metadata = {
   title: "Jakt, jaktkurser och jakthundsträning i Västmanland",
   description:
-    "Jakt på Westsura Herrgård i Surahammar: boka enstaka jakttillfällen, jaktkurser och träningsdagar för jakthundar. Viltrika marker med flera hundra års tradition, boende och mat på herrgården. Sluten jaktklubb för medlemmar.",
+    "Jakt på Westsura Herrgård i Surahammar: skogsfågel, fältfågel, rådjur och älg in på knuten. Boka enstaka jakttillfällen, jaktkurser och träningsdagar för fågelhundar. Marker med tradition sedan Karl XI:s björnjakt 1687, boende och mat på herrgården. Sluten jaktklubb för medlemmar.",
   alternates: { canonical: "/jakt" },
 };
 
@@ -77,9 +77,9 @@ export default async function Jakt() {
             <p className="label">Enstaka jakttillfällen</p>
             <h2 className="lower">jaga en dag på westsura</h2>
             <p className="pull">”…jagat i Östersura, där jag skjutit en björn.”<small>Karl XI, 1687</small></p>
-            <p>Björnen är borta, men markerna är desamma. Vi lyser ut jaktdagar under säsongen — drevjakt, vakjakt och pyrsch — med jaktledare, genomgång och mat i fält eller i matsalen efteråt.</p>
-            <p>Giltig jägarexamen och vapenlicens krävs. Övernattning i flyglarna bokas till, och hela boendet kan bokas för ett jaktlag.</p>
-            <p>Vill ni boka ett eget tillfälle för er grupp? Ring <a href={site.phoneHref}>{site.phone}</a>, så hör vi av oss med ett upplägg.</p>
+            <p>Jakten har en lång historia på Westsura. En av de första jakter som nämns i litteraturen är Karl XI:s björnjakt i trakten, med jaktmiddag på herrgården. Björnen är borta, men markerna är desamma: skogsfågel och fältfågel, rådjur och älg in på knuten.</p>
+            <p>Vi lyser ut jaktdagar under säsongen — drevjakt, vakjakt och pyrsch — med jaktledare, genomgång och mat i fält eller i matsalen efteråt. Giltig jägarexamen, jaktkort och vapenlicens krävs. Övernattning i flyglarna bokas till, och hela boendet kan bokas för ett jaktlag.</p>
+            <p>Vill ni ha en egen jakt för ert sällskap syr vi ihop den så att den passar er. Ring <a href={site.phoneHref}>{site.phone}</a>, gärna redan nu inför kommande säsong.</p>
           </div>
           <Tillfallen tillfallen={jakttillfallen} rubrik="Utlysta jaktdagar" />
         </div>
@@ -90,8 +90,8 @@ export default async function Jakt() {
           <div className="prose">
             <p className="label">Hundträning</p>
             <h2 className="lower">för hund och förare</h2>
-            <p>Träningsdagar där både hund och förare får utvecklas i en trygg och inspirerande miljö. Små grupper, mycket praktik, och fika i herrgården mitt på dagen.</p>
-            <p>Apportering för unga hundar, spår och eftersök för de som kommit längre. Alla raser och nivåer är välkomna — säg till om ni är osäkra på vilken dag som passar.</p>
+            <p>Träningsdagar för i första hand fågelhundar, men även andra hundar — och deras hussar och mattar. Vi har utmärkta marker för fågel, och tränar i små grupper med mycket praktik och fika i herrgården mitt på dagen.</p>
+            <p>Apportering för unga hundar, spår och eftersök för de som kommit längre. Fria skogspromenader och pauser hjälper hundarna att smälta intrycken, och medföljande är välkomna att vara med vid måltiderna. Alla raser och nivåer är välkomna — säg till om ni är osäkra på vilken dag som passar.</p>
           </div>
           <Tillfallen tillfallen={hundtraning} rubrik="Kommande träningsdagar" />
         </div>

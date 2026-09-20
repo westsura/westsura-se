@@ -66,7 +66,7 @@ export default function Home() {
                 <img src={img.sang} alt="Bäddad säng i en av flyglarna på Westsura Herrgård" loading="lazy" />
               </div>
               <h3>Boende</h3>
-              <p>Övernatta i flyglarna från 1680. Ombonad atmosfär, komfort och ro — och hunden får följa med.</p>
+              <p>Övernatta i flyglarna från 1683 — spröjsade fönster, djupa nischer, ro. Och hunden får följa med.</p>
               <span className="link-more">Se lediga rum →</span>
             </Link>
             <Link className="cat" href="/konferens">

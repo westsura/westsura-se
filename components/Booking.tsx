@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
 import Fakturafalt from "@/components/Fakturafalt";
@@ -35,6 +35,21 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
   const [fel, setFel] = useState<string | null>(null);
   const [kvitto, setKvitto] = useState<{ nummer: number; summa: number } | null>(null);
   const [pending, start] = useTransition();
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const [summarySynlig, setSummarySynlig] = useState(false);
+
+  /* Mobil: den klistrade raden visas bara när summeringen inte syns */
+  useEffect(() => {
+    const el = summaryRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setSummarySynlig(e.isIntersecting), { rootMargin: "0px 0px -60px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const gaVidare = () => {
+    setSteg("uppgifter");
+    setTimeout(() => summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
 
   const n = natter(q.in, q.out);
   const hela = enheter.find((e) => e.ar_hela_boendet);
@@ -129,11 +144,11 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
 
         <SearchBar inline onSearch={sok} />
 
-        <div className="results-head">
+        <div className="results-head" aria-live="polite">
           <p>{laddar ? "Söker…" : `Lediga enheter · ${q.in} till ${q.out} · ${n} ${n === 1 ? "natt" : "nätter"}`}</p>
           <p><strong>{antalLediga} av {vanliga.filter((e) => !e.ingar_i).length}</strong> lediga</p>
         </div>
-        {fel && <div className="notice" style={{ borderLeftColor: "#a33", marginBottom: 20 }}>{fel}</div>}
+        {fel && <div className="notice" role="alert" style={{ borderLeftColor: "#a33", marginBottom: 20 }}>{fel}</div>}
 
         <div className="booking">
           <div>
@@ -192,7 +207,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
           </div>
 
           <aside>
-            <div className="summary">
+            <div className="summary" ref={summaryRef} style={{ scrollMarginTop: 100 }}>
               <h3>Din bokning</h3>
               {rader.length === 0 ? (
                 <p className="empty">Välj en eller flera enheter i listan, så räknar vi fram priset här.</p>
@@ -213,7 +228,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                 </div>
 
                 {steg === "valj" ? (
-                  <button className="btn btn--block" type="button" disabled={valda.size === 0 || !pris} onClick={() => setSteg("uppgifter")}>Gå vidare till bokning</button>
+                  <button className="btn btn--block" type="button" disabled={valda.size === 0 || !pris} onClick={gaVidare}>Gå vidare till bokning</button>
                 ) : (
                   <form onSubmit={boka} className="form" style={{ gridTemplateColumns: "1fr" }}>
                     <div className="field"><label htmlFor="b-namn">Namn</label><input id="b-namn" name="namn" required autoComplete="name" /></div>
@@ -232,6 +247,17 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
               </div>
             </div>
           </aside>
+        </div>
+      </div>
+
+      {/* Mobil: valet följer med i botten */}
+      <div className={`stickybar${valda.size > 0 && steg === "valj" && !summarySynlig ? " is-on" : ""}`} aria-hidden={!(valda.size > 0 && steg === "valj" && !summarySynlig)}>
+        <div className="stickybar__in">
+          <div className="stickybar__txt">
+            <small>{helaVald ? "Hela boendet" : `${valda.size} ${valda.size === 1 ? "enhet vald" : "enheter valda"}`} · {n} {n === 1 ? "natt" : "nätter"}</small>
+            <strong>{pris ? kr(summa) : "Räknar…"}</strong>
+          </div>
+          <button className="btn" type="button" disabled={!pris} onClick={gaVidare}>Gå vidare →</button>
         </div>
       </div>
     </section>

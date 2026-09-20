@@ -24,7 +24,7 @@ const paket: { id: string; bild: string; alt: string; label: string; titel: stri
     id: "kanot-kvall", bild: img.paketKanotKvall, alt: "Kvällspaddling på sjön", label: "Kanot & Herrgård", titel: "kvällsturen", pris: "1 010 kr", per: "per person",
     text: [
       "Låt kvällen börja på vattnet och avslutas i herrgårdens lugn. Tre timmars paddling på sjön och kanalen från Lakeside Adventures uthyrning vid Surahammars sluss, följt av en natt i någon av de historiska flyglarna.",
-      "Paddla ett varv på Östersjön eller följ kanalen uppströms mot campingen och friluftsbadet. Lämna tillbaka kanoten, checka in, och sov gott i en flygel från 1680.",
+      "Paddla ett varv på Östersjön eller följ kanalen uppströms mot campingen och friluftsbadet. Lämna tillbaka kanoten, checka in, och sov gott i en flygel från 1683.",
     ],
     ingar: ["3 timmars paddling i canadensare för två", "Övernattning i flygel med frukostkorg", "Paddlar, flytvästar och kanothjul"],
   },
