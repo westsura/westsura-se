@@ -59,7 +59,7 @@ export default async function Jakt() {
               <p>Vilthantering, säkerhet och skytte. Teori och praktik under en dag, med mat i herrgården.</p>
               <span className="link-more">Se datum →</span>
             </a>
-            <Link className="cat" href="/jaktklubben">
+            <Link className="cat" href="/jaktklubb">
               <div className="cat__img cat__img--vapen">
                 <Vapen variant="farg" size={200} />
               </div>
@@ -117,8 +117,8 @@ export default async function Jakt() {
             <p>En sluten jaktklubb med begränsat antal platser i tre nivåer. Medlemmar får egna gemensamma jaktdagar, ingående vak- och pyrschdygn, förtur till bokning och tillgång till kartor, regler och dokument.</p>
             <p className="mb-0">Medlemskap söks, och beviljas av herrgården. Läs om de tre nivåerna och ansök — eller logga in om du redan är medlem.</p>
             <div className="cta-row cta-row--space">
-              <Link className="btn" href="/jaktklubben#ansokan">Ansök om medlemskap</Link>
-              <Link className="btn btn--ghost" href="/jaktklubben#medlem">Logga in</Link>
+              <Link className="btn" href="/jaktklubb#ansokan">Ansök om medlemskap</Link>
+              <Link className="btn btn--ghost" href="/jaktklubb#medlem">Logga in</Link>
             </div>
           </div>
           <div className="center">

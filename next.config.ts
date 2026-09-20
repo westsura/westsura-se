@@ -22,6 +22,8 @@ const nextConfig: NextConfig = {
       { source: "/kanot-kvallsturen", destination: "/paket", permanent: true },
       { source: "/franglodtillgourmet", destination: "/paket", permanent: true },
       { source: "/golfpaket", destination: "/paket", permanent: true },
+      // Jaktklubbens sida hette /jaktklubben fram till september 2026.
+      { source: "/jaktklubben", destination: "/jaktklubb", permanent: true },
     ];
   },
 };

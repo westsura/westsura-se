@@ -6,7 +6,7 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Jaktklubben — ansök om medlemskap",
   description: "Westsura Herrgårds jaktklubb: en sluten klubb med begränsat antal platser i tre nivåer. Ansök om medlemskap, eller logga in om du redan är medlem.",
-  alternates: { canonical: "/jaktklubben" },
+  alternates: { canonical: "/jaktklubb" },
   robots: { index: false },
 };
 
