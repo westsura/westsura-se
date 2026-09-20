@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
+import { kravAdmin } from "@/lib/admin";
+import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd } from "@/lib/epost";
 import { Resend } from "resend";
 import { site } from "@/lib/site";
 
@@ -210,4 +212,120 @@ export async function sattAnmalanStatus(id: string, status: string) {
   const db = await supabaseServer();
   await db.from("anmalan").update({ status }).eq("id", id);
   revalidatePath("/admin/tillfallen");
+}
+
+/* ---------- Jaktklubben ---------- */
+// Jaktadmin får läsa och skriva jaktmedlem och medlemsdokument genom RLS, men inte
+// fakturaunderlag — den ytan hör till vardskap. Avgiftsunderlaget skapas därför med
+// servicenyckeln, efter att kravAdmin("jaktadmin") har kontrollerat behörigheten.
+
+const DOKUMENTTYPER = ["jaktkort", "id", "algskyttemarke"] as const;
+
+/** Tar bort medlemmens filer ur den privata bucketen och raderar raderna. */
+async function raderaMedlemsdokument(medlemId: string) {
+  const adm = supabaseAdmin();
+  const { data } = await adm.from("medlemsdokument").select("fil").eq("medlem_id", medlemId);
+  const filer = (data ?? []).map((d) => d.fil).filter(Boolean);
+  if (filer.length) await adm.storage.from("medlemsdokument").remove(filer);
+  await adm.from("medlemsdokument").delete().eq("medlem_id", medlemId);
+}
+
+function uppdateraJaktklubb(id?: string) {
+  revalidatePath("/admin/jaktklubb");
+  if (id) revalidatePath(`/admin/jaktklubb/${id}`);
+  revalidatePath("/jaktklubb");
+}
+
+export async function godkannMedlem(id: string, nivaId: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+
+  const { data: medlem } = await adm.from("jaktmedlem").select("*").eq("id", id).single();
+  if (!medlem) return { ok: false, fel: "Medlemmen hittades inte." };
+  // Hindrar att ett andra avgiftsunderlag skapas om knappen hinner tryckas två gånger.
+  if (medlem.status === "godkand") return { ok: false, fel: `${medlem.namn} är redan godkänd.` };
+  const { data: sasong } = await adm.from("jaktsasong").select("*").eq("aktiv", true).maybeSingle();
+  if (!sasong) return { ok: false, fel: "Ingen aktiv säsong." };
+  const { data: niva } = await adm.from("medlemsniva").select("*").eq("id", nivaId).eq("sasong_id", sasong.id).maybeSingle();
+  if (!niva) return { ok: false, fel: "Nivån hör inte till den aktiva säsongen." };
+
+  // Avgiftsunderlag: fakturan görs för hand i Fortnox, numret förs in under Fakturering.
+  const forfallo = new Date(); forfallo.setDate(forfallo.getDate() + 30);
+  const { data: underlag, error: felUnderlag } = await adm.from("fakturaunderlag").insert({
+    rubrik: `Medlemsavgift jaktklubben säsong ${sasong.namn}`,
+    kund_namn: medlem.namn, kund_epost: medlem.epost, kund_telefon: medlem.telefon,
+    forfallodatum: forfallo.toISOString().slice(0, 10),
+  }).select("id").single();
+  if (felUnderlag || !underlag) return { ok: false, fel: felUnderlag?.message ?? "Kunde inte skapa avgiftsunderlaget." };
+
+  const { error: felRad } = await adm.from("fakturarad").insert({
+    underlag_id: underlag.id, ordning: 0,
+    beskrivning: `Medlemsavgift jaktklubben ${sasong.namn}, ${niva.namn}`,
+    antal: 1, enhet: "st", a_pris: niva.avgift, moms: sasong.moms,
+  });
+  if (felRad) return { ok: false, fel: felRad.message };
+
+  const { error } = await adm.from("jaktmedlem").update({
+    status: "godkand", sasong_id: sasong.id, niva_id: niva.id, underlag_id: underlag.id,
+  }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+
+  try {
+    await mejlMedlemGodkand({ epost: medlem.epost, namn: medlem.namn, sasong: sasong.namn, niva: niva.namn, avgift: niva.avgift });
+  } catch (e) { console.error("mejl misslyckades", e); }
+  uppdateraJaktklubb(id); revalidatePath("/admin/fakturering");
+  return { ok: true };
+}
+
+export async function vantelistaMedlem(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const { data: medlem } = await adm.from("jaktmedlem").select("namn, epost").eq("id", id).single();
+  if (!medlem) return { ok: false, fel: "Medlemmen hittades inte." };
+  const { error } = await adm.from("jaktmedlem").update({ status: "vantelista" }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  try { await mejlMedlemVantelista(medlem); } catch (e) { console.error("mejl misslyckades", e); }
+  uppdateraJaktklubb(id);
+  return { ok: true };
+}
+
+export async function avbojMedlem(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const { data: medlem } = await adm.from("jaktmedlem").select("namn, epost").eq("id", id).single();
+  if (!medlem) return { ok: false, fel: "Medlemmen hittades inte." };
+  const { error } = await adm.from("jaktmedlem").update({ status: "avbojd" }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  await raderaMedlemsdokument(id);
+  try { await mejlMedlemAvbojd(medlem); } catch (e) { console.error("mejl misslyckades", e); }
+  uppdateraJaktklubb(id);
+  return { ok: true };
+}
+
+export async function avslutaMedlemskap(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const { error } = await adm.from("jaktmedlem").update({ status: "avslutad" }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  await raderaMedlemsdokument(id);
+  uppdateraJaktklubb(id);
+  return { ok: true };
+}
+
+export async function sparaMedlemsanteckning(id: string, anteckning: string) {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const { error } = await db.from("jaktmedlem").update({ anteckning: anteckning || null }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraJaktklubb(id);
+  return { ok: true };
+}
+
+export async function sattKursGenomford(id: string, genomford: boolean) {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const { error } = await db.from("jaktmedlem").update({ kurs_genomford: genomford }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraJaktklubb(id);
+  return { ok: true };
 }

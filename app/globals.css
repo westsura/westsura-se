@@ -767,6 +767,12 @@ p { margin:0 0 20px; max-width:66ch; }
 .pill--betald { background:#e3ede6; border-color:#8fb39e; }
 .pill--krediterad { background:#f1eeea; color:var(--ws-ink-40); }
 
+/* Jaktklubben: medlems- och dokumentstatus */
+.pill--sokande, .pill--inskickad { background:var(--ws-gold-100); border-color:var(--border-gold); }
+.pill--godkand { background:#e3ede6; border-color:#8fb39e; }
+.pill--underkand { background:#f6e9e6; border-color:#c79a90; }
+.pill--avbojd, .pill--saknas { background:#f1eeea; color:var(--ws-ink-40); }
+
 /* Fakturaunderlag */
 .underlag__bar { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
 .underlag__grid { display:grid; grid-template-columns:1.2fr 1fr; gap:16px; }

@@ -65,6 +65,34 @@ export async function mejlMedlemsansokan(o: { epost: string; namn: string; telef
   ].filter(Boolean), ""), o.epost);
 }
 
+/* ---------- Jaktklubbens medlemskap ---------- */
+
+const medlemslank = () => `${process.env.NEXT_PUBLIC_SITE_URL || site.url}/jaktklubb/login`;
+
+export async function mejlMedlemGodkand(o: { epost: string; namn: string; sasong: string; niva: string; avgift: number }) {
+  await skicka([o.epost], `Välkommen till Westsura Herrgårds jaktklubb`, html("Ditt medlemskap är beviljat", [
+    `Hej ${o.namn}, det är med glädje vi hälsar dig välkommen som medlem i jaktklubben för säsongen <strong>${o.sasong}</strong>.`,
+    `Medlemskapet gäller nivån <strong>${fritext(o.niva)}</strong>. Årsavgiften, ${o.avgift.toLocaleString("sv-SE")} kr, faktureras separat och kommer i ett eget utskick.`,
+    `Logga in i medlemsklubben på <a href="${medlemslank()}">${medlemslank()}</a> med den här e-postadressen. Du får en engångslänk till din inkorg — inget lösenord att komma ihåg.`,
+    `Före din första jaktdag behöver vi tre handlingar av dig: kopia på <strong>giltigt inlöst statligt jaktkort</strong>, <strong>ID-handling</strong> och <strong>älgskyttemärke</strong>. Du laddar upp dem under Mitt medlemskap när du loggat in. Anmälan till jaktdagarna öppnar när alla tre är godkända.`,
+  ], "Varmt välkommen till klubben."));
+}
+
+export async function mejlMedlemVantelista(o: { epost: string; namn: string }) {
+  await skicka([o.epost], `Din ansökan till Westsura Herrgårds jaktklubb`, html("Du står på väntelistan", [
+    `Hej ${o.namn}, tack för din ansökan. Säsongens platser är tagna, men du står på vår väntelista.`,
+    `Vi hör av oss så snart en plats blir ledig. Har du frågor under tiden är du välkommen att ringa ${site.phone}.`,
+  ], "Med vänliga hälsningar, Westsura Herrgård"));
+}
+
+export async function mejlMedlemAvbojd(o: { epost: string; namn: string }) {
+  await skicka([o.epost], `Din ansökan till Westsura Herrgårds jaktklubb`, html("Tack för din ansökan", [
+    `Hej ${o.namn}, tack för att du sökte till jaktklubben och för att du tog dig tid att berätta om din jakt.`,
+    `Klubben är liten och vi kan i år inte erbjuda dig en plats. Det är inget omdöme om dig som jägare — platserna är helt enkelt färre än de som söker.`,
+    `Du är varmt välkommen att söka igen inför en kommande säsong, och lika välkommen på våra öppna jakttillfällen och kurser under tiden.`,
+  ], "Med vänliga hälsningar, Westsura Herrgård"));
+}
+
 export async function mejlAnmalan(o: { epost: string; namn: string; titel: string; datum: string; status: string; antal: number }) {
   const vantelista = o.status === "vantelista";
   await skicka([o.epost], vantelista ? `Du står på väntelista: ${o.titel}` : `Din anmälan: ${o.titel}`, html(
