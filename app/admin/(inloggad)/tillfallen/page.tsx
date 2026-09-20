@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 const TYP: Record<string, string> = { jakt: "Jakt", hundtraning: "Hundträning", jaktkurs: "Jaktkurs", evenemang: "Evenemang" };
 
 export default async function Tillfallen() {
-  await kravAdmin("vardskap", "jaktadmin", "kommunikation");
+  await kravAdmin("vardskap", "jaktadmin");
   const db = await supabaseServer();
   const [{ data: tillfallen }, { data: anmalningar }] = await Promise.all([
     db.from("tillfalle").select("*").order("datum"),
