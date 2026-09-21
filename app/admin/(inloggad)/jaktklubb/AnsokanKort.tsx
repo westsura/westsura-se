@@ -50,7 +50,7 @@ export default function AnsokanKort({ m, nivaer, kvar }: { m: Medlem; nivaer: Ni
         )}
         <input value={ant} onChange={(e) => setAnt(e.target.value)} onBlur={() => start(async () => { await sparaMedlemsanteckning(m.id, ant); })}
           placeholder="Anteckning — ringt, träffat, referens…" style={{ flex: 1 }} />
-        <button className="btn btn--sm" type="button" disabled={pending || !valdNiva} onClick={() => kor(() => godkannMedlem(m.id, valdNiva))}>Godkänn</button>
+        <button className="btn btn--sm" type="button" disabled={pending || !valdNiva} onClick={() => kor(() => godkannMedlem(m.id, valdNiva))}>{pending ? "Godkänner…" : "Godkänn"}</button>
         {m.status !== "vantelista" && <button className="btn btn--sm btn--ghost" type="button" disabled={pending} onClick={() => kor(() => vantelistaMedlem(m.id))}>Väntelista</button>}
         <button className="btn btn--sm btn--ghost" type="button" disabled={pending}
           onClick={() => { if (confirm(`Avböj ${m.namn}? Eventuella uppladdade dokument raderas.`)) kor(() => avbojMedlem(m.id)); }}>Avböj</button>

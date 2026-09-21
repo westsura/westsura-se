@@ -240,38 +240,20 @@ export async function godkannMedlem(id: string, nivaId: string): Promise<{ ok: b
   await kravAdmin("jaktadmin");
   const adm = supabaseAdmin();
 
-  const { data: medlem } = await adm.from("jaktmedlem").select("*").eq("id", id).single();
-  if (!medlem) return { ok: false, fel: "Medlemmen hittades inte." };
-  // Hindrar att ett andra avgiftsunderlag skapas om knappen hinner tryckas två gånger.
-  if (medlem.status === "godkand") return { ok: false, fel: `${medlem.namn} är redan godkänd.` };
-  const { data: sasong } = await adm.from("jaktsasong").select("*").eq("aktiv", true).maybeSingle();
-  if (!sasong) return { ok: false, fel: "Ingen aktiv säsong." };
-  const { data: niva } = await adm.from("medlemsniva").select("*").eq("id", nivaId).eq("sasong_id", sasong.id).maybeSingle();
-  if (!niva) return { ok: false, fel: "Nivån hör inte till den aktiva säsongen." };
-
-  // Avgiftsunderlag: fakturan görs för hand i Fortnox, numret förs in under Fakturering.
-  const forfallo = new Date(); forfallo.setDate(forfallo.getDate() + 30);
-  const { data: underlag, error: felUnderlag } = await adm.from("fakturaunderlag").insert({
-    rubrik: `Medlemsavgift jaktklubben säsong ${sasong.namn}`,
-    kund_namn: medlem.namn, kund_epost: medlem.epost, kund_telefon: medlem.telefon,
-    forfallodatum: forfallo.toISOString().slice(0, 10),
-  }).select("id").single();
-  if (felUnderlag || !underlag) return { ok: false, fel: felUnderlag?.message ?? "Kunde inte skapa avgiftsunderlaget." };
-
-  const { error: felRad } = await adm.from("fakturarad").insert({
-    underlag_id: underlag.id, ordning: 0,
-    beskrivning: `Medlemsavgift jaktklubben ${sasong.namn}, ${niva.namn}`,
-    antal: 1, enhet: "st", a_pris: niva.avgift, moms: sasong.moms,
-  });
-  if (felRad) return { ok: false, fel: felRad.message };
-
-  const { error } = await adm.from("jaktmedlem").update({
-    status: "godkand", sasong_id: sasong.id, niva_id: niva.id, underlag_id: underlag.id,
-  }).eq("id", id);
+  // Hela godkännandet sker i godkann_medlem, i en transaktion med medlemsraden låst.
+  // Två samtidiga godkännanden kan därför inte skapa var sitt avgiftsunderlag.
+  const { error } = await adm.rpc("godkann_medlem", { p_medlem: id, p_niva: nivaId });
   if (error) return { ok: false, fel: error.message };
 
+  const { data: medlem, error: felMedlem } = await adm
+    .from("jaktmedlem").select("namn, epost, jaktsasong(namn), medlemsniva!jaktmedlem_niva_id_fkey(namn, avgift)")
+    .eq("id", id).single();
+  if (felMedlem) return { ok: false, fel: felMedlem.message };
+
+  const sasong = medlem.jaktsasong as unknown as { namn: string } | null;
+  const niva = medlem.medlemsniva as unknown as { namn: string; avgift: number } | null;
   try {
-    await mejlMedlemGodkand({ epost: medlem.epost, namn: medlem.namn, sasong: sasong.namn, niva: niva.namn, avgift: niva.avgift });
+    if (sasong && niva) await mejlMedlemGodkand({ epost: medlem.epost, namn: medlem.namn, sasong: sasong.namn, niva: niva.namn, avgift: niva.avgift });
   } catch (e) { console.error("mejl misslyckades", e); }
   uppdateraJaktklubb(id); revalidatePath("/admin/fakturering");
   return { ok: true };
