@@ -26,3 +26,9 @@ export const DOKUMENTSTATUS: Record<string, string> = {
 };
 
 export const datumtid = (d: string) => new Date(d).toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" });
+
+/** Jaktåret löper 1 juli–30 juni. Förslaget när ett jaktkort godkänns. */
+export function jaktaretsSlut(d = new Date()) {
+  const ar = d.getMonth() >= 6 ? d.getFullYear() + 1 : d.getFullYear();
+  return `${ar}-06-30`;
+}

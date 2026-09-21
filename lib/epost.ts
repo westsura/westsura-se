@@ -98,6 +98,32 @@ export async function mejlMedlemAvbojd(o: { epost: string; namn: string }) {
   ], "Med vänliga hälsningar, Westsura Herrgård"));
 }
 
+const bokalank = () => `${process.env.NEXT_PUBLIC_SITE_URL || site.url}/jaktklubb/medlem/boka`;
+const medlemskapslank = () => `${process.env.NEXT_PUBLIC_SITE_URL || site.url}/jaktklubb/medlem/medlemskap`;
+
+export async function mejlDokumentstatus(o: { epost: string; namn: string; dokument: string; godkand: boolean; giltigTill?: string | null; kommentar?: string | null }) {
+  if (o.godkand) {
+    await skicka([o.epost], `${o.dokument} är godkänt`, html("Handlingen är godkänd", [
+      `Hej ${o.namn}, vi har granskat din kopia på <strong>${fritext(o.dokument)}</strong> och den är godkänd.`,
+      o.giltigTill ? `Den gäller till och med <strong>${o.giltigTill}</strong>. Vi hör av oss i god tid innan dess.` : "",
+      `Du ser dina handlingar under Mitt medlemskap: <a href="${medlemskapslank()}">${medlemskapslank()}</a>.`,
+    ].filter(Boolean), "Med vänliga hälsningar, Westsura Herrgård"));
+    return;
+  }
+  await skicka([o.epost], `Vi behöver en ny kopia på ${o.dokument.toLowerCase()}`, html("Handlingen behöver kompletteras", [
+    `Hej ${o.namn}, vi har tittat på din kopia på <strong>${fritext(o.dokument)}</strong> och behöver en ny.`,
+    o.kommentar ? `<strong>Vår kommentar:</strong> ${fritext(o.kommentar)}` : "",
+    `Ladda upp en ny kopia under Mitt medlemskap: <a href="${medlemskapslank()}">${medlemskapslank()}</a>. Hör gärna av dig om något är oklart — ${site.phone}.`,
+  ].filter(Boolean), "Med vänliga hälsningar, Westsura Herrgård"));
+}
+
+export async function mejlDokumentKlar(o: { epost: string; namn: string }) {
+  await skicka([o.epost], `Du är klar för säsongen`, html("Du är klar för säsongen", [
+    `Hej ${o.namn}, dina tre handlingar är godkända: jaktkort, ID och älgskyttemärke.`,
+    `Därmed är du klar att anmäla dig till säsongens jaktdagar. Välj en dag som passar: <a href="${bokalank()}">${bokalank()}</a>.`,
+  ], "Vi ses i skogen."));
+}
+
 export async function mejlDokumentVantar(o: { namn: string; dokument: string }) {
   await skicka([site.email], `Dokument att granska: ${o.namn}`, html("Ett dokument väntar på granskning", [
     `${fritext(o.namn)} har laddat upp <strong>${fritext(o.dokument)}</strong> i medlemsklubben.`,

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import { kravAdmin } from "@/lib/admin";
-import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd } from "@/lib/epost";
+import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokumentstatus, mejlDokumentKlar } from "@/lib/epost";
 import { Resend } from "resend";
 import { site } from "@/lib/site";
 import { FAKTURASTATUS } from "@/lib/faktura";
@@ -346,5 +346,62 @@ export async function sattKursGenomford(id: string, genomford: boolean) {
   const { error } = await db.from("jaktmedlem").update({ kurs_genomford: genomford }).eq("id", id);
   if (error) return { ok: false, fel: error.message };
   uppdateraJaktklubb(id);
+  return { ok: true };
+}
+
+/* ---------- Granskning av medlemmarnas dokument ---------- */
+
+const DOKUMENTNAMN: Record<string, string> = { jaktkort: "Statligt jaktkort", id: "ID-handling", algskyttemarke: "Älgskyttemärke" };
+
+/** Kort länk till en kopia i den privata bucketen. Gäller i tio minuter. */
+export async function signeradDokumentlank(dokumentId: string): Promise<{ ok: true; url: string } | { ok: false; fel: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const { data: d, error: felUppslag } = await adm.from("medlemsdokument").select("fil").eq("id", dokumentId).maybeSingle();
+  if (felUppslag) return { ok: false, fel: felUppslag.message };
+  if (!d) return { ok: false, fel: "Dokumentet hittades inte." };
+  const { data, error } = await adm.storage.from("medlemsdokument").createSignedUrl(d.fil, 600);
+  if (error || !data) return { ok: false, fel: error?.message ?? "Kunde inte skapa länken." };
+  return { ok: true, url: data.signedUrl };
+}
+
+export async function granskaDokument(dokumentId: string, godkand: boolean, giltigTill: string | null, kommentar: string | null): Promise<{ ok: boolean; fel?: string }> {
+  const admin = await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+
+  const { data: d, error: felUppslag } = await adm.from("medlemsdokument")
+    .select("id, typ, medlem_id, jaktmedlem(namn, epost)").eq("id", dokumentId).maybeSingle();
+  if (felUppslag) return { ok: false, fel: felUppslag.message };
+  if (!d) return { ok: false, fel: "Dokumentet hittades inte." };
+  if (godkand && d.typ === "jaktkort" && !giltigTill) return { ok: false, fel: "Jaktkortet behöver ett giltighetsdatum." };
+  if (!godkand && !kommentar?.trim()) return { ok: false, fel: "Skriv en kommentar så medlemmen vet vad som behöver kompletteras." };
+
+  const { error } = await adm.from("medlemsdokument").update({
+    status: godkand ? "godkand" : "underkand",
+    giltig_till: godkand ? giltigTill : null,
+    kommentar: godkand ? null : kommentar!.trim(),
+    granskad_av: admin.id, granskad: new Date().toISOString(),
+  }).eq("id", dokumentId);
+  if (error) return { ok: false, fel: error.message };
+
+  const medlem = d.jaktmedlem as unknown as { namn: string; epost: string } | null;
+  if (medlem) {
+    try {
+      await mejlDokumentstatus({ epost: medlem.epost, namn: medlem.namn, dokument: DOKUMENTNAMN[d.typ] ?? d.typ, godkand, giltigTill, kommentar });
+    } catch (e) { console.error("mejl misslyckades", e); }
+
+    // När den tredje handlingen blir godkänd är medlemmen klar för säsongen.
+    if (godkand) {
+      const { count, error: felRakning } = await adm.from("medlemsdokument")
+        .select("id", { count: "exact", head: true }).eq("medlem_id", d.medlem_id).eq("status", "godkand");
+      if (felRakning) console.error("kunde inte räkna godkända dokument", felRakning.message);
+      else if (count === 3) {
+        try { await mejlDokumentKlar({ epost: medlem.epost, namn: medlem.namn }); } catch (e) { console.error("mejl misslyckades", e); }
+      }
+    }
+  }
+
+  uppdateraJaktklubb(d.medlem_id);
+  revalidatePath("/jaktklubb/medlem/medlemskap");
   return { ok: true };
 }

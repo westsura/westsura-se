@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { kravAdmin, kr, FAKTURASTATUS } from "@/lib/admin";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import MedlemsKort from "./MedlemsKort";
-import { DOKUMENT, DOKUMENTSTATUS, MEDLEMSSTATUS, datumtid, type Dokument, type Medlem, type Niva, type Sasong } from "../delar";
+import Granskning from "./Granskning";
+import { DOKUMENT, MEDLEMSSTATUS, datumtid, jaktaretsSlut, type Dokument, type Medlem, type Niva, type Sasong } from "../delar";
 
 export const dynamic = "force-dynamic";
 
@@ -74,23 +75,10 @@ export default async function MedlemsSida({ params }: { params: Promise<{ id: st
 
       <section className="admin__panel" style={{ marginTop: 24 }}>
         <h2 className="admin__h2">Dokument</h2>
-        {DOKUMENT.map((d) => {
-          const f = dok(d.typ);
-          const status = f?.status ?? "saknas";
-          return (
-            <div key={d.typ} className="row">
-              <span className="row__main">
-                <b>{d.namn}</b>
-                {f?.kommentar ? <div className="admin__meta">{f.kommentar}</div> : null}
-              </span>
-              <span className="row__meta">
-                {f?.giltig_till ? `t.o.m. ${f.giltig_till} · ` : ""}
-                <span className={`pill pill--${status}`}>{DOKUMENTSTATUS[status]}</span>
-              </span>
-            </div>
-          );
-        })}
-        <p className="admin__meta" style={{ marginTop: 12 }}>Granskning med Öppna, Godkänn och Underkänn byggs i steg 1.6.</p>
+        {DOKUMENT.map((d) => (
+          <Granskning key={d.typ} namn={d.namn} typ={d.typ} d={dok(d.typ)} forslagGiltigTill={sasong?.till ?? jaktaretsSlut()} />
+        ))}
+        <p className="admin__meta" style={{ marginTop: 12 }}>Öppna visar kopian via en länk som gäller i tio minuter.</p>
       </section>
 
       <MedlemsKort m={medlem} />
