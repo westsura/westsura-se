@@ -21,9 +21,14 @@ const fritext = (t: string) =>
 
 async function skicka(till: string[], amne: string, body: string, svaraTill?: string) {
   const key = process.env.RESEND_API_KEY;
-  if (!key) { console.warn("RESEND_API_KEY saknas — mejl skickas inte:", amne); return; }
+  if (!key) { console.warn("RESEND_API_KEY saknas — mejl skickas inte:", amne); return false; }
   const resend = new Resend(key);
-  await resend.emails.send({ from: fran, to: till, subject: amne, html: body, replyTo: svaraTill });
+  // Resend kastar inte vid avvisat utskick utan svarar med ett error-objekt. Utan den
+  // här kontrollen blir ett misslyckat mejl helt tyst — till exempel när avsändarens
+  // domän inte är verifierad.
+  const { error } = await resend.emails.send({ from: fran, to: till, subject: amne, html: body, replyTo: svaraTill });
+  if (error) { console.error(`Mejlet gick inte fram (${amne}) till ${till.join(", ")}:`, error.name, error.message); return false; }
+  return true;
 }
 
 export async function mejlBokning(o: { epost: string; namn: string; nummer: number; ankomst: string; avresa: string; enheter: string[]; summa: number; hundar: number; frukost: boolean }) {
