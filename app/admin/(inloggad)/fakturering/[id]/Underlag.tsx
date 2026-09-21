@@ -36,6 +36,7 @@ export default function Underlag({ u, rader: start }: { u: U; rader: Fakturarad[
   const [rader, setRader] = useState<Fakturarad[]>(start.length ? start : [{ beskrivning: "", antal: 1, enhet: "st", a_pris: 0, moms: 12 }]);
   const [andrad, setAndrad] = useState(false);
   const [medd, setMedd] = useState<string | null>(null);
+  const [fel, setFel] = useState<string | null>(null);
   const [pending, startT] = useTransition();
   const router = useRouter();
 
@@ -63,10 +64,10 @@ export default function Underlag({ u, rader: start }: { u: U; rader: Fakturarad[
     if (extra) setH(hh);
     const fd = new FormData();
     Object.entries(hh).forEach(([k, v]) => fd.set(k, v));
-    setMedd(null);
+    setMedd(null); setFel(null);
     startT(async () => {
       const r = await sparaUnderlag(u.id, fd, rader);
-      if (r.ok) { setAndrad(false); setMedd("Sparat."); router.refresh(); } else setMedd(r.fel ?? "Kunde inte spara.");
+      if (r.ok) { setAndrad(false); setMedd("Sparat."); router.refresh(); } else setFel(r.fel ?? "Kunde inte spara.");
     });
   }
 
@@ -93,6 +94,7 @@ export default function Underlag({ u, rader: start }: { u: U; rader: Fakturarad[
           <button className="btn btn--sm btn--ghost" type="button" onClick={() => window.print()}>Skriv ut</button>
         </div>
         <div className="admin__meta">{medd ?? (andrad ? "Osparade ändringar" : "")}</div>
+        {fel && <div className="notice notice--fel print-hide" role="alert">{fel}</div>}
       </div>
 
       <div className="underlag__grid">

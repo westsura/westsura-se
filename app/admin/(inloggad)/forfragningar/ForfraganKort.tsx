@@ -11,8 +11,13 @@ const STATUS = [["ny", "Ny"], ["pagar", "Pågår"], ["besvarad", "Besvarad"], ["
 export default function ForfraganKort({ f, underlag }: { f: F; underlag?: { id: string; status: string } }) {
   const [status, setStatus] = useState(f.status);
   const [ant, setAnt] = useState(f.anteckningar ?? "");
+  const [fel, setFel] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const spara = (s = status, a = ant) => start(async () => { await uppdateraForfragan(f.id, s, a); });
+  const spara = (s = status, a = ant) => start(async () => {
+    setFel(null);
+    const r = await uppdateraForfragan(f.id, s, a);
+    if (!r.ok) setFel(r.fel ?? "Kunde inte spara.");
+  });
   return (
     <article className={`admin__panel ff st-${status}`} id={String(f.nummer)} style={{ marginBottom: 14 }}>
       <div className="ff__head">
@@ -29,6 +34,7 @@ export default function ForfraganKort({ f, underlag }: { f: F; underlag?: { id: 
           <b>Fakturauppgifter:</b> {[f.faktura.foretag, f.faktura.orgnr && `org.nr ${f.faktura.orgnr}`, f.faktura.adress, f.faktura.referens && `ref ${f.faktura.referens}`, f.faktura.epost].filter(Boolean).join(" · ")}
         </p>
       )}
+      {fel && <div className="notice notice--fel" role="alert" style={{ margin: "12px 0" }}>{fel}</div>}
       <div className="ff__foot">
         <select value={status} onChange={(e) => { setStatus(e.target.value); spara(e.target.value); }} disabled={pending}>
           {STATUS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}

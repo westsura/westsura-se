@@ -19,7 +19,7 @@ export default function MedlemsKort({ m }: { m: Medlem }) {
 
       <label className="checkfield checkfield--bare" style={{ marginBottom: 16 }}>
         <input type="checkbox" checked={kurs} disabled={pending}
-          onChange={(e) => { const v = e.target.checked; setKurs(v); start(async () => { await sattKursGenomford(m.id, v); }); }} />
+          onChange={(e) => { const v = e.target.checked; setKurs(v); setFel(null); start(async () => { const r = await sattKursGenomford(m.id, v); if (!r.ok) { setKurs(!v); setFel(r.fel ?? "Kunde inte spara kursstatusen."); } }); }} />
         <span>Säkerhets- och skyttekurs genomförd</span>
       </label>
 
@@ -27,7 +27,7 @@ export default function MedlemsKort({ m }: { m: Medlem }) {
         <label htmlFor="anteckning">Anteckning</label>
         <input id="anteckning" value={ant} disabled={pending}
           onChange={(e) => setAnt(e.target.value)}
-          onBlur={() => start(async () => { await sparaMedlemsanteckning(m.id, ant); })}
+          onBlur={() => start(async () => { setFel(null); const r = await sparaMedlemsanteckning(m.id, ant); if (!r.ok) setFel(r.fel ?? "Kunde inte spara anteckningen."); })}
           placeholder="Ringt, träffat, referens…" />
       </div>
 

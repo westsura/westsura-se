@@ -48,7 +48,7 @@ export default function AnsokanKort({ m, nivaer, kvar }: { m: Medlem; nivaer: Ni
             {nivaer.map((n) => <option key={n.id} value={n.id}>{n.namn} ({kvar[n.id] ?? 0} kvar)</option>)}
           </select>
         )}
-        <input value={ant} onChange={(e) => setAnt(e.target.value)} onBlur={() => start(async () => { await sparaMedlemsanteckning(m.id, ant); })}
+        <input value={ant} onChange={(e) => setAnt(e.target.value)} onBlur={() => start(async () => { setFel(null); const r = await sparaMedlemsanteckning(m.id, ant); if (!r.ok) setFel(r.fel ?? "Kunde inte spara anteckningen."); })}
           placeholder="Anteckning — ringt, träffat, referens…" style={{ flex: 1 }} />
         <button className="btn btn--sm" type="button" disabled={pending || !valdNiva} onClick={() => kor(() => godkannMedlem(m.id, valdNiva))}>{pending ? "Godkänner…" : "Godkänn"}</button>
         {m.status !== "vantelista" && <button className="btn btn--sm btn--ghost" type="button" disabled={pending} onClick={() => kor(() => vantelistaMedlem(m.id))}>Väntelista</button>}

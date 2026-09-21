@@ -51,9 +51,15 @@ export async function skapaBokning(fd: FormData): Promise<Svar<{ nummer: number;
   }
   const rad = (data as { bokning_id: string; nummer: number; summa: number }[])[0];
   const faktura = fakturaFran(fd);
-  if (faktura) await db.from("bokning").update({ faktura }).eq("id", rad.bokning_id);
+  // Bokningen är redan skapad. Går de här stegen fel loggas det, men gästen får
+  // inte se en genomförd bokning som ett misslyckande.
+  if (faktura) {
+    const { error: felFaktura } = await db.from("bokning").update({ faktura }).eq("id", rad.bokning_id);
+    if (felFaktura) console.error("kunde inte spara fakturauppgifterna på bokningen", rad.nummer, felFaktura.message);
+  }
 
-  const { data: namnrader } = await db.from("enhet").select("id, namn").in("id", enheter);
+  const { data: namnrader, error: felEnheter } = await db.from("enhet").select("id, namn").in("id", enheter);
+  if (felEnheter) console.error("kunde inte hämta enhetsnamn till bokningsmejlet", felEnheter.message);
   const namnlista = enheter.map((id) => namnrader?.find((r) => r.id === id)?.namn ?? id);
   try {
     await mejlBokning({ epost, namn, nummer: rad.nummer, ankomst, avresa, enheter: namnlista, summa: rad.summa, hundar: Number(s(fd.get("hundar")) || 0), frukost: s(fd.get("frukost")) === "1" });
@@ -87,10 +93,12 @@ export async function skapaMedlemsansokan(fd: FormData): Promise<Svar> {
   if (jakterfarenhet.length < 20) return { ok: false, fel: "Berätta lite mer om din jakterfarenhet — några meningar räcker." };
 
   const db = supabaseAdmin();
-  const { data: sasong } = await db.from("jaktsasong").select("id").eq("aktiv", true).maybeSingle();
-  const { data: nivaer } = sasong
+  const { data: sasong, error: felSasong } = await db.from("jaktsasong").select("id").eq("aktiv", true).maybeSingle();
+  if (felSasong) return { ok: false, fel: felSasong.message };
+  const { data: nivaer, error: felNivaer } = sasong
     ? await db.from("medlemsniva").select("id, namn").eq("sasong_id", sasong.id).order("ordning")
-    : { data: null };
+    : { data: null, error: null };
+  if (felNivaer) return { ok: false, fel: felNivaer.message };
   if (!nivaer?.length) return { ok: false, fel: "Ansökan är stängd just nu. Ring oss så hjälper vi dig." };
 
   // Med en enda nivå i säsongen visar formuläret inget val — då är den nivån given.
@@ -122,7 +130,9 @@ export async function skapaAnmalan(fd: FormData): Promise<Svar<{ status: string 
   });
   if (error) return { ok: false, fel: error.message };
   const rad = (data as { anmalan_id: string; status: string }[])[0];
-  const { data: t } = await db.from("tillfalle").select("titel, datum").eq("id", tillfalle).single();
+  // Anmälan är redan skapad — ett fel här får bara påverka mejlet.
+  const { data: t, error: felTillfalle } = await db.from("tillfalle").select("titel, datum").eq("id", tillfalle).single();
+  if (felTillfalle) console.error("kunde inte hämta tillfället till anmälningsmejlet", felTillfalle.message);
   try {
     await mejlAnmalan({ epost, namn, titel: t?.titel ?? "", datum: t?.datum ?? "", status: rad.status, antal: Number(s(fd.get("antal")) || 1) });
   } catch (e) { console.error("mejl misslyckades", e); }
