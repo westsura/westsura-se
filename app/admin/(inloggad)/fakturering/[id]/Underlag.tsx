@@ -171,9 +171,19 @@ export default function Underlag({ u, rader: start }: { u: U; rader: Fakturarad[
         </div>
       </section>
 
-      <p className="print-hide" style={{ marginTop: 28, textAlign: "right" }}>
-        <button type="button" className="admin__logout" onClick={() => { if (confirm("Ta bort underlaget? Bokningen eller förfrågan finns kvar.")) startT(async () => { await taBortUnderlag(u.id); router.push("/admin/fakturering"); }); }}>Ta bort underlaget</button>
-      </p>
+      {/* Bara ofakturerade underlag får tas bort — är det fakturerat finns en faktura i Fortnox. */}
+      {h.status === "ej_fakturerad" && (
+        <p className="print-hide" style={{ marginTop: 28, textAlign: "right" }}>
+          <button type="button" className="admin__logout" onClick={() => {
+            if (!confirm("Ta bort underlaget? Bokningen eller förfrågan finns kvar.")) return;
+            setFel(null);
+            startT(async () => {
+              const r = await taBortUnderlag(u.id);
+              if (r.ok) router.push("/admin/fakturering"); else setFel(r.fel ?? "Kunde inte ta bort underlaget.");
+            });
+          }}>Ta bort underlaget</button>
+        </p>
+      )}
     </div>
   );
 }

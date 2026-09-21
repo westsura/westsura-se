@@ -57,7 +57,7 @@ export default async function Fakturering({ searchParams }: { searchParams: Prom
                     <td style={sen ? { color: "#a33", fontWeight: 700 } : undefined}>{u.forfallodatum ?? "—"}</td>
                     <td><span className={`pill pill--${u.status}`}>{STATUS[u.status]}</span></td>
                     <td>{u.fortnox_nummer ?? <small>—</small>}</td>
-                    <td className="admin__actions"><Link className="btn btn--sm" href={`/admin/fakturering/${u.id}`}>Öppna</Link><TaBortKnapp id={u.id} nummer={u.nummer} /></td>
+                    <td className="admin__actions"><Link className="btn btn--sm" href={`/admin/fakturering/${u.id}`}>Öppna</Link><TaBortKnapp id={u.id} nummer={u.nummer} status={u.status} /></td>
                   </tr>
                 );
               })}

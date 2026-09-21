@@ -6,6 +6,7 @@ import { kravAdmin } from "@/lib/admin";
 import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd } from "@/lib/epost";
 import { Resend } from "resend";
 import { site } from "@/lib/site";
+import { FAKTURASTATUS } from "@/lib/faktura";
 
 const s = (v: FormDataEntryValue | null) => (typeof v === "string" ? v.trim() : "");
 
@@ -196,10 +197,19 @@ export async function sparaUnderlag(id: string, fd: FormData, rader: Fakturarad[
   return { ok: true };
 }
 
+/** Bara ofakturerade underlag får tas bort — är det fakturerat finns en faktura i Fortnox. */
 export async function taBortUnderlag(id: string) {
   const db = await supabaseServer();
-  await db.from("fakturaunderlag").delete().eq("id", id);
-  revalidatePath("/admin/fakturering"); revalidatePath("/admin/bokningar");
+  const { data: u, error: felUppslag } = await db.from("fakturaunderlag").select("status").eq("id", id).maybeSingle();
+  if (felUppslag) return { ok: false, fel: felUppslag.message };
+  if (!u) return { ok: false, fel: "Underlaget hittades inte." };
+  if (u.status !== "ej_fakturerad") {
+    return { ok: false, fel: `Underlaget har status ${FAKTURASTATUS[u.status]} och kan inte tas bort — det finns en faktura i Fortnox. Kreditera den i stället.` };
+  }
+  const { error } = await db.from("fakturaunderlag").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/fakturering"); revalidatePath("/admin/bokningar"); revalidatePath("/admin/jaktklubb");
+  return { ok: true };
 }
 
 const datumKort = (d: string) => new Date(d).toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
