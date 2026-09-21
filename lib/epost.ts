@@ -98,6 +98,13 @@ export async function mejlMedlemAvbojd(o: { epost: string; namn: string }) {
   ], "Med vänliga hälsningar, Westsura Herrgård"));
 }
 
+export async function mejlDokumentVantar(o: { namn: string; dokument: string }) {
+  await skicka([site.email], `Dokument att granska: ${o.namn}`, html("Ett dokument väntar på granskning", [
+    `${fritext(o.namn)} har laddat upp <strong>${fritext(o.dokument)}</strong> i medlemsklubben.`,
+    `Granska det under Jaktklubb i admin.`,
+  ], ""));
+}
+
 export async function mejlAnmalan(o: { epost: string; namn: string; titel: string; datum: string; status: string; antal: number }) {
   const vantelista = o.status === "vantelista";
   await skicka([o.epost], vantelista ? `Du står på väntelista: ${o.titel}` : `Din anmälan: ${o.titel}`, html(

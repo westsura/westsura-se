@@ -891,3 +891,126 @@ body:has(.jk-login) > .site-footer { display:none; }
   .jk-login__inner { max-width:none; padding-top:0; }
   .jk-login__h1 { font-size:34px; }
 }
+
+/* --- Medlemsklubbens inloggade vyer --- */
+
+body:has(.jk) > .site-header,
+body:has(.jk) > .site-footer { display:none; }
+
+.jk { display:flex; flex-direction:column; min-height:100vh; background:var(--surface-tint); }
+
+/* Sidhuvud på grönt */
+.jk-head { display:flex; align-items:center; gap:40px; padding:40px; background:var(--ws-green-700); }
+.jk-head .jk-marke { text-decoration:none; }
+.jk-marke__ord, .jk-marke__under { display:block; }
+.jk-head__luft { flex:1 0 0; min-width:0; }
+.jk-head__etikett { font-family:var(--font-sans); font-weight:700; font-size:13px; letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--ws-gold-400); white-space:nowrap; }
+.jk-head__sasong { font-size:14px; color:rgba(243,235,208,.82); text-transform:uppercase; white-space:nowrap; }
+.jk-head__profil { font-size:14px; color:var(--ws-cream); text-transform:uppercase; text-decoration:none; white-space:nowrap; }
+.jk-head__profil:hover { text-decoration:underline; }
+.jk-head__meny { display:none; background:none; border:0; font:inherit; font-size:14px; color:var(--ws-cream); cursor:pointer; padding:8px; }
+
+/* Navigationsrad */
+.jk-nav { display:flex; gap:40px; padding:16px 40px; background:var(--ws-white); border-bottom:1px solid var(--border-subtle); }
+.jk-nav a { font-size:14px; color:var(--ws-ink-40); text-decoration:none; }
+.jk-nav a:hover { color:var(--text-heading); }
+.jk-nav a[aria-current="page"] { color:var(--text-heading); text-decoration:underline; }
+
+.jk-main { flex:1 0 auto; display:flex; flex-direction:column; gap:32px; padding:64px; max-width:1440px; width:100%; }
+.jk-fot { display:flex; align-items:center; gap:16px; padding:24px 40px; }
+.jk-fot b { font-family:var(--font-sans); font-weight:700; font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--ws-ink-40); }
+.jk-fot span { font-size:14px; color:var(--ws-ink-40); }
+
+/* Bottennavigation — bara på mobil */
+.jk-botten { display:none; }
+
+/* Rubriker och text */
+.jk-valkommen { display:flex; align-items:center; justify-content:space-between; gap:32px; flex-wrap:wrap; }
+.jk-etikett { font-family:var(--font-sans); font-weight:700; font-size:13px; line-height:1.4; letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--ws-ink-40); margin:0 0 12px; }
+.jk-etikett--guld { color:var(--ws-gold-400); margin:0; }
+.jk-h1 { font-family:var(--font-serif); font-weight:400; font-size:52px; line-height:1.08; letter-spacing:0; text-transform:none; color:var(--text-heading); margin:0 0 12px; }
+.jk-h2 { font-family:var(--font-serif); font-weight:400; font-size:32px; line-height:1.08; color:var(--text-heading); margin:0; }
+.jk-lede { font-size:16px; line-height:1.55; color:var(--text-body); margin:0 0 16px; }
+
+/* Kort */
+.jk-rad { display:grid; grid-template-columns:856fr 432fr; gap:24px; align-items:start; }
+.jk-kort { display:flex; flex-direction:column; align-items:flex-start; gap:20px; }
+.jk-kort--mork { background:var(--ws-green-700); color:var(--ws-cream); padding:40px; }
+.jk-kort--ljus { background:var(--ws-white); border:1px solid var(--border-subtle); border-top:2px solid var(--border-gold); padding:32px; }
+.jk-kort--bred { width:100%; }
+.jk-kort__topp { display:flex; align-items:baseline; gap:20px; width:100%; }
+.jk-kort__topp .jk-etikett--guld { flex:1 0 auto; }
+.jk-kort__rubrik { font-family:var(--font-serif); font-weight:400; font-size:38px; line-height:1.08; color:var(--ws-cream); margin:0; }
+.jk-kort__rubrik--mork { color:var(--text-heading); font-size:36px; }
+.jk-kort__text { font-size:16px; line-height:1.55; color:rgba(243,235,208,.82); margin:0; }
+.jk-kort__text--mork { color:var(--text-body); }
+.jk-kort__rad { font-size:14px; line-height:1.5; color:var(--ws-cream); margin:8px 0 0; }
+.jk-kort__fot { display:flex; align-items:center; justify-content:space-between; gap:24px; width:100%; flex-wrap:wrap; }
+.jk-status { font-size:14px; line-height:1.5; letter-spacing:.08em; text-transform:uppercase; color:var(--ws-cream); margin:0; white-space:nowrap; }
+.jk-status--mork { font-size:16px; letter-spacing:0; text-transform:none; color:var(--text-heading); }
+
+.jk-jaktdag { display:flex; align-items:center; gap:32px; width:100%; flex-wrap:wrap; }
+.jk-jaktdag__datum { display:flex; flex-direction:column; margin:0; }
+.jk-jaktdag__datum b { font-family:var(--font-serif); font-weight:400; font-size:76px; line-height:1.08; color:var(--ws-cream); }
+
+.jk-sektion { display:flex; flex-direction:column; gap:24px; }
+.jk-sektion__topp { display:flex; align-items:baseline; justify-content:space-between; gap:24px; flex-wrap:wrap; }
+.jk-sektion__topp .jk-etikett { margin:0; }
+.jk-tre { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+.jk-tre .card { text-decoration:none; }
+
+/* Mitt medlemskap */
+.jk-lista { display:grid; grid-template-columns:1fr; gap:0; margin:0; width:100%; }
+.jk-lista > div { display:flex; justify-content:space-between; gap:24px; padding:10px 0; border-bottom:1px solid var(--border-subtle); }
+.jk-lista dt { font-size:14px; color:var(--ws-ink-40); margin:0; }
+.jk-lista dd { font-size:16px; color:var(--text-heading); margin:0; text-align:right; }
+
+.jk-dokument { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; width:100%; padding:20px 0; border-bottom:1px solid var(--border-subtle); flex-wrap:wrap; }
+.jk-dokument__namn { font-family:var(--font-serif); font-weight:600; font-size:20px; color:var(--text-heading); margin:0 0 4px; }
+.jk-dokument__status { font-size:14px; line-height:1.5; margin:8px 0 0; }
+.jk-dokument__status--saknas { color:var(--ws-ink-40); }
+.jk-dokument__status--inskickad { color:var(--ws-gold-700); }
+.jk-dokument__status--godkand { color:var(--ws-green-500); }
+.jk-dokument__status--underkand { color:#a33; }
+.jk-upp { display:flex; flex-direction:column; gap:8px; align-items:flex-start; }
+.jk-upp__knapp input[type="file"] { position:absolute; width:1px; height:1px; opacity:0; }
+.jk-upp__knapp { cursor:pointer; }
+.jk-upp .notice { margin:0; }
+
+@media (max-width:1100px) {
+  .jk-rad { grid-template-columns:1fr; }
+  .jk-tre { grid-template-columns:1fr; }
+}
+
+@media (max-width:767px) {
+  .jk-head { gap:12px; padding:24px; }
+  .jk-head__etikett, .jk-head__sasong, .jk-head__profil { display:none; }
+  .jk-head__meny { display:block; }
+  .jk-nav { display:none; flex-direction:column; gap:0; padding:0 24px; }
+  .jk-nav--oppen { display:flex; }
+  .jk-nav a { padding:14px 0; border-bottom:1px solid var(--border-subtle); }
+  .jk-main { gap:24px; padding:24px 24px 96px; }
+  .jk-h1 { font-size:38px; }
+  .jk-h2 { font-size:30px; }
+  .jk-kort--mork { padding:24px; gap:16px; }
+  .jk-kort--ljus { padding:24px; }
+  .jk-kort__rubrik { font-size:26px; }
+  .jk-kort__rubrik--mork { font-size:26px; }
+  .jk-jaktdag { gap:12px; }
+  .jk-jaktdag__datum b { font-size:42px; }
+  .jk-kort__fot .btn, .jk-kort--mork .btn, .jk-valkommen .btn { width:100%; }
+  .jk-lista > div, .jk-dokument { flex-direction:column; gap:4px; }
+  .jk-lista dd { text-align:left; }
+  .jk-fot { flex-direction:column; align-items:flex-start; gap:4px; padding:24px 24px 96px; }
+  /* Fäst vid skärmens nederkant, som designen säger */
+  .jk-botten {
+    display:flex; position:fixed; left:0; right:0; bottom:0; z-index:20;
+    background:var(--ws-white); border-top:1px solid var(--border-subtle);
+    padding:12px 8px 20px;
+  }
+  .jk-botten a {
+    flex:1 1 0; display:flex; align-items:center; justify-content:center; height:48px;
+    font-size:14px; color:var(--ws-ink-40); text-decoration:none;
+  }
+  .jk-botten a[aria-current="page"] { background:var(--surface-tint); color:var(--text-heading); }
+}
