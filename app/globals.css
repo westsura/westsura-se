@@ -827,3 +827,67 @@ th.cal__enhet { font-size:11px; letter-spacing:.12em; text-transform:uppercase; 
   .admin__stats { grid-template-columns:1fr 1fr; }
   .admin__cols { grid-template-columns:1fr; }
 }
+
+/* --- Jaktklubbens medlemsdel --- */
+
+/* Inloggningen är en helskärmsvy med klubbens eget vapen och ordmärke. Sajtens
+   sidhuvud och sidfot hör inte hemma där, men ligger utanför sidans DOM — de
+   döljs därför härifrån, när jk-login finns någonstans i dokumentet. */
+body:has(.jk-login) > .site-header,
+body:has(.jk-login) > .site-footer { display:none; }
+
+.jk-login { display:grid; grid-template-columns:744fr 696fr; min-height:100vh; background:var(--surface-tint); }
+
+/* Vänster: den gröna panelen */
+.jk-login__panel {
+  display:flex; flex-direction:column; align-items:flex-start; gap:28px;
+  padding:48px 64px; background:var(--ws-green-700); color:var(--ws-cream);
+}
+.jk-marke { display:flex; align-items:center; gap:16px; }
+.jk-marke__skold { color:var(--ws-cream); flex:none; }
+.jk-marke__ord { font-family:var(--font-display); font-size:24px; line-height:1.15; letter-spacing:.03em; color:var(--ws-cream); margin:0; }
+.jk-marke__under { font-family:var(--font-sans); font-weight:700; font-size:10px; line-height:1.4; letter-spacing:.2em; text-transform:uppercase; color:var(--ws-gold-400); margin:3px 0 0; }
+
+.jk-login__emblem { display:flex; flex-direction:column; align-items:center; gap:24px; width:100%; padding-top:12px; }
+.jk-login__vapen { color:var(--ws-gold-400); }
+.jk-login__etikett { font-family:var(--font-sans); font-weight:700; font-size:11px; line-height:1.4; letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--ws-gold-400); text-align:center; margin:0; }
+.jk-login__motto { font-family:var(--font-serif); font-weight:400; font-size:56px; line-height:1.08; color:var(--ws-cream); text-align:center; margin:0; max-width:none; }
+.jk-login__ingress { font-size:16px; line-height:1.55; color:rgba(243,235,208,.82); text-align:center; margin:0; max-width:570px; }
+
+.jk-login__luft { flex:1 0 0; min-height:0; }
+.jk-avdelare { width:100%; height:1px; background:var(--border-gold); }
+.jk-login__fot { display:flex; align-items:baseline; gap:32px; flex-wrap:wrap; margin:0; max-width:none; }
+.jk-login__fot b { font-family:var(--font-sans); font-weight:700; font-size:11px; letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--ws-gold-400); }
+.jk-login__fot span { font-size:14px; line-height:1.5; color:rgba(243,235,208,.82); }
+
+/* Höger: formuläret på crème */
+.jk-login__form { display:flex; flex-direction:column; align-items:flex-start; gap:40px; padding:80px; }
+.jk-login__inner { display:flex; flex-direction:column; align-items:flex-start; gap:24px; width:100%; max-width:536px; padding-top:146px; }
+.jk-login__inner > .form, .jk-login__inner > .btn, .jk-login__inner > .notice { width:100%; }
+/* Cormorant i versalgemen, inte sajtens gemena Cinzel-rubrik */
+.jk-login__h1 { font-family:var(--font-serif); font-weight:400; font-size:48px; line-height:1.08; letter-spacing:0; text-transform:none; color:var(--text-heading); margin:0; }
+.jk-login__lede { font-size:16px; line-height:1.55; color:var(--text-body); margin:0; max-width:500px; }
+.jk-hjalp { font-size:14px; line-height:1.5; color:var(--ws-ink-40); margin:0; max-width:500px; }
+.jk-lank { font-size:16px; line-height:1.55; color:var(--text-heading); text-decoration:none; }
+.jk-lank:hover { text-decoration:underline; }
+.jk-tillbaka { font-size:14px; line-height:1.5; color:var(--ws-ink-40); text-decoration:none; }
+.jk-tillbaka:hover { color:var(--text-heading); }
+.jk-skickat__skold { display:none; color:var(--text-heading); }
+
+/* Brytpunkt 768: en kolumn, fullbreddsknappar, panelen ovanför formuläret */
+@media (max-width:767px) {
+  .jk-login { grid-template-columns:1fr; min-height:0; }
+  .jk-login__panel { gap:24px; padding:24px; }
+  .jk-login__emblem { gap:16px; padding:8px 0; }
+  .jk-login__vapen { width:132px !important; height:130px !important; }
+  .jk-login__motto { font-size:32px; }
+  .jk-login__etikett, .jk-login__ingress, .jk-login__panel .jk-login__luft,
+  .jk-login__panel .jk-avdelare, .jk-login__fot { display:none; }
+  /* "Länk skickad" visar bara ordmärket på mobil — skölden flyttar ner i texten */
+  .jk-login__panel--kompakt { flex-direction:row; align-items:center; }
+  .jk-login__panel--kompakt .jk-login__emblem { display:none; }
+  .jk-skickat__skold { display:block; }
+  .jk-login__form { gap:24px; padding:24px 24px 64px; }
+  .jk-login__inner { max-width:none; padding-top:0; }
+  .jk-login__h1 { font-size:34px; }
+}

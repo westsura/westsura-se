@@ -17,6 +17,23 @@ export async function middleware(req: NextRequest) {
   });
   const { data: { user } } = await supabase.auth.getUser();
   const p = req.nextUrl.pathname;
+
+  // Jaktklubbens medlemsdel. Hålls isär från adminomdirigeringarna.
+  if (p.startsWith("/jaktklubb")) {
+    if (!user && p.startsWith("/jaktklubb/medlem")) {
+      const url = req.nextUrl.clone(); url.pathname = "/jaktklubb/login"; url.search = "";
+      return NextResponse.redirect(url);
+    }
+    // En inloggad som inte är medlem skickas tillbaka hit av kravMedlem med
+    // ?fel=ingen-behorighet. Utan undantaget för fel skulle de två
+    // omdirigeringarna studsa mot varandra i all oändlighet.
+    if (user && p === "/jaktklubb/login" && !req.nextUrl.searchParams.has("fel")) {
+      const url = req.nextUrl.clone(); url.pathname = "/jaktklubb/medlem"; url.search = "";
+      return NextResponse.redirect(url);
+    }
+    return res;
+  }
+
   const oppen = p.startsWith("/admin/login") || p.startsWith("/admin/auth");
   if (!user && !oppen) {
     const url = req.nextUrl.clone(); url.pathname = "/admin/login"; url.search = "";
@@ -29,4 +46,4 @@ export async function middleware(req: NextRequest) {
   return res;
 }
 
-export const config = { matcher: ["/admin/:path*"] };
+export const config = { matcher: ["/admin/:path*", "/jaktklubb/medlem/:path*", "/jaktklubb/login"] };
