@@ -227,11 +227,13 @@ export async function sparaTillfalle(fd: FormData) {
     typ: s(fd.get("typ")), titel: s(fd.get("titel")), beskrivning: s(fd.get("beskrivning")) || null,
     datum: s(fd.get("datum")), tid: s(fd.get("tid")) || null, platser: Number(s(fd.get("platser")) || 0),
     pris: s(fd.get("pris")) ? Number(s(fd.get("pris"))) : null, publicerad: !!fd.get("publicerad"),
+    synlighet: s(fd.get("synlighet")) === "medlem" ? "medlem" : "publik",
+    samling: s(fd.get("samling")) || null, program: s(fd.get("program")) || null,
   };
   const id = s(fd.get("id"));
   const { error } = id ? await db.from("tillfalle").update(rad).eq("id", id) : await db.from("tillfalle").insert(rad);
   if (error) return { ok: false, fel: error.message };
-  revalidatePath("/admin/tillfallen"); revalidatePath("/jakt");
+  revalidatePath("/admin/tillfallen"); revalidatePath("/jakt"); revalidatePath("/jaktklubb/medlem/boka");
   return { ok: true };
 }
 export async function sattAnmalanStatus(id: string, status: string) {

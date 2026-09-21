@@ -1014,3 +1014,58 @@ body:has(.jk) > .site-footer { display:none; }
   }
   .jk-botten a[aria-current="page"] { background:var(--surface-tint); color:var(--text-heading); }
 }
+
+/* Boka jakt och Mina bokningar */
+.jk-jaktform { display:flex; gap:16px; flex-wrap:wrap; }
+.jk-manad { display:flex; align-items:center; gap:32px; padding:24px; background:var(--ws-white); flex-wrap:wrap; }
+.jk-manad b { font-family:var(--font-sans); font-weight:700; font-size:13px; letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--text-heading); }
+.jk-manad__pilar { display:flex; gap:12px; }
+.jk-manad__pilar button, .jk-manad__alla { background:none; border:0; font:inherit; cursor:pointer; color:var(--text-heading); padding:4px; }
+.jk-manad__pilar button:disabled { color:var(--ws-ink-40); cursor:default; }
+.jk-manad__alla { font-size:14px; color:var(--ws-ink-40); }
+.jk-manad__alla:hover { color:var(--text-heading); }
+
+.jk-boka { display:grid; grid-template-columns:760fr 520fr; gap:32px; align-items:start; }
+.jk-boka__lista { display:flex; flex-direction:column; gap:16px; }
+
+.jk-jaktrad {
+  display:flex; align-items:center; gap:24px; width:100%; text-align:left;
+  padding:28px; background:var(--ws-white); border:0; font:inherit; cursor:pointer;
+}
+.jk-jaktrad--stilla { cursor:default; }
+.jk-jaktrad--blek { opacity:.55; }
+.jk-jaktrad--vald { background:var(--ws-green-700); color:var(--ws-cream); }
+.jk-jaktrad__datum { display:flex; flex-direction:column; width:70px; flex:none; }
+.jk-jaktrad__datum b { font-family:var(--font-serif); font-weight:400; font-size:48px; line-height:1.08; color:var(--text-heading); }
+.jk-jaktrad__datum span { font-family:var(--font-sans); font-weight:700; font-size:13px; letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--ws-ink-40); }
+.jk-jaktrad--vald .jk-jaktrad__datum b { color:var(--ws-cream); }
+.jk-jaktrad--vald .jk-jaktrad__datum span { color:var(--ws-gold-400); }
+.jk-jaktrad__text { display:flex; flex-direction:column; gap:8px; flex:1 1 auto; min-width:0; }
+.jk-jaktrad__titel { font-family:var(--font-serif); font-weight:400; font-size:28px; line-height:1.08; color:var(--text-heading); }
+.jk-jaktrad--vald .jk-jaktrad__titel { color:var(--ws-cream); }
+.jk-jaktrad__tid { font-size:14px; line-height:1.5; color:var(--ws-ink-40); }
+.jk-jaktrad--vald .jk-jaktrad__tid { color:rgba(243,235,208,.82); }
+.jk-jaktrad__status { font-size:14px; line-height:1.5; color:var(--text-heading); }
+.jk-jaktrad--vald .jk-jaktrad__status { color:var(--ws-gold-400); }
+.jk-jaktrad__pil { font-size:16px; color:var(--text-heading); flex:none; }
+.jk-jaktrad--vald .jk-jaktrad__pil { color:var(--ws-cream); }
+
+.jk-boka__detalj .btn { width:100%; }
+.jk-program { display:flex; flex-direction:column; gap:10px; width:100%; }
+.jk-program p { font-size:16px; line-height:1.55; color:var(--text-heading); margin:0; white-space:pre-wrap; }
+.jk-veta { padding:28px; }
+
+@media (max-width:1100px) {
+  /* Bokningsdetaljen hamnar under datumlistan */
+  .jk-boka { grid-template-columns:1fr; }
+}
+@media (max-width:767px) {
+  .jk-jaktform .btn { flex:1 1 140px; }
+  .jk-manad { gap:16px; padding:16px 0; background:transparent; }
+  .jk-jaktrad { padding:20px; gap:16px; }
+  .jk-jaktrad__datum { width:54px; }
+  .jk-jaktrad__datum b { font-size:34px; }
+  .jk-jaktrad__titel { font-size:22px; }
+  .jk-jaktrad__pil { display:none; }
+  .jk-veta { padding:0; }
+}
