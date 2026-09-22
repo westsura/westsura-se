@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { kravMedlem } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
-import { ANMALANSTATUS, MANAD, VECKODAG, sasongKort, sasongsdel } from "./delar";
+import { ANMALANSTATUS, MANAD, VECKODAG, langtDatum, sasongKort, sasongsdel } from "./delar";
 
 export const dynamic = "force-dynamic";
 
@@ -12,12 +12,15 @@ export default async function Oversikt() {
   const adm = supabaseAdmin();
   const idag = new Date().toISOString().slice(0, 10);
 
-  const [{ data: sasong }, { data: niva }, { data: anmalningar }] = await Promise.all([
+  const [{ data: sasong }, { data: niva }, { data: anmalningar }, { data: meddelande }] = await Promise.all([
     medlem.sasong_id ? adm.from("jaktsasong").select("namn").eq("id", medlem.sasong_id).maybeSingle() : Promise.resolve({ data: null }),
     medlem.niva_id ? adm.from("medlemsniva").select("namn").eq("id", medlem.niva_id).maybeSingle() : Promise.resolve({ data: null }),
     // Anmälningarna hänger på e-postadressen — anmalan har ingen koppling till medlem.
     adm.from("anmalan").select("status, tillfalle:tillfalle_id(titel, typ, datum, tid, samling)")
       .eq("epost", medlem.epost).neq("status", "avbokad"),
+    // Kortet "Från herrgården" — det senaste publicerade meddelandet, om det finns något.
+    adm.from("klubbmeddelande").select("rubrik, text, datum").eq("publicerad", true)
+      .order("datum", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   const kommande = ((anmalningar ?? []) as unknown as Anmalan[])
@@ -111,6 +114,19 @@ export default async function Oversikt() {
           </Link>
         </div>
       </section>
+
+      {meddelande && (
+        <section className="jk-kort jk-kort--ljus jk-kort--bred jk-herrgarden">
+          <div className="jk-herrgarden__datum">
+            <p className="jk-etikett">Från herrgården</p>
+            <p className="jk-hjalp">{langtDatum(meddelande.datum)}</p>
+          </div>
+          <div>
+            <p className="jk-kort__rubrik jk-kort__rubrik--mork jk-herrgarden__rubrik">{meddelande.rubrik}</p>
+            <p className="jk-lede mb-0">{meddelande.text}</p>
+          </div>
+        </section>
+      )}
     </>
   );
 }

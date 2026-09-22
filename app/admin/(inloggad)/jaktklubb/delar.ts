@@ -9,6 +9,7 @@ export type Medlem = {
   status: string; sasong_id: string | null; niva_id: string | null; onskad_niva_id: string | null;
   underlag_id: string | null; kurs_genomford: boolean; anteckning: string | null; skapad: string;
 };
+export type Klubbmeddelande = { id: string; rubrik: string; text: string; datum: string; publicerad: boolean };
 export type Dokument = { id: string; medlem_id: string; typ: string; fil: string; giltig_till: string | null; status: string; kommentar: string | null; granskad: string | null };
 
 export const MEDLEMSSTATUS: Record<string, string> = {

@@ -35,6 +35,12 @@ export function sasongsdel(d = new Date()) {
 export const VECKODAG = ["söndag", "måndag", "tisdag", "onsdag", "torsdag", "fredag", "lördag"];
 export const MANAD = ["januari", "februari", "mars", "april", "maj", "juni", "juli", "augusti", "september", "oktober", "november", "december"];
 
+/** '2026-09-20' → '20 september 2026' */
+export const langtDatum = (d: string) => {
+  const dt = new Date(d);
+  return `${dt.getDate()} ${MANAD[dt.getMonth()]} ${dt.getFullYear()}`;
+};
+
 export const ANMALANSTATUS: Record<string, string> = {
   bekraftad: "● Bokad", anmald: "● Anmäld", vantelista: "● Kölista", avbokad: "● Avbokad",
 };

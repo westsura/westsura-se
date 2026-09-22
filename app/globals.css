@@ -1069,3 +1069,14 @@ body:has(.jk) > .site-footer { display:none; }
   .jk-jaktrad__pil { display:none; }
   .jk-veta { padding:0; }
 }
+
+/* Från herrgården */
+.jk-herrgarden { flex-direction:row; gap:24px; padding:28px; }
+.jk-herrgarden__datum { width:160px; flex:none; }
+.jk-herrgarden__datum .jk-etikett { font-size:11px; margin:0 0 8px; }
+.jk-herrgarden__rubrik { font-size:28px; margin-bottom:8px; }
+@media (max-width:767px) {
+  .jk-herrgarden { flex-direction:column; gap:12px; padding:24px; }
+  .jk-herrgarden__datum { width:auto; }
+  .jk-herrgarden__rubrik { font-size:24px; }
+}

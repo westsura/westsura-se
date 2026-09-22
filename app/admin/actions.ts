@@ -407,3 +407,33 @@ export async function granskaDokument(dokumentId: string, godkand: boolean, gilt
   revalidatePath("/jaktklubb/medlem/medlemskap");
   return { ok: true };
 }
+
+/* ---------- Från herrgården ---------- */
+
+export async function sparaKlubbmeddelande(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const rubrik = s(fd.get("rubrik")), text = s(fd.get("text"));
+  if (!rubrik || !text) return { ok: false, fel: "Fyll i både rubrik och text." };
+  const rad = {
+    rubrik, text,
+    datum: s(fd.get("datum")) || new Date().toISOString().slice(0, 10),
+    publicerad: !!fd.get("publicerad"),
+  };
+  const id = s(fd.get("id"));
+  const { error } = id
+    ? await db.from("klubbmeddelande").update(rad).eq("id", id)
+    : await db.from("klubbmeddelande").insert(rad);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/jaktklubb"); revalidatePath("/jaktklubb/medlem");
+  return { ok: true };
+}
+
+export async function taBortKlubbmeddelande(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const { error } = await db.from("klubbmeddelande").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/jaktklubb"); revalidatePath("/jaktklubb/medlem");
+  return { ok: true };
+}

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { kravAdmin, kr, FAKTURASTATUS } from "@/lib/admin";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import AnsokanKort from "./AnsokanKort";
-import { DOKUMENT, DOKUMENTSTATUS, type Dokument, type Medlem, type Niva, type Sasong } from "./delar";
+import Meddelanden from "./Meddelanden";
+import { DOKUMENT, DOKUMENTSTATUS, type Dokument, type Klubbmeddelande, type Medlem, type Niva, type Sasong } from "./delar";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export default async function Jaktklubb() {
     : { data: [] as Niva[] };
   const { data: medlemmar } = await db.from("jaktmedlem").select("*").order("skapad", { ascending: false });
   const { data: dokument } = await db.from("medlemsdokument").select("*");
+  const { data: meddelanden } = await db.from("klubbmeddelande").select("*").order("datum", { ascending: false }).limit(20);
 
   const alla = (medlemmar ?? []) as Medlem[];
   const ansokningar = alla.filter((m) => m.status === "sokande" || m.status === "vantelista");
@@ -89,6 +91,8 @@ export default async function Jaktklubb() {
           </div>
         </div>
       )}
+
+      <Meddelanden meddelanden={(meddelanden ?? []) as Klubbmeddelande[]} />
     </>
   );
 }
