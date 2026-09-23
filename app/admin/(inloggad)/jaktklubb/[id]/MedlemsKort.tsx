@@ -17,10 +17,12 @@ export default function MedlemsKort({ m }: { m: Medlem }) {
     <section className="admin__panel" style={{ marginTop: 24 }}>
       <h2 className="admin__h2">Klubbens noteringar</h2>
 
+      {/* Kursen sätts bara av godkänt prov online — se Säkerhetskurs i menyn. Bocken finns kvar som nödutgång. */}
+      <p className="small" style={{ marginBottom: 6 }}>Säkerhetskurs: <b>{kurs ? "godkänd" : "inte gjord"}</b> — status och försök under <a href="/admin/sakerhetskurs">Säkerhetskurs</a>.</p>
       <label className="checkfield checkfield--bare" style={{ marginBottom: 16 }}>
         <input type="checkbox" checked={kurs} disabled={pending}
-          onChange={(e) => { const v = e.target.checked; setKurs(v); setFel(null); start(async () => { const r = await sattKursGenomford(m.id, v); if (!r.ok) { setKurs(!v); setFel(r.fel ?? "Kunde inte spara kursstatusen."); } }); }} />
-        <span>Säkerhets- och skyttekurs genomförd</span>
+          onChange={(e) => { const v = e.target.checked; if (v && !confirm("Godkänna manuellt utan prov? Använd bara i undantagsfall.")) return; setKurs(v); setFel(null); start(async () => { const r = await sattKursGenomford(m.id, v); if (!r.ok) { setKurs(!v); setFel(r.fel ?? "Kunde inte spara kursstatusen."); } }); }} />
+        <span>Markera manuellt (undantag)</span>
       </label>
 
       <div className="field">

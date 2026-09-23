@@ -131,6 +131,17 @@ export async function mejlDokumentVantar(o: { namn: string; dokument: string }) 
   ], ""));
 }
 
+/** Skickas när en anmälan till jakt skapat ett nytt jägarkonto. */
+export async function mejlJagarkonto(o: { epost: string; namn: string; titel: string; datum: string }) {
+  const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
+  await skicka([o.epost], `Ditt jägarkonto på Westsura`, html("Välkommen till jakten på Westsura", [
+    `Hej ${o.namn}. I och med din anmälan till <strong>${o.titel}</strong> (${o.datum}) har du fått ett jägarkonto hos oss.`,
+    `Innan din första jaktdag behöver tre saker vara klara i kontot: kopia på jaktkortet, en ID-handling och vår säkerhetskurs online — den tar en kvart. Vi granskar dokumenten inom en vardag.`,
+    `<a href="${bas}/jaktklubb/login" style="color:#7d6530">Logga in på jägarkontot</a> — du får en engångslänk till den här adressen, inget lösenord.`,
+    `Kontot är kostnadsfritt. Vill du jaga mer hos oss under säsongen finns medlemskapet i jaktklubben, med ingående dagar och förtur till bokningen.`,
+  ]));
+}
+
 export async function mejlAnmalan(o: { epost: string; namn: string; titel: string; datum: string; status: string; antal: number }) {
   const vantelista = o.status === "vantelista";
   await skicka([o.epost], vantelista ? `Du står på väntelista: ${o.titel}` : `Din anmälan: ${o.titel}`, html(

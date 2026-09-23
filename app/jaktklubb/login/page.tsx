@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 const FEL: Record<string, string> = {
-  "ingen-behorighet": "Den inloggade adressen är inte en godkänd medlem i jaktklubben. Ring oss så reder vi ut det.",
+  "ingen-behorighet": "Den inloggade adressen har inget jägarkonto hos oss ännu. Ett konto skapas när du anmäler dig till en jaktdag, eller när ditt medlemskap godkänns. Ring oss så reder vi ut det.",
   lank: "Länken gick inte att använda. Den kan ha hunnit gå ut — be om en ny nedan.",
 };
 
@@ -23,9 +23,9 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
       <div className="jk-login__form">
         <Link className="jk-tillbaka" href="/">←&nbsp; Till herrgårdens hemsida</Link>
         <div className="jk-login__inner">
-          <p className="label">För våra medlemmar</p>
+          <p className="label">Medlemmar och gästjägare</p>
           <h1 className="jk-login__h1">Välkommen tillbaka.</h1>
-          <p className="jk-login__lede">Här börjar din nästa dag på Westsura.<br />Logga in för att boka jakt och ta del av klubblivet.</p>
+          <p className="jk-login__lede">Här börjar din nästa dag på Westsura.<br />Logga in för att boka jakt, ladda upp dokument och göra säkerhetskursen.</p>
           <LoginForm fel={fel ? FEL[fel] ?? undefined : undefined} />
           <p className="jk-hjalp">Vi skickar en säker engångslänk till din e-post.<br />Du behöver inget lösenord.</p>
           <div className="jk-avdelare" />

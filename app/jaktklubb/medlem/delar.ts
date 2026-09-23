@@ -1,12 +1,15 @@
 /** Delas av server och klient — får inte importera något som kräver next/headers. */
 
-export const FLIKAR: { href: string; label: string; kort: string }[] = [
+/** `medlem: false` = syns även för gästjägare. */
+export const FLIKAR: { href: string; label: string; kort: string; medlem?: boolean; gastLabel?: string }[] = [
   { href: "/jaktklubb/medlem", label: "Översikt", kort: "Hem" },
   { href: "/jaktklubb/medlem/boka", label: "Boka jakt", kort: "Boka jakt" },
   { href: "/jaktklubb/medlem/bokningar", label: "Mina bokningar", kort: "Bokningar" },
-  { href: "/jaktklubb/medlem/dokument", label: "Marker & dokument", kort: "" },
-  { href: "/jaktklubb/medlem/medlemskap", label: "Mitt medlemskap", kort: "Profil" },
+  { href: "/jaktklubb/medlem/dokument", label: "Marker & dokument", kort: "", medlem: true },
+  { href: "/jaktklubb/medlem/sakerhetskurs", label: "Säkerhetskurs", kort: "" },
+  { href: "/jaktklubb/medlem/medlemskap", label: "Mitt medlemskap", kort: "Profil", gastLabel: "Mitt jägarkonto" },
 ];
+export const flikarFor = (arMedlem: boolean) => FLIKAR.filter((f) => arMedlem || !f.medlem).map((f) => ({ ...f, label: !arMedlem && f.gastLabel ? f.gastLabel : f.label }));
 
 export const DOKUMENT: { typ: string; namn: string; hjalp: string }[] = [
   { typ: "jaktkort", namn: "Statligt jaktkort", hjalp: "Kopia på giltigt inlöst jaktkort för säsongen." },

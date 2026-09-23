@@ -65,7 +65,7 @@ export default async function Jaktklubb() {
               <p className="label">Medlemskapet</p>
               <h2 className="lower">{flera ? `${RAKNEORD[nivaer.length] ?? nivaer.length} sätt att höra till` : "att vara medlem"}</h2>
               <p>Klubben är sluten och platserna är få. Alla medlemmar jagar på samma marker, samlas i samma salong och följer samma regler.</p>
-              <p>Säsongen följer jaktåret, 1 juli till 30 juni. Årsavgiften faktureras vid säsongsstart. Säkerhets- och skyttekursen på herrgården är obligatorisk inför varje säsong. Övernattning i flyglarna och mat bokas till efter behov.</p>
+              <p>Säsongen följer jaktåret, 1 juli till 30 juni. Årsavgiften faktureras vid säsongsstart. Säkerhetskursen görs online i medlemsklubben och ska vara godkänd före första jaktdagen. Övernattning i flyglarna och mat bokas till efter behov.</p>
               <p className="mb-0">Medlemskap söks här och beviljas av herrgården. Är säsongen fullsatt när du söker sätter vi upp dig på väntelistan och hör av oss när en plats blir ledig.</p>
             </div>
             <div className="stack">

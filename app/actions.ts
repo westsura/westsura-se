@@ -1,7 +1,7 @@
 "use server";
 
 import { supabaseAdmin, supabasePublik } from "@/lib/supabase";
-import { mejlBokning, mejlForfragan, mejlAnmalan, mejlMedlemsansokan } from "@/lib/epost";
+import { mejlBokning, mejlForfragan, mejlAnmalan, mejlMedlemsansokan, mejlJagarkonto } from "@/lib/epost";
 
 export type Svar<T = undefined> = { ok: true; data: T } | { ok: false; fel: string };
 
@@ -131,11 +131,22 @@ export async function skapaAnmalan(fd: FormData): Promise<Svar<{ status: string 
   if (error) return { ok: false, fel: error.message };
   const rad = (data as { anmalan_id: string; status: string }[])[0];
   // Anmälan är redan skapad — ett fel här får bara påverka mejlet.
-  const { data: t, error: felTillfalle } = await db.from("tillfalle").select("titel, datum").eq("id", tillfalle).single();
+  const { data: t, error: felTillfalle } = await db.from("tillfalle").select("titel, datum, typ").eq("id", tillfalle).single();
   if (felTillfalle) console.error("kunde inte hämta tillfället till anmälningsmejlet", felTillfalle.message);
   try {
     await mejlAnmalan({ epost, namn, titel: t?.titel ?? "", datum: t?.datum ?? "", status: rad.status, antal: Number(s(fd.get("antal")) || 1) });
   } catch (e) { console.error("mejl misslyckades", e); }
+
+  // Jakt kräver jaktkort, ID och säkerhetskurs — så alla som anmäler sig till jakt får ett jägarkonto.
+  if (t?.typ === "jakt") {
+    const { data: konto, error: felKonto } = await db.rpc("jagarkonto_for", { p_namn: namn, p_epost: epost, p_telefon: s(fd.get("telefon")) || null });
+    if (felKonto) console.error("kunde inte skapa jägarkonto", felKonto.message);
+    const k = (konto as { id: string; status: string; ny: boolean }[] | null)?.[0];
+    if (k) {
+      await db.from("anmalan").update({ jagare_id: k.id }).eq("id", rad.anmalan_id);
+      if (k.ny) { try { await mejlJagarkonto({ epost, namn, titel: t?.titel ?? "", datum: t?.datum ?? "" }); } catch (e) { console.error("mejl misslyckades", e); } }
+    }
+  }
   return { ok: true, data: { status: rad.status } };
 }
 

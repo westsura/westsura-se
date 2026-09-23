@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { kravMedlem } from "@/lib/jakt";
+import Link from "next/link";
+import { kravMedlem, kursStatus, arMedlem } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
 import { kr } from "@/lib/faktura";
 import { DOKUMENT, sasongKort } from "../delar";
@@ -22,6 +23,7 @@ function besked(d?: Dokument) {
 export default async function Medlemskap() {
   const medlem = await kravMedlem();
   const adm = supabaseAdmin();
+  const kurs = await kursStatus(medlem);
 
   const [{ data: sasong }, { data: niva }, { data: dokument }, { data: underlag }] = await Promise.all([
     medlem.sasong_id ? adm.from("jaktsasong").select("namn").eq("id", medlem.sasong_id).maybeSingle() : Promise.resolve({ data: null }),
@@ -37,32 +39,40 @@ export default async function Medlemskap() {
     : underlag.status === "krediterad" ? "Krediterad"
     : "Att fakturera";
 
+  const gast = !arMedlem(medlem);
+
   return (
     <>
       <header className="jk-valkommen">
         <div>
-          <p className="jk-etikett">Mitt medlemskap</p>
+          <p className="jk-etikett">{gast ? "Mitt jägarkonto" : "Mitt medlemskap"}</p>
           <h1 className="jk-h1">{medlem.namn}</h1>
         </div>
       </header>
 
       <section className="jk-kort jk-kort--ljus jk-kort--bred">
-        <p className="jk-etikett">Medlemskapet</p>
+        <p className="jk-etikett">{gast ? "Kontot" : "Medlemskapet"}</p>
         <dl className="jk-lista">
           <div><dt>E-post</dt><dd>{medlem.epost}</dd></div>
-          <div><dt>Telefon</dt><dd>{medlem.telefon}</dd></div>
+          <div><dt>Telefon</dt><dd>{medlem.telefon || "—"}</dd></div>
           <div><dt>Ort</dt><dd>{medlem.ort || "—"}</dd></div>
-          <div><dt>Nivå</dt><dd>{niva?.namn ?? "Medlem"}{niva ? ` · ${kr(niva.avgift)} per år` : ""}</dd></div>
-          <div><dt>Säsong</dt><dd>{sasongKort(sasong?.namn)}</dd></div>
-          <div><dt>Status</dt><dd>● Medlemskap aktivt</dd></div>
-          <div><dt>Årsavgift</dt><dd>{avgift}</dd></div>
-          <div><dt>Säkerhets- &amp; skyttekurs</dt><dd>{medlem.kurs_genomford ? "Genomförd för säsongen" : "Inte genomförd ännu"}</dd></div>
+          {gast ? (
+            <div><dt>Status</dt><dd>Gästjägare — <Link className="jk-lank" href="/jaktklubb#ansokan">ansök om medlemskap →</Link></dd></div>
+          ) : (
+            <>
+              <div><dt>Nivå</dt><dd>{niva?.namn ?? "Medlem"}{niva ? ` · ${kr(niva.avgift)} per år` : ""}</dd></div>
+              <div><dt>Säsong</dt><dd>{sasongKort(sasong?.namn)}</dd></div>
+              <div><dt>Status</dt><dd>● Medlemskap aktivt</dd></div>
+              <div><dt>Årsavgift</dt><dd>{avgift}</dd></div>
+            </>
+          )}
+          <div><dt>Säkerhets- &amp; skyttekurs</dt><dd>{kurs.godkand ? `Godkänd ${kurs.datum?.slice(0, 10) ?? ""}` : <Link className="jk-lank" href="/jaktklubb/medlem/sakerhetskurs">Inte genomförd — gör kursen →</Link>}</dd></div>
         </dl>
       </section>
 
       <section className="jk-kort jk-kort--ljus jk-kort--bred">
         <p className="jk-etikett">Dina dokument</p>
-        <p className="jk-lede">Alla tre ska vara godkända före din första jaktdag. Kopiorna ligger i en privat lagringsyta, syns bara för jaktklubbens admin och raderas när medlemskapet avslutas.</p>
+        <p className="jk-lede">Alla tre ska vara godkända före din första jaktdag. Kopiorna ligger i en privat lagringsyta, syns bara för jaktklubbens admin och raderas när {gast ? "kontot" : "medlemskapet"} avslutas.</p>
         {DOKUMENT.map((d) => {
           const b = besked(dok(d.typ));
           return (

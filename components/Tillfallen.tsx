@@ -79,6 +79,7 @@ export default function Tillfallen({ tillfallen, rubrik = "Kommande tillfällen"
           <div className="notice notice--lg" role="status">
             <strong>{resultat.status === "vantelista" ? "Du står på väntelistan." : "Tack för din anmälan."}</strong>{" "}
             {resultat.status === "vantelista" ? "Vi hör av oss om en plats blir ledig." : "Vi bekräftar platsen inom en vardag."} En bekräftelse har skickats till din e-post.
+            {valt?.typ === "jakt" && <> Jakten kräver jaktkort, ID-handling och vår säkerhetskurs online — du har fått ett jägarkonto där du laddar upp och gör kursen. <a href="/jaktklubb/login">Logga in på jägarkontot →</a></>}
           </div>
         ) : valt ? (
           <div className="card card--accent">

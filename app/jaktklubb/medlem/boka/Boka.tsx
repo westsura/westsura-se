@@ -9,7 +9,9 @@ import { MANAD, VECKODAG } from "../delar";
 export type Jaktdag = {
   id: string; titel: string; beskrivning: string | null; datum: string; tid: string | null;
   samling: string | null; program: string | null; platser: number; kvar: number; minStatus: string | null;
+  pris?: number | null; synlighet?: string;
 };
+const kr = (n: number) => n.toLocaleString("sv-SE") + " kr";
 
 const manadsnyckel = (d: string) => d.slice(0, 7);
 const manadsnamn = (n: string) => `${MANAD[Number(n.slice(5, 7)) - 1]} ${n.slice(0, 4)}`;
@@ -22,7 +24,7 @@ function status(j: Jaktdag) {
   return `${j.kvar} platser kvar`;
 }
 
-export default function Boka({ jaktdagar, dokumentKlara }: { jaktdagar: Jaktdag[]; dokumentKlara: boolean }) {
+export default function Boka({ jaktdagar, dokumentKlara, kursKlar = true, gast = false }: { jaktdagar: Jaktdag[]; dokumentKlara: boolean; kursKlar?: boolean; gast?: boolean }) {
   const manader = useMemo(() => [...new Set(jaktdagar.map((j) => manadsnyckel(j.datum)))].sort(), [jaktdagar]);
   const [manad, setManad] = useState<string | null>(manader[0] ?? null);
   const [valdId, setValdId] = useState<string | null>(jaktdagar[0]?.id ?? null);
@@ -39,9 +41,9 @@ export default function Boka({ jaktdagar, dokumentKlara }: { jaktdagar: Jaktdag[
     setFel(null); setKvitto(null);
     const r = await bokaJaktdag(vald!.id);
     if (!r.ok) { setFel(r.fel ?? "Bokningen gick inte igenom."); return; }
-    setKvitto(r.status === "vantelista"
+    setKvitto((r.status === "vantelista"
       ? "Jaktdagen var fullbokad — du står på kölistan och vi hör av oss om en plats blir ledig."
-      : "Din plats är bokad. Bekräftelsen ligger i din inkorg.");
+      : "Din plats är bokad. Bekräftelsen ligger i din inkorg.") + (kursKlar ? "" : " Kom ihåg säkerhetskursen före jaktdagen."));
     router.refresh();
   });
 
@@ -99,7 +101,10 @@ export default function Boka({ jaktdagar, dokumentKlara }: { jaktdagar: Jaktdag[
             )}
             <div className="jk-avdelare" />
             <p className="jk-etikett" style={{ margin: 0 }}>{vald.kvar > 0 ? `${vald.kvar} platser kvar` : "Fullbokad · kölista"}</p>
-            <p className="jk-hjalp">Ingår enligt ditt medlemskap.<br />Din plats bekräftas i nästa steg.</p>
+            <p className="jk-hjalp">
+              {vald.synlighet === "publik" && (gast || vald.pris) ? (vald.pris ? `${kr(vald.pris)} per person — faktureras efter jaktdagen.` : "Öppen jaktdag.") : "Ingår enligt ditt medlemskap."}
+              <br />Din plats bekräftas i nästa steg.
+            </p>
 
             {kvitto && <p className="notice">{kvitto}</p>}
             {fel && <p className="notice notice--fel" role="alert">{fel}</p>}

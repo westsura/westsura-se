@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
-import { kravMedlem } from "@/lib/jakt";
+import { kravMedlem, kursStatus } from "@/lib/jakt";
 import { mejlDokumentVantar, mejlAnmalan } from "@/lib/epost";
 import { site } from "@/lib/site";
 
@@ -105,9 +105,8 @@ export async function bokaJaktdag(tillfalleId: string): Promise<{ ok: boolean; f
   const { data: t, error: felT } = await adm.from("tillfalle")
     .select("id, titel, datum, typ, synlighet, publicerad").eq("id", tillfalleId).maybeSingle();
   if (felT) return { ok: false, fel: felT.message };
-  if (!t || t.typ !== "jakt" || t.synlighet !== "medlem" || !t.publicerad || t.datum < idag) {
-    return { ok: false, fel: "Jaktdagen går inte att boka." };
-  }
+  const tillaten = t && t.typ === "jakt" && t.publicerad && t.datum >= idag && (t.synlighet === "publik" || (t.synlighet === "medlem" && medlem.status === "godkand"));
+  if (!tillaten) return { ok: false, fel: "Jaktdagen går inte att boka." };
 
   const { data: finns, error: felFinns } = await adm.from("anmalan")
     .select("id").eq("tillfalle_id", tillfalleId).eq("epost", medlem.epost).neq("status", "avbokad").maybeSingle();
@@ -120,6 +119,7 @@ export async function bokaJaktdag(tillfalleId: string): Promise<{ ok: boolean; f
   });
   if (error) return { ok: false, fel: error.message };
   const rad = (data as { anmalan_id: string; status: string }[])[0];
+  await adm.from("anmalan").update({ jagare_id: medlem.id }).eq("id", rad.anmalan_id);
 
   try {
     await mejlAnmalan({ epost: medlem.epost, namn: medlem.namn, titel: t.titel, datum: t.datum, status: rad.status, antal: 1 });
@@ -128,6 +128,76 @@ export async function bokaJaktdag(tillfalleId: string): Promise<{ ok: boolean; f
   revalidatePath("/jaktklubb/medlem"); revalidatePath("/jaktklubb/medlem/boka"); revalidatePath("/jaktklubb/medlem/bokningar");
   revalidatePath("/admin/tillfallen");
   return { ok: true, status: rad.status };
+}
+
+/* ---------- Säkerhetskurs ---------- */
+export type Provfraga = { id: string; fraga: string; alternativ: string[] };
+
+/**
+ * Startar ett prov: slumpar frågor ur poolen och sparar vilka det blev.
+ * Rätt svar lämnar aldrig servern — rättningen sker i lamnaProv.
+ */
+export async function startaProv(): Promise<{ ok: true; provId: string; fragor: Provfraga[] } | { ok: false; fel: string }> {
+  const medlem = await kravMedlem();
+  const { installning } = await kursStatus(medlem);
+  const adm = supabaseAdmin();
+  const { data: pool, error } = await adm.from("kursfraga").select("id, fraga, alternativ, kritisk").eq("publicerad", true);
+  if (error) return { ok: false, fel: error.message };
+  if (!pool?.length) return { ok: false, fel: "Provet är inte upplagt ännu. Ring oss så hjälper vi dig." };
+
+  // Alla kritiska frågor är alltid med; resten fylls på slumpvis upp till antal_fragor.
+  const bland = <T,>(xs: T[]) => xs.map((x) => [Math.random(), x] as const).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
+  const kritiska = bland(pool.filter((f) => f.kritisk));
+  const ovriga = bland(pool.filter((f) => !f.kritisk));
+  const antal = Math.min(Math.max(installning.antal_fragor, kritiska.length), pool.length);
+  const valda = bland([...kritiska, ...ovriga.slice(0, Math.max(0, antal - kritiska.length))]);
+
+  const { data: sasong } = await adm.from("jaktsasong").select("id").eq("aktiv", true).maybeSingle();
+  const { data: prov, error: felProv } = await adm.from("kursprov").insert({
+    medlem_id: medlem.id, sasong_id: sasong?.id ?? null, version: installning.version, fragor: valda.map((f) => f.id),
+  }).select("id").single();
+  if (felProv || !prov) return { ok: false, fel: felProv?.message ?? "Kunde inte starta provet." };
+
+  return { ok: true, provId: prov.id, fragor: valda.map((f) => ({ id: f.id, fraga: f.fraga, alternativ: f.alternativ as string[] })) };
+}
+
+export type Provresultat = {
+  godkand: boolean; poang: number; max: number; procent: number; kritisktFel: boolean; godkantProcent: number;
+  genomgang: { id: string; fraga: string; ditt: number; ratt: number; alternativ: string[]; kritisk: boolean; forklaring: string | null; avsnitt: string | null }[];
+};
+
+/** Rättar provet på servern och sätter medlemmens kursflagga vid godkänt. */
+export async function lamnaProv(provId: string, svar: Record<string, number>): Promise<{ ok: true; resultat: Provresultat } | { ok: false; fel: string }> {
+  const medlem = await kravMedlem();
+  const { installning } = await kursStatus(medlem);
+  const adm = supabaseAdmin();
+  const { data: prov, error } = await adm.from("kursprov").select("id, fragor, inlamnad").eq("id", provId).eq("medlem_id", medlem.id).maybeSingle();
+  if (error) return { ok: false, fel: error.message };
+  if (!prov) return { ok: false, fel: "Provet hittades inte." };
+  if (prov.inlamnad) return { ok: false, fel: "Provet är redan inlämnat." };
+
+  const { data: fragor } = await adm.from("kursfraga").select("id, fraga, alternativ, ratt, kritisk, forklaring, avsnitt:avsnitt_id(rubrik)").in("id", prov.fragor as string[]);
+  const lista = (fragor ?? []) as unknown as { id: string; fraga: string; alternativ: string[]; ratt: number; kritisk: boolean; forklaring: string | null; avsnitt: { rubrik: string } | null }[];
+  let poang = 0, kritisktFel = false;
+  const genomgang = (prov.fragor as string[]).map((id) => {
+    const f = lista.find((x) => x.id === id)!;
+    const ditt = typeof svar[id] === "number" ? svar[id] : -1;
+    const rattSvar = ditt === f.ratt;
+    if (rattSvar) poang++; else if (f.kritisk) kritisktFel = true;
+    return { id, fraga: f.fraga, ditt, ratt: f.ratt, alternativ: f.alternativ, kritisk: f.kritisk, forklaring: f.forklaring, avsnitt: f.avsnitt?.rubrik ?? null };
+  });
+  const max = genomgang.length;
+  const procent = max ? Math.round((poang / max) * 100) : 0;
+  const godkand = !kritisktFel && procent >= installning.godkant_procent;
+
+  const nu = new Date().toISOString();
+  await adm.from("kursprov").update({ svar, poang, max, kritiskt_fel: kritisktFel, godkand, inlamnad: nu }).eq("id", provId);
+  if (godkand) {
+    await adm.from("jaktmedlem").update({ kurs_genomford: true, kurs_godkand: nu, kurs_version: installning.version }).eq("id", medlem.id);
+  }
+  revalidatePath("/jaktklubb/medlem"); revalidatePath("/jaktklubb/medlem/sakerhetskurs"); revalidatePath("/jaktklubb/medlem/boka"); revalidatePath("/jaktklubb/medlem/medlemskap");
+  revalidatePath("/admin/sakerhetskurs"); revalidatePath("/admin/jaktklubb");
+  return { ok: true, resultat: { godkand, poang, max, procent, kritisktFel, godkantProcent: installning.godkant_procent, genomgang } };
 }
 
 /** Avbokar medlemmens egen anmälan. */

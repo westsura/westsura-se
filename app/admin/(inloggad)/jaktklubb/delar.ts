@@ -13,7 +13,7 @@ export type Klubbmeddelande = { id: string; rubrik: string; text: string; datum:
 export type Dokument = { id: string; medlem_id: string; typ: string; fil: string; giltig_till: string | null; status: string; kommentar: string | null; granskad: string | null };
 
 export const MEDLEMSSTATUS: Record<string, string> = {
-  sokande: "Sökande", vantelista: "Väntelista", godkand: "Medlem", avslutad: "Avslutad", avbojd: "Avböjd",
+  sokande: "Sökande", vantelista: "Väntelista", godkand: "Medlem", gast: "Gästjägare", avslutad: "Avslutad", avbojd: "Avböjd",
 };
 
 export const DOKUMENT: { typ: string; namn: string }[] = [

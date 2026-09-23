@@ -22,6 +22,7 @@ export default async function Jaktklubb() {
   const alla = (medlemmar ?? []) as Medlem[];
   const ansokningar = alla.filter((m) => m.status === "sokande" || m.status === "vantelista");
   const godkanda = alla.filter((m) => m.status === "godkand");
+  const gaster = alla.filter((m) => m.status === "gast");
 
   // Avgiftsstatus ligger i fakturaunderlag, som bara vardskap når genom RLS.
   const underlagIds = godkanda.map((m) => m.underlag_id).filter(Boolean) as string[];
@@ -40,7 +41,11 @@ export default async function Jaktklubb() {
           <p className="label">Jaktklubben</p>
           <h1 className="admin__h1">{sasong ? `säsong ${sasong.namn}` : "ingen aktiv säsong"}</h1>
         </div>
-        {sasong && <p className="admin__meta">{sasong.fran} – {sasong.till}</p>}
+        <div className="admin__actions">
+          {sasong && <span className="admin__meta">{sasong.fran} – {sasong.till}</span>}
+          <Link className="btn btn--sm btn--ghost" href="/admin/jaktklubb/sasonger">Säsonger &amp; nivåer</Link>
+          <Link className="btn btn--sm btn--ghost" href="/admin/sakerhetskurs">Säkerhetskurs</Link>
+        </div>
       </header>
 
       <div className="admin__stats">
@@ -84,6 +89,35 @@ export default async function Jaktklubb() {
                       })}
                     </td>
                     <td>{m.kurs_genomford ? "Genomförd" : "Inte genomförd"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <h2 className="admin__h2" style={{ marginTop: 40 }}>Gästjägare</h2>
+      <p className="admin__meta" style={{ marginBottom: 12 }}>Konton utan medlemskap — skapas automatiskt när någon anmäler sig till en öppen jaktdag. Samma dokument- och kurskrav som medlemmar.</p>
+      {!gaster.length && <p className="empty">Inga gästjägare än.</p>}
+      {!!gaster.length && (
+        <div className="admin__panel">
+          <div className="tablewrap">
+            <table className="admin__table">
+              <thead><tr><th>Namn</th><th>Kontakt</th><th>Dokument</th><th>Kurs</th><th>Skapad</th></tr></thead>
+              <tbody>
+                {gaster.map((m) => (
+                  <tr key={m.id}>
+                    <td><Link href={`/admin/jaktklubb/${m.id}`}><b>{m.namn}</b></Link></td>
+                    <td>{m.telefon && <a href={`tel:${m.telefon}`}>{m.telefon}</a>}<div className="admin__meta">{m.epost}</div></td>
+                    <td>
+                      {DOKUMENT.map((d) => {
+                        const status = dok(m, d.typ)?.status ?? "saknas";
+                        return <span key={d.typ} className={`pill pill--${status}`} title={d.namn} style={{ marginRight: 4 }}>{DOKUMENTSTATUS[status]}</span>;
+                      })}
+                    </td>
+                    <td>{m.kurs_genomford ? "Godkänd" : "Inte gjord"}</td>
+                    <td><small>{m.skapad.slice(0, 10)}</small></td>
                   </tr>
                 ))}
               </tbody>

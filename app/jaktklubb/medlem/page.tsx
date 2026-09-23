@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { kravMedlem } from "@/lib/jakt";
+import { kravMedlem, kursStatus, arMedlem } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
 import { ANMALANSTATUS, MANAD, VECKODAG, langtDatum, sasongKort, sasongsdel } from "./delar";
 
@@ -11,6 +11,7 @@ export default async function Oversikt() {
   const medlem = await kravMedlem();
   const adm = supabaseAdmin();
   const idag = new Date().toISOString().slice(0, 10);
+  const kurs = await kursStatus(medlem);
 
   const [{ data: sasong }, { data: niva }, { data: anmalningar }, { data: meddelande }] = await Promise.all([
     medlem.sasong_id ? adm.from("jaktsasong").select("namn").eq("id", medlem.sasong_id).maybeSingle() : Promise.resolve({ data: null }),
@@ -29,14 +30,15 @@ export default async function Oversikt() {
 
   const forNamn = medlem.namn.split(" ")[0];
   const d = kommande ? new Date(kommande.tillfalle!.datum) : null;
+  const gast = !arMedlem(medlem);
 
   return (
     <>
       <header className="jk-valkommen">
         <div>
-          <p className="jk-etikett">Ditt Westsura · {sasongsdel()} {new Date().getFullYear()}</p>
-          <h1 className="jk-h1">Välkommen tillbaka, {forNamn}.</h1>
-          <p className="jk-lede">Nästa jaktdag, dina bokningar och allt du behöver inför skogen.</p>
+          <p className="jk-etikett">{gast ? "Ditt jägarkonto" : "Ditt Westsura"} · {sasongsdel()} {new Date().getFullYear()}</p>
+          <h1 className="jk-h1">{gast ? `Välkommen, ${forNamn}.` : `Välkommen tillbaka, ${forNamn}.`}</h1>
+          <p className="jk-lede">{gast ? "Dina jaktdagar, dina dokument och säkerhetskursen — allt inför skogen." : "Nästa jaktdag, dina bokningar och allt du behöver inför skogen."}</p>
         </div>
         <Link className="btn" href="/jaktklubb/medlem/boka">Boka en jaktdag</Link>
       </header>
@@ -81,17 +83,20 @@ export default async function Oversikt() {
         </section>
 
         <section className="jk-kort jk-kort--ljus">
-          <p className="jk-etikett">Ditt medlemskap</p>
-          <p className="jk-kort__rubrik jk-kort__rubrik--mork">{niva?.namn ?? "Medlem"}</p>
-          <p className="jk-kort__text jk-kort__text--mork">Säsong {sasongKort(sasong?.namn)}</p>
+          <p className="jk-etikett">{gast ? "Ditt konto" : "Ditt medlemskap"}</p>
+          <p className="jk-kort__rubrik jk-kort__rubrik--mork">{gast ? "Gästjägare" : niva?.namn ?? "Medlem"}</p>
+          <p className="jk-kort__text jk-kort__text--mork">{gast ? "Kostnadsfritt konto — betalar per jaktdag" : `Säsong ${sasongKort(sasong?.namn)}`}</p>
           <div className="jk-avdelare" />
-          <p className="jk-status jk-status--mork">● Medlemskap aktivt</p>
-          <p className="jk-hjalp">Säkerhets- &amp; skyttekurs<br />{medlem.kurs_genomford ? "Genomförd för säsongen" : "Inte genomförd ännu"}</p>
+          {gast
+            ? <p className="jk-hjalp">Vill du jaga mer hos oss? <Link className="jk-lank" href="/jaktklubb#ansokan">Ansök om medlemskap →</Link></p>
+            : <p className="jk-status jk-status--mork">● Medlemskap aktivt</p>}
+          <p className="jk-hjalp">Säkerhets- &amp; skyttekurs<br />{kurs.godkand ? "Godkänd" : "Inte genomförd ännu"}</p>
+          {!kurs.godkand && <Link className="btn btn--sm" href="/jaktklubb/medlem/sakerhetskurs">Gör kursen — en kvart</Link>}
           <Link className="jk-lank" href="/jaktklubb/medlem/medlemskap">Visa medlemskap&nbsp; →</Link>
         </section>
       </div>
 
-      <section className="jk-sektion">
+      {!gast && <section className="jk-sektion">
         <div className="jk-sektion__topp">
           <h2 className="jk-h2">Nära till hands</h2>
           <p className="jk-etikett">Allt för din jaktdag</p>
@@ -113,9 +118,9 @@ export default async function Oversikt() {
             <p className="small mb-0">Låt jaktdagen bli en helg på herrgården.</p>
           </Link>
         </div>
-      </section>
+      </section>}
 
-      {meddelande && (
+      {meddelande && !gast && (
         <section className="jk-kort jk-kort--ljus jk-kort--bred jk-herrgarden">
           <div className="jk-herrgarden__datum">
             <p className="jk-etikett">Från herrgården</p>

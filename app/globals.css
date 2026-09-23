@@ -492,6 +492,31 @@ p { margin:0 0 20px; max-width:66ch; }
   position:relative; overflow:hidden; text-align:center;
   background:var(--surface-band); padding:120px 0 116px;
 }
+/* Säkerhetskurs i medlemsklubben */
+.kurs { display:grid; gap:0; }
+.kurs__avsnitt { padding:32px 0; border-top:1px solid var(--border-subtle); scroll-margin-top:100px; }
+.kurs__avsnitt:first-child { border-top:0; padding-top:0; }
+.kurs__rubrik { font-family:var(--font-serif); font-weight:600; font-size:28px; margin:0 0 14px; color:var(--text-heading); }
+.kurs__text { font-size:17px; line-height:1.65; max-width:68ch; margin:0 0 14px; }
+.kurs__prov { display:grid; gap:20px; }
+.kurs__fraga { border:1px solid var(--border-subtle); border-top:2px solid var(--border-gold); background:var(--ws-white); padding:22px 26px 16px; margin:0; min-width:0; }
+.kurs__fraga legend { padding:0; float:left; width:100%; margin-bottom:14px; }
+.kurs__fraga legend .jk-etikett { display:block; margin-bottom:6px; }
+.kurs__fraga-text { display:block; font-family:var(--font-serif); font-weight:600; font-size:21px; line-height:1.3; color:var(--text-heading); }
+.kurs__fraga > label { clear:both; }
+.kurs__alt { display:flex; align-items:flex-start; gap:12px; padding:11px 12px; border:1px solid transparent; cursor:pointer; font-size:16px; line-height:1.45; color:var(--text-heading); }
+.kurs__alt:hover { background:var(--ws-paper); }
+.kurs__alt--vald { border-color:var(--border-gold); background:var(--ws-gold-100); }
+.kurs__alt input { margin-top:4px; accent-color:var(--ws-gold-600); }
+.kurs__resultat .cta-row { margin-top:0; }
+.kurs__fel { padding:14px 0; border-top:1px solid var(--border-subtle); width:100%; }
+.kurs__fel-fraga { font-family:var(--font-serif); font-weight:600; font-size:19px; margin:0 0 6px; color:var(--text-heading); }
+.kurs__kritisk { display:inline-block; margin-left:10px; font-family:var(--font-sans); font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#a33; vertical-align:middle; }
+.kurs__forklaring { font-size:15px; margin:8px 0 0; padding:10px 14px; background:var(--ws-paper); border-left:2px solid var(--accent); max-width:60ch; }
+.kurs__varning { display:flex; gap:12px; align-items:flex-start; padding:14px 16px; background:var(--ws-gold-100); border-left:2px solid var(--ws-gold-600); font-size:15px; line-height:1.5; margin:0; }
+.kurs__varning a { color:var(--text-heading); }
+@media (max-width:640px) { .kurs__fraga { padding:18px 16px 12px; } }
+
 /* Två dörrar på jaktsidan: öppen jakt | jaktklubben — samma formspråk som klubbens emblemhuvud */
 .doors { display:grid; grid-template-columns:1fr 1fr; gap:32px; align-items:stretch; }
 .door { display:flex; flex-direction:column; background:var(--ws-white); border:1px solid var(--border-subtle); border-top:2px solid var(--border-gold); }

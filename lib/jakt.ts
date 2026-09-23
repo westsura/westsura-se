@@ -6,7 +6,32 @@ export type Medlem = {
   namn: string; epost: string; telefon: string; ort: string | null;
   status: string; sasong_id: string | null; niva_id: string | null;
   underlag_id: string | null; kurs_genomford: boolean;
+  kurs_godkand: string | null; kurs_version: number | null;
 };
+
+export type Kursinstallning = { antal_fragor: number; godkant_procent: number; giltighet: "sasong" | "version" | "alltid"; version: number; ingress: string | null };
+
+/**
+ * Är säkerhetskursen godkänd för den här medlemmen just nu?
+ * Beror på inställningen: per säsong (godkänd inom aktiv säsong), per version
+ * (godkänd på nuvarande innehåll) eller för alltid.
+ */
+export async function kursStatus(medlem: Medlem): Promise<{ godkand: boolean; datum: string | null; installning: Kursinstallning }> {
+  const adm = supabaseAdmin();
+  const [{ data: inst }, { data: sasong }] = await Promise.all([
+    adm.from("kursinstallning").select("antal_fragor, godkant_procent, giltighet, version, ingress").eq("id", 1).single(),
+    adm.from("jaktsasong").select("fran, till").eq("aktiv", true).maybeSingle(),
+  ]);
+  const installning = (inst ?? { antal_fragor: 15, godkant_procent: 80, giltighet: "sasong", version: 1, ingress: null }) as Kursinstallning;
+  const datum = medlem.kurs_godkand;
+  let godkand = false;
+  if (datum) {
+    if (installning.giltighet === "alltid") godkand = true;
+    else if (installning.giltighet === "version") godkand = medlem.kurs_version === installning.version;
+    else godkand = !!sasong && datum.slice(0, 10) >= sasong.fran && datum.slice(0, 10) <= sasong.till;
+  }
+  return { godkand, datum, installning };
+}
 
 /**
  * Hämtar inloggad medlem, eller skickar till inloggningen.
@@ -37,6 +62,17 @@ export async function kravMedlem(): Promise<Medlem> {
     }
   }
 
-  if (!medlem || medlem.status !== "godkand") redirect("/jaktklubb/login?fel=ingen-behorighet");
+  // Medlemmar och gästjägare har konto; sökande, avslutade och avböjda kommer inte in.
+  if (!medlem || (medlem.status !== "godkand" && medlem.status !== "gast")) redirect("/jaktklubb/login?fel=ingen-behorighet");
   return medlem;
+}
+
+/** Gästjägare har konto men inte medlemskap: inga ingående dagar, ingen förtur, inget klubbmaterial. */
+export const arMedlem = (m: Medlem) => m.status === "godkand";
+
+/** Skickar gäster till översikten om sidan är bara för medlemmar. */
+export async function kravRiktigMedlem(): Promise<Medlem> {
+  const m = await kravMedlem();
+  if (!arMedlem(m)) redirect("/jaktklubb/medlem");
+  return m;
 }

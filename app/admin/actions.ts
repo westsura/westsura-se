@@ -220,6 +220,150 @@ function forfallo(ankomst: string) {
   return (d < min ? min : d).toISOString().slice(0, 10);
 }
 
+/* ---------- Säsonger och nivåer ---------- */
+function uppdateraSasonger() {
+  revalidatePath("/admin/jaktklubb"); revalidatePath("/admin/jaktklubb/sasonger"); revalidatePath("/jaktklubb"); revalidatePath("/jaktklubb/medlem");
+}
+
+export async function sparaSasong(fd: FormData) {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const rad = { namn: s(fd.get("namn")), fran: s(fd.get("fran")), till: s(fd.get("till")), moms: Number(s(fd.get("moms")) || 0) };
+  if (!rad.namn || !rad.fran || !rad.till) return { ok: false, fel: "Namn, från och till behövs." };
+  if (rad.till <= rad.fran) return { ok: false, fel: "Slutdatum måste vara efter startdatum." };
+  const id = s(fd.get("id"));
+  const { data, error } = id
+    ? await db.from("jaktsasong").update(rad).eq("id", id).select("id").single()
+    : await db.from("jaktsasong").insert({ ...rad, aktiv: false }).select("id").single();
+  if (error) return { ok: false, fel: error.message };
+  uppdateraSasonger();
+  return { ok: true, id: data?.id as string };
+}
+
+/** Bara en säsong är aktiv: den som visas publikt, som nya medlemmar hamnar i och som kursen räknar mot. */
+export async function aktiveraSasong(id: string) {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const { error: e1 } = await db.from("jaktsasong").update({ aktiv: false }).neq("id", id);
+  if (e1) return { ok: false, fel: e1.message };
+  const { error: e2 } = await db.from("jaktsasong").update({ aktiv: true }).eq("id", id);
+  if (e2) return { ok: false, fel: e2.message };
+  uppdateraSasonger();
+  return { ok: true };
+}
+
+export async function taBortSasong(id: string) {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const { count } = await db.from("jaktmedlem").select("id", { count: "exact", head: true }).eq("sasong_id", id);
+  if (count) return { ok: false, fel: `Säsongen har ${count} medlemmar eller sökande och kan inte tas bort.` };
+  const { error } = await db.from("jaktsasong").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraSasonger();
+  return { ok: true };
+}
+
+export async function sparaNiva(fd: FormData) {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const rad = {
+    sasong_id: s(fd.get("sasong_id")), namn: s(fd.get("namn")), beskrivning: s(fd.get("beskrivning")) || null,
+    avgift: Number(s(fd.get("avgift")) || 0), platser: Number(s(fd.get("platser")) || 0),
+    bokning_oppnar: s(fd.get("bokning_oppnar")) || null, ordning: Number(s(fd.get("ordning")) || 0),
+  };
+  if (!rad.sasong_id || !rad.namn) return { ok: false, fel: "Nivån behöver ett namn." };
+  const id = s(fd.get("id"));
+  const { error } = id ? await db.from("medlemsniva").update(rad).eq("id", id) : await db.from("medlemsniva").insert(rad);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraSasonger();
+  return { ok: true };
+}
+
+export async function taBortNiva(id: string) {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const { count } = await db.from("jaktmedlem").select("id", { count: "exact", head: true }).or(`niva_id.eq.${id},onskad_niva_id.eq.${id}`);
+  if (count) return { ok: false, fel: `Nivån används av ${count} medlemmar eller sökande och kan inte tas bort.` };
+  const { error } = await db.from("medlemsniva").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraSasonger();
+  return { ok: true };
+}
+
+/** Kopierar en säsongs nivåer till en annan — snabbaste sättet att lägga upp nästa år. */
+export async function kopieraNivaer(franId: string, tillId: string) {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const { data: nivaer, error } = await db.from("medlemsniva").select("namn, beskrivning, avgift, platser, ordning").eq("sasong_id", franId);
+  if (error) return { ok: false, fel: error.message };
+  if (!nivaer?.length) return { ok: false, fel: "Inga nivåer att kopiera." };
+  const { error: e2 } = await db.from("medlemsniva").insert(nivaer.map((n) => ({ ...n, sasong_id: tillId })));
+  if (e2) return { ok: false, fel: e2.message };
+  uppdateraSasonger();
+  return { ok: true };
+}
+
+/* ---------- Säkerhetskurs ---------- */
+export async function sparaKursinstallning(fd: FormData) {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const { error } = await db.from("kursinstallning").update({
+    antal_fragor: Math.max(1, Number(s(fd.get("antal_fragor")) || 15)),
+    godkant_procent: Math.min(100, Math.max(0, Number(s(fd.get("godkant_procent")) || 80))),
+    giltighet: s(fd.get("giltighet")) || "sasong",
+    ingress: s(fd.get("ingress")) || null,
+  }).eq("id", 1);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/sakerhetskurs"); revalidatePath("/jaktklubb/medlem/sakerhetskurs");
+  return { ok: true };
+}
+
+export async function sparaKursavsnitt(fd: FormData) {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const rad = { rubrik: s(fd.get("rubrik")), text: s(fd.get("text")), ordning: Number(s(fd.get("ordning")) || 0), publicerad: !!fd.get("publicerad"), uppdaterad: new Date().toISOString() };
+  if (!rad.rubrik || !rad.text) return { ok: false, fel: "Rubrik och text behövs." };
+  const id = s(fd.get("id"));
+  const { error } = id ? await db.from("kursavsnitt").update(rad).eq("id", id) : await db.from("kursavsnitt").insert(rad);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/sakerhetskurs"); revalidatePath("/jaktklubb/medlem/sakerhetskurs");
+  return { ok: true };
+}
+export async function taBortKursavsnitt(id: string) {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const { error } = await db.from("kursavsnitt").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/sakerhetskurs"); revalidatePath("/jaktklubb/medlem/sakerhetskurs");
+  return { ok: true };
+}
+
+export async function sparaKursfraga(fd: FormData) {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const alternativ = [0, 1, 2, 3].map((i) => s(fd.get(`alt${i}`))).filter(Boolean);
+  const ratt = Number(s(fd.get("ratt")) || 0);
+  if (!s(fd.get("fraga")) || alternativ.length < 2) return { ok: false, fel: "Fråga och minst två svarsalternativ behövs." };
+  if (ratt < 0 || ratt >= alternativ.length) return { ok: false, fel: "Markera vilket alternativ som är rätt." };
+  const rad = {
+    fraga: s(fd.get("fraga")), alternativ, ratt, kritisk: !!fd.get("kritisk"), forklaring: s(fd.get("forklaring")) || null,
+    avsnitt_id: s(fd.get("avsnitt_id")) || null, ordning: Number(s(fd.get("ordning")) || 0), publicerad: !!fd.get("publicerad"), uppdaterad: new Date().toISOString(),
+  };
+  const id = s(fd.get("id"));
+  const { error } = id ? await db.from("kursfraga").update(rad).eq("id", id) : await db.from("kursfraga").insert(rad);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/sakerhetskurs");
+  return { ok: true };
+}
+export async function taBortKursfraga(id: string) {
+  await kravAdmin("jaktadmin");
+  const db = await supabaseServer();
+  const { error } = await db.from("kursfraga").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/sakerhetskurs");
+  return { ok: true };
+}
+
 /* ---------- Tillfällen ---------- */
 export async function sparaTillfalle(fd: FormData) {
   const db = await supabaseServer();
@@ -345,9 +489,13 @@ export async function sparaMedlemsanteckning(id: string, anteckning: string) {
 export async function sattKursGenomford(id: string, genomford: boolean) {
   await kravAdmin("jaktadmin");
   const db = await supabaseServer();
-  const { error } = await db.from("jaktmedlem").update({ kurs_genomford: genomford }).eq("id", id);
+  // Manuell markering — undantag. Sätter samma fält som ett godkänt prov, så att giltigheten räknas lika.
+  const { data: inst } = await db.from("kursinstallning").select("version").eq("id", 1).maybeSingle();
+  const { error } = await db.from("jaktmedlem").update(genomford
+    ? { kurs_genomford: true, kurs_godkand: new Date().toISOString(), kurs_version: inst?.version ?? null }
+    : { kurs_genomford: false, kurs_godkand: null, kurs_version: null }).eq("id", id);
   if (error) return { ok: false, fel: error.message };
-  uppdateraJaktklubb(id);
+  uppdateraJaktklubb(id); revalidatePath("/admin/sakerhetskurs");
   return { ok: true };
 }
 

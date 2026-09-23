@@ -95,7 +95,7 @@ export default async function Jakt() {
             <p className="label">Jaktkurser</p>
             <h2 className="lower">lär dig mer om jakten</h2>
             <p>Endagskurser i vilthantering, säkerhet och skytte. Teori på förmiddagen, praktik på eftermiddagen, och middag lagad på dagens råvara för den som vill stanna.</p>
-            <p>Kurserna är öppna för alla. Säkerhets- och skyttekursen är dessutom obligatorisk för jaktklubbens medlemmar inför varje säsong.</p>
+            <p>Kurserna är öppna för alla, medlem eller inte. Jaktklubbens medlemmar gör dessutom en egen säkerhetskurs online i medlemsklubben inför varje säsong.</p>
           </div>
           <Tillfallen tillfallen={jaktkurser} rubrik="Kommande kurser" />
         </div>

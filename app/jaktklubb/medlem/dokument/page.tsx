@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { kravMedlem } from "@/lib/jakt";
+import { kravRiktigMedlem } from "@/lib/jakt";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Marker & dokument" };
 export const dynamic = "force-dynamic";
 
 export default async function MarkerOchDokument() {
-  await kravMedlem();
+  await kravRiktigMedlem();
   return (
     <>
       <header className="jk-valkommen">
