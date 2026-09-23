@@ -70,6 +70,35 @@ export async function kravMedlem(): Promise<Medlem> {
 /** Gästjägare har konto men inte medlemskap: inga ingående dagar, ingen förtur, inget klubbmaterial. */
 export const arMedlem = (m: Medlem) => m.status === "godkand";
 
+/* ---------- Jaktledare ---------- */
+
+export type Jaktledarbehorighet = { via: "admin" | "medlem"; namn: string; adminRoller?: string[] };
+
+/**
+ * Vem får jobba i jaktledarvyn för en jaktdag: admin med rollen jaktadmin/jaktledare
+ * (eller superadmin), eller den medlem som är utpekad jaktledare för dagen.
+ * Kastar om ingen av dem — anropas från server actions och sidor.
+ */
+export async function kravJaktledare(tillfalleId: string): Promise<Jaktledarbehorighet> {
+  const db = await supabaseServer();
+  const { data: { user } } = await db.auth.getUser();
+  if (!user) throw new Error("Inte inloggad.");
+  const adm = supabaseAdmin();
+
+  const { data: admin } = await adm.from("admin_anvandare").select("namn, epost, roller").eq("id", user.id).maybeSingle();
+  const roller: string[] = admin?.roller ?? [];
+  if (admin && (roller.includes("superadmin") || roller.includes("jaktadmin") || roller.includes("jaktledare"))) {
+    return { via: "admin", namn: admin.namn ?? admin.epost, adminRoller: roller };
+  }
+
+  const { data: t } = await adm.from("tillfalle").select("jaktledare_id").eq("id", tillfalleId).maybeSingle();
+  if (t?.jaktledare_id) {
+    const { data: m } = await adm.from("jaktmedlem").select("namn").eq("id", t.jaktledare_id).eq("anvandare_id", user.id).maybeSingle();
+    if (m) return { via: "medlem", namn: m.namn };
+  }
+  throw new Error("Du är inte jaktledare för den här jaktdagen.");
+}
+
 /** Skickar gäster till översikten om sidan är bara för medlemmar. */
 export async function kravRiktigMedlem(): Promise<Medlem> {
   const m = await kravMedlem();

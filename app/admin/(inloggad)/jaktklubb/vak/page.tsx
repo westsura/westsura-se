@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { kravAdmin } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/supabase";
-import { VAKTYP, kr, type Omrade, type Utbud } from "@/lib/vak";
+import { VAKTYP, kr, forVak, type Omrade, type Utbud } from "@/lib/vak";
 import SvaraKort from "./SvaraKort";
 import UtbudForm from "./UtbudForm";
 import OmradeForm from "./OmradeForm";
 import VakKnappar from "./VakKnappar";
 import type { BokningMedJagare } from "./delar";
+import Skottlista from "@/components/jaktledare/Skottlista";
+import type { Skott } from "@/lib/avskjutning";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +17,11 @@ export default async function VakAdmin() {
   const adm = supabaseAdmin();
   const idag = new Date().toISOString().slice(0, 10);
 
+  // Bekräftade dygn från tre veckor bakåt ligger kvar tills avskjutningen är rapporterad.
+  const treVeckorSedan = new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10);
   const [{ data: omraden }, { data: bokningar }, { data: utbud }, { data: dokument }] = await Promise.all([
     adm.from("vakomrade").select("*").order("ordning"),
-    adm.from("vakbokning").select("*, jagare:jagare_id(id, namn, epost, telefon, status, kurs_godkand)").gte("datum", idag).order("datum"),
+    adm.from("vakbokning").select("*, jagare:jagare_id(id, namn, epost, telefon, status, kurs_godkand)").gte("datum", treVeckorSedan).order("datum"),
     adm.from("vakutbud").select("*").gte("datum", idag).order("datum"),
     adm.from("medlemsdokument").select("medlem_id").eq("status", "godkand"),
   ]);
@@ -29,14 +33,20 @@ export default async function VakAdmin() {
   for (const d of (dokument ?? []) as { medlem_id: string }[]) dokAntal[d.medlem_id] = (dokAntal[d.medlem_id] ?? 0) + 1;
   for (const b of alla) b.dokument_ok = (dokAntal[b.jagare_id] ?? 0) >= 3;
 
-  const attSvara = alla.filter((b) => b.status === "onskad");
-  const bekraftade = alla.filter((b) => b.status === "bekraftad");
+  const attSvara = alla.filter((b) => b.status === "onskad" && b.datum >= idag);
+  const bekraftade = alla.filter((b) => b.status === "bekraftad" && b.datum >= idag);
+  const genomforda = alla.filter((b) => b.status === "bekraftad" && b.datum < idag).sort((a, b) => (a.datum > b.datum ? -1 : 1));
+  const { data: skottData } = genomforda.length
+    ? await adm.from("skott").select("*").in("vakbokning_id", genomforda.map((b) => b.id)).order("tid")
+    : { data: [] as Skott[] };
+  const skottFor = (id: string) => ((skottData ?? []) as Skott[]).filter((s) => s.vakbokning_id === id);
   const U = (utbud ?? []) as Utbud[];
   const bokadePerUtbud: Record<string, number> = {};
   for (const b of alla) if (b.utbud_id && (b.status === "onskad" || b.status === "bekraftad")) bokadePerUtbud[b.utbud_id] = (bokadePerUtbud[b.utbud_id] ?? 0) + 1;
 
   /** Områden som är lediga ett visst dygn — de som inte har en bekräftad bokning. */
-  const lediga = (datum: string) => O.filter((o) => o.aktiv && !bekraftade.some((b) => b.datum === datum && b.omrade_id === o.id));
+  const vakomraden = O.filter((o) => o.aktiv && forVak(o));
+  const lediga = (datum: string) => vakomraden.filter((o) => !bekraftade.some((b) => b.datum === datum && b.omrade_id === o.id));
   const namn = (id: string | null) => O.find((o) => o.id === id)?.namn ?? "—";
 
   return (
@@ -53,13 +63,13 @@ export default async function VakAdmin() {
         <div className="stat"><b>{attSvara.length}</b><span>Att svara på</span></div>
         <div className="stat"><b>{bekraftade.length}</b><span>Bekräftade dygn framåt</span></div>
         <div className="stat"><b>{U.filter((u) => u.publicerad).length}</b><span>Släppta dygn framåt</span></div>
-        <div className="stat"><b>{O.filter((o) => o.aktiv).length}</b><span>Aktiva områden</span></div>
+        <div className="stat"><b>{vakomraden.length}</b><span>Vakområden</span></div>
       </div>
 
       <h2 className="admin__h2" style={{ marginTop: 32 }}>Att svara på</h2>
       {!attSvara.length && <p className="empty" style={{ marginBottom: 24 }}>Inga önskningar väntar.</p>}
       {attSvara.map((b) => (
-        <SvaraKort key={b.id} b={b} lediga={lediga(b.datum)} alla={O.filter((o) => o.aktiv)} onskatNamn={b.onskat_omrade_id ? namn(b.onskat_omrade_id) : null} />
+        <SvaraKort key={b.id} b={b} lediga={lediga(b.datum)} alla={vakomraden} onskatNamn={b.onskat_omrade_id ? namn(b.onskat_omrade_id) : null} />
       ))}
 
       <h2 className="admin__h2" style={{ marginTop: 40 }}>Kommande dygn</h2>
@@ -90,6 +100,16 @@ export default async function VakAdmin() {
         </div>
       )}
 
+      <h2 className="admin__h2" style={{ marginTop: 40 }}>Genomförda dygn — avskjutning</h2>
+      <p className="admin__meta" style={{ marginBottom: 12 }}>Registrera skott efter jägarens rapport. Dygn utan skott: registrera inget, så räknas det som tomt.</p>
+      {!genomforda.length && <p className="empty">Inga genomförda dygn de senaste tre veckorna.</p>}
+      {genomforda.map((b) => (
+        <section key={b.id} style={{ marginBottom: 16 }}>
+          <p className="admin__meta" style={{ marginBottom: 6 }}><b>{b.datum}</b> · {VAKTYP[b.typ]} · {namn(b.omrade_id)} · {b.jagare?.namn ?? "—"}</p>
+          <Skottlista skott={skottFor(b.id)} vakbokningId={b.id} datum={b.datum} fastJagare={{ jagare_id: b.jagare?.id ?? null, namn: b.jagare?.namn ?? "—" }} />
+        </section>
+      ))}
+
       <h2 className="admin__h2" style={{ marginTop: 40 }}>Släppta dygn</h2>
       <p className="admin__meta" style={{ marginBottom: 12 }}>Vak och pyrsch går bara att boka de dygn du släpper — lägg dem så att de inte stör drevjakterna. Ett dygn är antingen bara för medlemmar eller öppet även för gäster; öppna dygn syns på /jakt med gästpriset, som kan sättas olika per dygn.</p>
       {!!U.length && (
@@ -106,8 +126,8 @@ export default async function VakAdmin() {
       )}
       <UtbudForm omraden={O} bokade={0} />
 
-      <h2 className="admin__h2" style={{ marginTop: 40 }}>Områden</h2>
-      <p className="admin__meta" style={{ marginBottom: 12 }}>Torn, vakplatser och pyrschområden. Koordinater i SWEREF 99 TM (som på Lantmäteriets kartor) läggs in från GPS och används av kartan.</p>
+      <h2 className="admin__h2" style={{ marginTop: 40 }}>Platser</h2>
+      <p className="admin__meta" style={{ marginBottom: 12 }}>Torn, vakplatser och pyrschområden för vak och pyrsch — samt pass och samlingsplatser för drevjakterna. Koordinater i SWEREF 99 TM (som på Lantmäteriets kartor) läggs in från GPS och används av kartan.</p>
       <div className="admin__panel">
         {!O.length && <p className="empty">Inga områden ännu.</p>}
         {O.map((o) => <OmradeForm key={o.id} omrade={o} />)}

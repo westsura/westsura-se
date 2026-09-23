@@ -175,11 +175,11 @@ export async function onskaVakdygn(fd: FormData): Promise<{ ok: boolean; fel?: s
   const { data: finns } = await adm.from("vakbokning").select("id").eq("jagare_id", medlem.id).eq("datum", datum).in("status", ["onskad", "bekraftad"]).maybeSingle();
   if (finns) return { ok: false, fel: "Du har redan önskat det dygnet." };
 
-  const { error } = await adm.from("vakbokning").insert({
+  const { error: felInsert } = await adm.from("vakbokning").insert({
     jagare_id: medlem.id, utbud_id: utbudId, sasong_id: sasong?.id ?? null, datum, typ,
     onskat_omrade_id: onskatOmrade, pris, meddelande,
   });
-  if (error) return { ok: false, fel: error.message };
+  if (felInsert) return { ok: false, fel: felInsert.message };
 
   let omradeNamn: string | null = null;
   if (onskatOmrade) {

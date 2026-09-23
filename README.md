@@ -59,6 +59,9 @@ Se `.env.example`. På Vercel: Settings → Environment Variables. `SUPABASE_SER
 - **Säkerhetskurs online**: avsnitt och frågor i `kursavsnitt`/`kursfraga`, provet rättas på servern (`lamnaProv`). Giltighet styrs i `kursinstallning`. Mjuk spärr vid bokning.
 - **Vak & pyrsch** (`lib/vak.ts`): områden i `vakomrade` (torn/vakplats/pyrschområde, SWEREF 99 TM för kartan). Alla dygn släpps av admin i `vakutbud` (så att vak/pyrsch inte stör drevjakterna) med `synlighet` 'medlem' eller 'alla'. Medlemmar önskar bland släppta dygn — pris enligt nivåns kvot (`medlemsniva.vakdygn_ingar`, tomt = obegränsat och ingår; `vakdygn_pris` därefter). Gäster bokar dygn med synlighet 'alla', till dygnets gästpris (publikt på `/jakt`). Admin (jaktledaren) tilldelar område och bekräftar under `/admin/jaktklubb/vak`; bekräftat dygn med pris får fakturaunderlag. En jägare per område och dygn (unikt index).
 
+- **Jaktledarvy** (`components/jaktledare/`, data i `lib/jaktdag.ts`, actions i `app/jaktledare/actions.ts`): för en jaktdag (tillfälle av typ jakt) — deltagare med dokument-/kursstatus, såtar (`sat`) med pass (`pass`, jägare tilldelas via anmälan, plats ur platsbiblioteket `vakomrade`), utskrift av passlista. Samma vy i admin (`/admin/tillfallen/[id]`) och i medlemsklubben för den utpekade jaktledaren (`tillfalle.jaktledare_id`, `/jaktklubb/medlem/jaktledare/[id]`). Behörighet: `kravJaktledare()` i `lib/jakt.ts` (admin med jaktadmin/jaktledare, eller utpekad medlem).
+- **Avskjutning** (`lib/avskjutning.ts`, tabell `skott`): ett skott per rad med vilt, kön, ålder, resultat (fällt/bom/påskjutet/eftersök), koppling till jaktdag+såt+pass eller vakdygn. Registreras av jaktledaren i jaktledarvyn, eller av admin under Vak & pyrsch (genomförda dygn). Säsongssummering under `/admin/jaktklubb/avskjutning`.
+
 ## Kommande etapper
 
 - **II** ✔ Bokningskalender, prisregler, förfrågningsinkorg, tillfällen och admin.

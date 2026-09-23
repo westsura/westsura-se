@@ -1,7 +1,7 @@
 /** Vak & pyrsch — typer och etiketter som delas av server och klient. Får inte importera next/headers. */
 
 export type Omrade = {
-  id: string; namn: string; typ: "torn" | "vakplats" | "pyrschomrade";
+  id: string; namn: string; typ: "torn" | "vakplats" | "pyrschomrade" | "pass" | "samling";
   beskrivning: string | null; vagbeskrivning: string | null;
   nord: number | null; ost: number | null; aktiv: boolean; ordning: number;
 };
@@ -22,7 +22,10 @@ export type Vakbokning = {
   meddelande: string | null; svar: string | null; underlag_id: string | null; skapad: string;
 };
 
-export const OMRADETYP: Record<Omrade["typ"], string> = { torn: "Torn", vakplats: "Vakplats", pyrschomrade: "Pyrschområde" };
+export const OMRADETYP: Record<Omrade["typ"], string> = { torn: "Torn", vakplats: "Vakplats", pyrschomrade: "Pyrschområde", pass: "Pass (drevjakt)", samling: "Samlingsplats" };
+/** Typer som går att tilldela för vak och pyrsch. Pass och samlingsplatser finns för drevjakten och kartan. */
+export const VAKTYPER: Omrade["typ"][] = ["torn", "vakplats", "pyrschomrade"];
+export const forVak = (o: Omrade) => VAKTYPER.includes(o.typ);
 export const VAKTYP: Record<string, string> = { vak: "Vak", pyrsch: "Pyrsch", bada: "Vak eller pyrsch" };
 export const VAKSTATUS: Record<Vakbokning["status"], string> = {
   onskad: "Väntar på jaktledaren", bekraftad: "Bekräftad", avbojd: "Avböjd", avbokad: "Avbokad",

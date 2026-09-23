@@ -15,7 +15,7 @@ export default function OmradeForm({ omrade, nastaOrdning }: { omrade?: Omrade; 
         <span>
           <b>{omrade.namn}</b> <small>· {OMRADETYP[omrade.typ]}{!omrade.aktiv && " · inaktivt"}</small>
           {omrade.beskrivning && <><br /><small>{omrade.beskrivning}</small></>}
-          {(omrade.nord || omrade.ost) && <><br /><small>N {omrade.nord} · E {omrade.ost}</small></>}
+          {(omrade.nord != null || omrade.ost != null) && <><br /><small>N {omrade.nord} · E {omrade.ost}</small></>}
         </span>
         <button type="button" className="btn btn--sm btn--ghost" onClick={() => setOppen(true)}>Redigera</button>
       </div>

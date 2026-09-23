@@ -842,6 +842,9 @@ p { margin:0 0 20px; max-width:66ch; }
   .print-only { display:block; }
   .underlag__rader input, .underlag__rader select { display:none; }
   .underlag__rader td .print-only { display:inline; }
+  .jl__pass td .print-only { display:inline; }
+  .jl__sat { break-inside:avoid; }
+  .jk-head, .jk-fot, .jk-bottennav { display:none !important; }
   .underlag__kund { font-size:15px; line-height:1.5; margin-bottom:12px; }
   body { color:#000; }
 }

@@ -45,6 +45,7 @@ export default async function Jaktklubb() {
         <div className="admin__actions">
           {sasong && <span className="admin__meta">{sasong.fran} – {sasong.till}</span>}
           <Link className="btn btn--sm btn--ghost" href="/admin/jaktklubb/vak">Vak &amp; pyrsch{vakAttSvara ? ` (${vakAttSvara})` : ""}</Link>
+          <Link className="btn btn--sm btn--ghost" href="/admin/jaktklubb/avskjutning">Avskjutning</Link>
           <Link className="btn btn--sm btn--ghost" href="/admin/jaktklubb/sasonger">Säsonger &amp; nivåer</Link>
           <Link className="btn btn--sm btn--ghost" href="/admin/sakerhetskurs">Säkerhetskurs</Link>
         </div>

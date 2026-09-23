@@ -20,7 +20,7 @@ export default async function Vak() {
   // Gäster ser bara dygn som är öppna för alla; medlemmar ser alla utlagda dygn.
   const [{ data: sasong }, { data: omraden }, { data: utbud }, { data: mina }, { count: godkanda }] = await Promise.all([
     adm.from("jaktsasong").select("id, namn").eq("aktiv", true).maybeSingle(),
-    adm.from("vakomrade").select("id, namn, typ").eq("aktiv", true).order("ordning"),
+    adm.from("vakomrade").select("id, namn, typ").eq("aktiv", true).in("typ", ["torn", "vakplats", "pyrschomrade"]).order("ordning"),
     adm.from("vakutbud").select("*").eq("publicerad", true).gte("datum", idag).in("synlighet", gast ? ["alla"] : ["medlem", "alla"]).order("datum"),
     adm.from("vakbokning").select("*").eq("jagare_id", medlem.id).order("datum", { ascending: false }),
     adm.from("medlemsdokument").select("id", { count: "exact", head: true }).eq("medlem_id", medlem.id).eq("status", "godkand"),

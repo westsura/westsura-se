@@ -13,7 +13,9 @@ export default async function Oversikt() {
   const idag = new Date().toISOString().slice(0, 10);
   const kurs = await kursStatus(medlem);
 
-  const [{ data: sasong }, { data: niva }, { data: anmalningar }, { data: meddelande }] = await Promise.all([
+  // Jaktdagar där medlemmen är utpekad jaktledare — från en vecka bakåt, så rapporten hinner göras.
+  const enVeckaSedan = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const [{ data: sasong }, { data: niva }, { data: anmalningar }, { data: meddelande }, { data: leder }] = await Promise.all([
     medlem.sasong_id ? adm.from("jaktsasong").select("namn").eq("id", medlem.sasong_id).maybeSingle() : Promise.resolve({ data: null }),
     medlem.niva_id ? adm.from("medlemsniva").select("namn").eq("id", medlem.niva_id).maybeSingle() : Promise.resolve({ data: null }),
     // Anmälningarna hänger på e-postadressen — anmalan har ingen koppling till medlem.
@@ -22,7 +24,9 @@ export default async function Oversikt() {
     // Kortet "Från herrgården" — det senaste publicerade meddelandet, om det finns något.
     adm.from("klubbmeddelande").select("rubrik, text, datum").eq("publicerad", true)
       .order("datum", { ascending: false }).limit(1).maybeSingle(),
+    adm.from("tillfalle").select("id, titel, datum").eq("jaktledare_id", medlem.id).gte("datum", enVeckaSedan).order("datum"),
   ]);
+  const jaktledarDagar = (leder ?? []) as { id: string; titel: string; datum: string }[];
 
   const kommande = ((anmalningar ?? []) as unknown as Anmalan[])
     .filter((a) => a.tillfalle && a.tillfalle.datum >= idag)
@@ -42,6 +46,17 @@ export default async function Oversikt() {
         </div>
         <Link className="btn" href="/jaktklubb/medlem/boka">Boka en jaktdag</Link>
       </header>
+
+      {!!jaktledarDagar.length && (
+        <section className="jk-kort jk-kort--ljus jk-kort--bred">
+          <p className="jk-etikett">Du är jaktledare</p>
+          {jaktledarDagar.map((j) => (
+            <p key={j.id} className="jk-lede mb-0">
+              <b>{j.titel}</b> · {langtDatum(j.datum)} — <Link className="jk-lank" href={`/jaktklubb/medlem/jaktledare/${j.id}`}>deltagare, pass och avskjutning →</Link>
+            </p>
+          ))}
+        </section>
+      )}
 
       <div className="jk-rad">
         <section className="jk-kort jk-kort--mork">

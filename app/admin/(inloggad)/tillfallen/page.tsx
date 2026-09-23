@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { kravAdmin } from "@/lib/admin";
 import { supabaseServer } from "@/lib/supabase";
 import TillfalleForm from "./TillfalleForm";
@@ -27,7 +28,10 @@ export default async function Tillfallen() {
                 <span className="pill">{TYP[t.typ]}</span> <b style={{ marginLeft: 8 }}>{t.titel}</b>{!t.publicerad && <span className="pill pill--block" style={{ marginLeft: 8 }}>ej publicerad</span>}
                 <div className="admin__meta">{t.datum}{t.tid ? " · " + t.tid : ""} · {tagna} av {t.platser} platser · {t.pris != null ? t.pris + " kr" : "—"}</div>
               </div>
-              <TillfalleForm tillfalle={t} />
+              <div className="admin__actions">
+                {t.typ === "jakt" && <Link className="btn btn--sm" href={`/admin/tillfallen/${t.id}`}>Jaktledarvy</Link>}
+                <TillfalleForm tillfalle={t} />
+              </div>
             </div>
             {a.length > 0 && (
               <div className="tablewrap" style={{ marginTop: 12 }}>

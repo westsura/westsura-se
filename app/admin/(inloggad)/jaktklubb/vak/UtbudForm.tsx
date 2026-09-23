@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { sparaVakutbud, taBortVakutbud } from "@/app/admin/actions";
-import { VAKTYP, SYNLIGHET, kr, type Omrade, type Utbud } from "@/lib/vak";
+import { VAKTYP, SYNLIGHET, kr, forVak, type Omrade, type Utbud } from "@/lib/vak";
 
 /** Ett släppt dygn: som tabellrad när det finns, som formulär för nytt. */
 export default function UtbudForm({ utbud, omraden, bokade }: { utbud?: Utbud; omraden: Omrade[]; bokade: number }) {
@@ -37,7 +37,7 @@ export default function UtbudForm({ utbud, omraden, bokade }: { utbud?: Utbud; o
         <label>Område <small>valfritt</small></label>
         <select name="omrade_id" defaultValue={utbud?.omrade_id ?? ""}>
           <option value="">Tilldelas vid bekräftelse</option>
-          {omraden.filter((o) => o.aktiv).map((o) => <option key={o.id} value={o.id}>{o.namn}</option>)}
+          {omraden.filter((o) => o.aktiv && forVak(o)).map((o) => <option key={o.id} value={o.id}>{o.namn}</option>)}
         </select>
       </div>
       <div className="field field--full"><label>Beskrivning <small>syns för jägaren</small></label><input name="beskrivning" defaultValue={utbud?.beskrivning ?? ""} placeholder="Kvällsvak på vildsvin, ett torn" /></div>
