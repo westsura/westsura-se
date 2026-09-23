@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin, supabasePublik } from "@/lib/supabase";
 import { mejlBokning, mejlForfragan, mejlAnmalan, mejlMedlemsansokan, mejlJagarkonto, mejlVakOnskad } from "@/lib/epost";
+import { inloggningForNyttKonto } from "@/lib/konto";
 
 export type Svar<T = undefined> = { ok: true; data: T } | { ok: false; fel: string };
 
@@ -145,7 +146,10 @@ export async function skapaAnmalan(fd: FormData): Promise<Svar<{ status: string 
     const k = (konto as { id: string; status: string; ny: boolean }[] | null)?.[0];
     if (k) {
       await db.from("anmalan").update({ jagare_id: k.id }).eq("id", rad.anmalan_id);
-      if (k.ny) { try { await mejlJagarkonto({ epost, namn, titel: t?.titel ?? "", datum: t?.datum ?? "" }); } catch (e) { console.error("mejl misslyckades", e); } }
+      if (k.ny) {
+        const losenord = await inloggningForNyttKonto(k.id, epost);
+        try { await mejlJagarkonto({ epost, namn, titel: t?.titel ?? "", datum: t?.datum ?? "", losenord }); } catch (e) { console.error("mejl misslyckades", e); }
+      }
     }
   }
   return { ok: true, data: { status: rad.status } };
@@ -181,7 +185,10 @@ export async function bokaVakUtbud(fd: FormData): Promise<Svar<{ pris: number }>
 
   try {
     await mejlVakOnskad({ epost, namn, datum: u.datum, typ: typ === "vak" ? "Vak" : "Pyrsch", pris, meddelande, gast: k.status !== "godkand" });
-    if (k.ny) await mejlJagarkonto({ epost, namn, titel: typ === "vak" ? "vak" : "pyrsch", datum: u.datum });
+    if (k.ny) {
+      const losenord = await inloggningForNyttKonto(k.id, epost);
+      await mejlJagarkonto({ epost, namn, titel: typ === "vak" ? "vak" : "pyrsch", datum: u.datum, losenord });
+    }
   } catch (e) { console.error("mejl misslyckades", e); }
   revalidatePath("/jakt"); revalidatePath("/admin/jaktklubb/vak"); revalidatePath("/admin/jaktklubb");
   return { ok: true, data: { pris } };

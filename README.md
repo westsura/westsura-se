@@ -51,7 +51,9 @@ Se `.env.example`. På Vercel: Settings → Environment Variables. `SUPABASE_SER
 
 ## Admin
 
-`/admin` — inloggning med engångslänk per e-post. Behöriga adresser ligger i tabellen `admin_inbjudan` i Supabase (superadmin lägger till fler). Roller: superadmin, vardskap, kommunikation, jaktadmin, jaktledare.
+`/admin` — inloggning med e-post och lösenord. Behöriga adresser ligger i tabellen `admin_inbjudan` i Supabase (superadmin lägger till fler); superadmin sätter första lösenordet under Admin › Användare, sedan byter var och en själv under Byt lösenord. Roller: superadmin, vardskap, kommunikation, jaktadmin, jaktledare.
+
+Medlemsklubben (`/jaktklubb/login`) loggar in på samma sätt. Nya konton (godkänt medlemskap eller jägarkonto vid anmälan) får ett engångslösenord i välkomstmejlet (`lib/konto.ts`), och jaktadmin kan sätta nytt lösenord på medlemskortet. "Glömt lösenord" skickar en engångslänk via Supabase Auth till `/…/losenord` — den vägen kräver att Supabase har fungerande SMTP (Resend) och att sajtens adress ligger i Supabase redirect-lista.
 
 ## Jaktklubben (etapp IV)
 

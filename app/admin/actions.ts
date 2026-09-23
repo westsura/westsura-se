@@ -7,10 +7,26 @@ import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokument
 import { Resend } from "resend";
 import { site } from "@/lib/site";
 import { FAKTURASTATUS } from "@/lib/faktura";
+import { sattLosenord, kollaLosenord, slumpaLosenord, authIdFor } from "@/lib/konto";
 
 const s = (v: FormDataEntryValue | null) => (typeof v === "string" ? v.trim() : "");
 
 /* ---------- Inloggning ---------- */
+/** E-post + lösenord. Adressen måste vara inbjuden till admin. */
+export async function loggaInAdmin(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  const epost = s(fd.get("epost")).toLowerCase(), losenord = s(fd.get("losenord"));
+  if (!epost.includes("@") || !losenord) return { ok: false, fel: "Ange e-post och lösenord." };
+  const admin = supabaseAdmin();
+  const { data: inbjuden, error: felUppslag } = await admin.rpc("ar_inbjuden", { e: epost });
+  if (felUppslag) return { ok: false, fel: felUppslag.message };
+  if (!inbjuden) return { ok: false, fel: "Adressen har inte behörighet till admin. Be superadmin lägga till dig." };
+  const db = await supabaseServer();
+  const { error } = await db.auth.signInWithPassword({ email: epost, password: losenord });
+  if (error) return { ok: false, fel: error.message.includes("Invalid login") ? "Fel e-post eller lösenord." : error.message };
+  return { ok: true };
+}
+
+/** Glömt lösenord: en länk per mejl som leder till sidan där ett nytt sätts. */
 export async function skickaInloggningslank(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
   const epost = s(fd.get("epost")).toLowerCase();
   if (!epost.includes("@")) return { ok: false, fel: "Ange en e-postadress." };
@@ -20,8 +36,47 @@ export async function skickaInloggningslank(fd: FormData): Promise<{ ok: boolean
   if (!inbjuden) return { ok: false, fel: "Adressen har inte behörighet till admin. Be superadmin lägga till dig." };
   const db = await supabaseServer();
   const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
-  const { error } = await db.auth.signInWithOtp({ email: epost, options: { emailRedirectTo: `${bas}/admin/auth/callback`, shouldCreateUser: true } });
+  const { error } = await db.auth.signInWithOtp({ email: epost, options: { emailRedirectTo: `${bas}/admin/auth/callback?next=/admin/losenord`, shouldCreateUser: true } });
   if (error) return { ok: false, fel: error.message };
+  return { ok: true };
+}
+
+/** Inloggad admin byter sitt eget lösenord. */
+export async function bytLosenordAdmin(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin();
+  const losenord = s(fd.get("losenord"));
+  const fel = kollaLosenord(losenord);
+  if (fel) return { ok: false, fel };
+  if (losenord !== s(fd.get("losenord2"))) return { ok: false, fel: "Lösenorden stämmer inte överens." };
+  const db = await supabaseServer();
+  const { error } = await db.auth.updateUser({ password: losenord });
+  if (error) return { ok: false, fel: error.message };
+  return { ok: true };
+}
+
+/** Superadmin sätter lösenord åt en annan admin (t.ex. första gången). */
+export async function sattAdminLosenord(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("superadmin");
+  const epost = s(fd.get("epost")).toLowerCase(), losenord = s(fd.get("losenord"));
+  const { data: inbjuden } = await supabaseAdmin().rpc("ar_inbjuden", { e: epost });
+  if (!inbjuden) return { ok: false, fel: "Adressen är inte inbjuden till admin." };
+  const r = await sattLosenord(epost, losenord);
+  if (!r.ok) return r;
+  revalidatePath("/admin/anvandare");
+  return { ok: true };
+}
+
+/** Jaktadmin sätter lösenord åt en medlem eller gästjägare, och kopplar kontot. */
+export async function sattMedlemsLosenord(medlemId: string, losenord: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const { data: m } = await adm.from("jaktmedlem").select("epost, status").eq("id", medlemId).maybeSingle();
+  if (!m) return { ok: false, fel: "Medlemmen hittades inte." };
+  if (m.status !== "godkand" && m.status !== "gast") return { ok: false, fel: "Bara medlemmar och gästjägare kan logga in." };
+  const r = await sattLosenord(m.epost, losenord);
+  if (!r.ok) return r;
+  await adm.from("jaktmedlem").update({ anvandare_id: r.id }).eq("id", medlemId);
+  uppdateraJaktklubb(medlemId);
   return { ok: true };
 }
 
@@ -560,8 +615,18 @@ export async function godkannMedlem(id: string, nivaId: string): Promise<{ ok: b
 
   const sasong = medlem.jaktsasong as unknown as { namn: string } | null;
   const niva = medlem.medlemsniva as unknown as { namn: string; avgift: number } | null;
+
+  // Inloggningskonto: nytt konto får ett engångslösenord som följer med välkomstmejlet.
+  // Fanns adressen redan (t.ex. som gästjägare) behålls lösenordet.
+  let losenord: string | null = null;
+  if (!(await authIdFor(medlem.epost))) {
+    losenord = slumpaLosenord();
+    const k = await sattLosenord(medlem.epost, losenord);
+    if (k.ok) await adm.from("jaktmedlem").update({ anvandare_id: k.id }).eq("id", id);
+    else { console.error("kunde inte skapa inloggning", k.fel); losenord = null; }
+  }
   try {
-    if (sasong && niva) await mejlMedlemGodkand({ epost: medlem.epost, namn: medlem.namn, sasong: sasong.namn, niva: niva.namn, avgift: niva.avgift });
+    if (sasong && niva) await mejlMedlemGodkand({ epost: medlem.epost, namn: medlem.namn, sasong: sasong.namn, niva: niva.namn, avgift: niva.avgift, losenord });
   } catch (e) { console.error("mejl misslyckades", e); }
   uppdateraJaktklubb(id); revalidatePath("/admin/fakturering");
   return { ok: true };

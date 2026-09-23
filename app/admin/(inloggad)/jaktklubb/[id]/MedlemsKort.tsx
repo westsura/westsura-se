@@ -2,13 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { sattKursGenomford, sparaMedlemsanteckning, avslutaMedlemskap } from "@/app/admin/actions";
+import { sattKursGenomford, sparaMedlemsanteckning, avslutaMedlemskap, sattMedlemsLosenord } from "@/app/admin/actions";
 import type { Medlem } from "../delar";
 
-/** Det som går att ändra på en medlem: kursen, anteckningen och att avsluta medlemskapet. */
+/** Det som går att ändra på en medlem: kursen, anteckningen, lösenordet och att avsluta medlemskapet. */
 export default function MedlemsKort({ m }: { m: Medlem }) {
   const [kurs, setKurs] = useState(m.kurs_genomford);
   const [ant, setAnt] = useState(m.anteckning ?? "");
+  const [losen, setLosen] = useState("");
+  const [medd, setMedd] = useState<string | null>(null);
   const [fel, setFel] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -32,6 +34,19 @@ export default function MedlemsKort({ m }: { m: Medlem }) {
           onBlur={() => start(async () => { setFel(null); const r = await sparaMedlemsanteckning(m.id, ant); if (!r.ok) setFel(r.fel ?? "Kunde inte spara anteckningen."); })}
           placeholder="Ringt, träffat, referens…" />
       </div>
+
+      {(m.status === "godkand" || m.status === "gast") && (
+        <div className="field" style={{ marginTop: 12 }}>
+          <label htmlFor="losen">Sätt nytt lösenord åt {m.namn.split(" ")[0]}</label>
+          <div className="admin__actions">
+            <input id="losen" value={losen} type="text" disabled={pending} onChange={(e) => setLosen(e.target.value)} placeholder="Minst 8 tecken" autoComplete="off" />
+            <button className="btn btn--sm" type="button" disabled={pending || losen.length < 8}
+              onClick={() => start(async () => { setFel(null); setMedd(null); const r = await sattMedlemsLosenord(m.id, losen); if (r.ok) { setMedd(`Sparat. Meddela ${m.namn.split(" ")[0]} lösenordet — det skickas inte automatiskt.`); setLosen(""); } else setFel(r.fel ?? "Kunde inte sätta lösenordet."); })}>Spara</button>
+          </div>
+          <p className="hint">För den som glömt sitt lösenord eller aldrig fått något. Medlemmen byter sedan själv i medlemsklubben.</p>
+          {medd && <p className="notice" role="status">{medd}</p>}
+        </div>
+      )}
 
       {fel && <p className="notice notice--fel" style={{ marginTop: 12 }} role="alert">{fel}</p>}
 

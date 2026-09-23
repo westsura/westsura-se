@@ -7,7 +7,8 @@ export async function GET(req: NextRequest) {
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type");
-  const res = NextResponse.redirect(new URL("/admin", url.origin));
+  const next = url.searchParams.get("next");
+  const res = NextResponse.redirect(new URL(next && next.startsWith("/admin") ? next : "/admin", url.origin));
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
       getAll() { return req.cookies.getAll(); },

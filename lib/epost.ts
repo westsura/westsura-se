@@ -74,11 +74,15 @@ export async function mejlMedlemsansokan(o: { epost: string; namn: string; telef
 
 const medlemslank = () => `${process.env.NEXT_PUBLIC_SITE_URL || site.url}/jaktklubb/login`;
 
-export async function mejlMedlemGodkand(o: { epost: string; namn: string; sasong: string; niva: string; avgift: number }) {
+const inloggningsrad = (losenord: string | null) => losenord
+  ? `Logga in i medlemsklubben på <a href="${medlemslank()}">${medlemslank()}</a> med den här e-postadressen och lösenordet <strong>${losenord}</strong>. Byt gärna till ett eget lösenord under Mitt medlemskap när du loggat in.`
+  : `Logga in i medlemsklubben på <a href="${medlemslank()}">${medlemslank()}</a> med den här e-postadressen och ditt vanliga lösenord.`;
+
+export async function mejlMedlemGodkand(o: { epost: string; namn: string; sasong: string; niva: string; avgift: number; losenord: string | null }) {
   await skicka([o.epost], `Välkommen till Westsura Herrgårds jaktklubb`, html("Ditt medlemskap är beviljat", [
     `Hej ${o.namn}, det är med glädje vi hälsar dig välkommen som medlem i jaktklubben för säsongen <strong>${o.sasong}</strong>.`,
     `Medlemskapet gäller nivån <strong>${fritext(o.niva)}</strong>. Årsavgiften, ${o.avgift.toLocaleString("sv-SE")} kr, faktureras separat och kommer i ett eget utskick.`,
-    `Logga in i medlemsklubben på <a href="${medlemslank()}">${medlemslank()}</a> med den här e-postadressen. Du får en engångslänk till din inkorg — inget lösenord att komma ihåg.`,
+    inloggningsrad(o.losenord),
     `Före din första jaktdag behöver vi tre handlingar av dig: kopia på <strong>giltigt inlöst statligt jaktkort</strong>, <strong>ID-handling</strong> och <strong>älgskyttemärke</strong>. Du laddar upp dem under Mitt medlemskap när du loggat in. Anmälan till jaktdagarna öppnar när alla tre är godkända.`,
   ], "Varmt välkommen till klubben."));
 }
@@ -132,12 +136,14 @@ export async function mejlDokumentVantar(o: { namn: string; dokument: string }) 
 }
 
 /** Skickas när en anmälan till jakt skapat ett nytt jägarkonto. */
-export async function mejlJagarkonto(o: { epost: string; namn: string; titel: string; datum: string }) {
+export async function mejlJagarkonto(o: { epost: string; namn: string; titel: string; datum: string; losenord?: string | null }) {
   const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
   await skicka([o.epost], `Ditt jägarkonto på Westsura`, html("Välkommen till jakten på Westsura", [
     `Hej ${o.namn}. I och med din anmälan till <strong>${o.titel}</strong> (${o.datum}) har du fått ett jägarkonto hos oss.`,
     `Innan din första jaktdag behöver tre saker vara klara i kontot: kopia på jaktkortet, en ID-handling och vår säkerhetskurs online — den tar en kvart. Vi granskar dokumenten inom en vardag.`,
-    `<a href="${bas}/jaktklubb/login" style="color:#7d6530">Logga in på jägarkontot</a> — du får en engångslänk till den här adressen, inget lösenord.`,
+    o.losenord
+      ? `<a href="${bas}/jaktklubb/login" style="color:#7d6530">Logga in på jägarkontot</a> med den här e-postadressen och lösenordet <strong>${o.losenord}</strong>. Byt gärna till ett eget lösenord när du är inne.`
+      : `<a href="${bas}/jaktklubb/login" style="color:#7d6530">Logga in på jägarkontot</a> med den här e-postadressen och ditt lösenord.`,
     `Kontot är kostnadsfritt. Vill du jaga mer hos oss under säsongen finns medlemskapet i jaktklubben, med ingående dagar och förtur till bokningen.`,
   ]));
 }

@@ -27,7 +27,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
           <h1 className="jk-login__h1">Välkommen tillbaka.</h1>
           <p className="jk-login__lede">Här börjar din nästa dag på Westsura.<br />Logga in för att boka jakt, ladda upp dokument och göra säkerhetskursen.</p>
           <LoginForm fel={fel ? FEL[fel] ?? undefined : undefined} />
-          <p className="jk-hjalp">Vi skickar en säker engångslänk till din e-post.<br />Du behöver inget lösenord.</p>
+          <p className="jk-hjalp">Ditt lösenord fick du i välkomstmejlet.<br />Byt det när du vill under Mitt medlemskap.</p>
           <div className="jk-avdelare" />
           <p className="jk-hjalp">Ännu inte medlem?</p>
           <Link className="jk-lank" href="/jaktklubb">Läs om medlemskapet och ansök&nbsp; →</Link>

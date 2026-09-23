@@ -90,7 +90,7 @@ export default async function Medlemskap() {
 
       <section className="jk-kort jk-kort--ljus jk-kort--bred">
         <p className="jk-etikett">Inloggning</p>
-        <p className="jk-lede">Du är inloggad som {medlem.epost}. Nästa gång loggar du in med en ny engångslänk.</p>
+        <p className="jk-lede">Du är inloggad som {medlem.epost}. <Link className="jk-lank" href="/jaktklubb/medlem/losenord">Byt lösenord →</Link></p>
         <LoggaUt />
       </section>
     </>

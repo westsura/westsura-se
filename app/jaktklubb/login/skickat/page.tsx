@@ -6,7 +6,7 @@ import Panel from "../Panel";
 import IgenKnapp from "./IgenKnapp";
 
 export const metadata: Metadata = {
-  title: "Inloggningslänken är skickad — Westsura Herrgårds jaktklubb",
+  title: "Länken är skickad — Westsura Herrgårds jaktklubb",
   robots: { index: false, follow: false },
 };
 
@@ -20,10 +20,10 @@ export default async function Skickat({ searchParams }: { searchParams: Promise<
         <div className="jk-login__inner">
           {/* Skölden visas bara på mobil — där ersätter den det stora vapnet i panelen. */}
           <Vapen variant="skold" size={64} className="jk-skickat__skold" />
-          <p className="label">Snart är du inne</p>
+          <p className="label">Nytt lösenord</p>
           <h1 className="jk-login__h1">Titta i din inkorg.</h1>
-          <p className="jk-login__lede">Om adressen är kopplad till ett medlemskap får du ett mejl med en säker inloggningslänk.</p>
-          <p className="jk-login__lede">Öppna mejlet på den här enheten och följ länken för att komma in i medlemsklubben.</p>
+          <p className="jk-login__lede">Om adressen är kopplad till ett jägarkonto får du ett mejl med en länk.</p>
+          <p className="jk-login__lede">Öppna länken i samma webbläsare som du är i nu, så kommer du till sidan där du väljer ett nytt lösenord.</p>
           <div className="jk-avdelare" />
           <p className="jk-hjalp">Inget mejl? Kontrollera skräpposten eller försök igen om en stund.</p>
           <IgenKnapp epost={e} />

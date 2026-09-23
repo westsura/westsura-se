@@ -16,6 +16,7 @@ const menu: { href: string; label: string; roller: Roll[] }[] = [
   { href: "/admin/jaktklubb", label: "Jaktklubb", roller: ["jaktadmin"] },
   { href: "/admin/sakerhetskurs", label: "Säkerhetskurs", roller: ["jaktadmin"] },
   { href: "/admin/vanner", label: "Vänner", roller: ["vardskap", "kommunikation"] },
+  { href: "/admin/anvandare", label: "Användare", roller: ["superadmin"] },
 ];
 
 export default function AdminNav({ roller }: { roller: Roll[] }) {
@@ -31,6 +32,7 @@ export default function AdminNav({ roller }: { roller: Roll[] }) {
       ))}
       <div style={{ marginTop: "auto", paddingTop: 20 }}>
         <Link href="/" style={{ fontSize: 13 }}>Till sajten →</Link>
+        <Link href="/admin/losenord" style={{ fontSize: 13 }}>Byt lösenord</Link>
         <button type="button" onClick={async () => { await loggaUt(); location.href = "/admin/login"; }} className="admin__logout">Logga ut</button>
       </div>
     </nav>
