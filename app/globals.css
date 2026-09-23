@@ -492,6 +492,30 @@ p { margin:0 0 20px; max-width:66ch; }
   position:relative; overflow:hidden; text-align:center;
   background:var(--surface-band); padding:120px 0 116px;
 }
+/* Två dörrar på jaktsidan: öppen jakt | jaktklubben — samma formspråk som klubbens emblemhuvud */
+.doors { display:grid; grid-template-columns:1fr 1fr; gap:32px; align-items:stretch; }
+.door { display:flex; flex-direction:column; background:var(--ws-white); border:1px solid var(--border-subtle); border-top:2px solid var(--border-gold); }
+.door__img { aspect-ratio:16/9; }
+.door__body { padding:32px 36px 36px; display:flex; flex-direction:column; flex:1; }
+.door__body h2 { font-size:clamp(24px,2.8vw,32px); }
+.door__body > p { font-size:16.5px; }
+.door__list { list-style:none; margin:auto 0 0; padding:0; }
+.door__list li { border-top:1px solid var(--border-subtle); }
+.door__list a { display:flex; justify-content:space-between; align-items:baseline; gap:16px; padding:14px 0; text-decoration:none; color:var(--text-heading); font-family:var(--font-serif); font-weight:600; font-size:21px; }
+.door__list a span { font-family:var(--font-sans); font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--ws-gold-700); }
+.door__list a:hover { color:var(--ws-gold-700); }
+.door--dark { border-color:var(--ws-green-700); border-top-color:var(--ws-gold-400); }
+.door--dark .door__body { padding-top: 0; }
+.door__emblem { display:flex; justify-content:center; padding:36px 0 20px; }
+.door--dark .door__body h2 { color:var(--ws-cream); }
+.door--dark .cta-row { margin-top:auto; padding-top:24px; }
+.doors__foot { padding:28px 0; }
+.doors__foot-in { display:flex; align-items:center; gap:20px; }
+.doors__foot p { font-family:var(--font-serif); font-size:20px; }
+.doors__foot a { color:var(--ws-gold-400); text-decoration:none; border-bottom:1px solid rgba(215,174,98,.5); }
+.doors__foot a:hover { color:var(--ws-cream); border-bottom-color:var(--ws-cream); }
+@media (max-width:860px) { .doors { grid-template-columns:1fr; gap:24px; } .door__body { padding:24px; } .doors__foot-in { flex-direction:column; text-align:center; } }
+
 /* Jaktklubbens emblemhuvud */
 .emblem { padding:64px 0 60px; }
 .emblem__vapen { color:var(--ws-gold-400); }
