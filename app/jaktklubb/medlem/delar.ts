@@ -4,6 +4,7 @@
 export const FLIKAR: { href: string; label: string; kort: string; medlem?: boolean; gastLabel?: string }[] = [
   { href: "/jaktklubb/medlem", label: "Översikt", kort: "Hem" },
   { href: "/jaktklubb/medlem/boka", label: "Boka jakt", kort: "Boka jakt" },
+  { href: "/jaktklubb/medlem/vak", label: "Vak & pyrsch", kort: "" },
   { href: "/jaktklubb/medlem/bokningar", label: "Mina bokningar", kort: "Bokningar" },
   { href: "/jaktklubb/medlem/dokument", label: "Marker & dokument", kort: "", medlem: true },
   { href: "/jaktklubb/medlem/sakerhetskurs", label: "Säkerhetskurs", kort: "" },

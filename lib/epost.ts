@@ -142,6 +142,46 @@ export async function mejlJagarkonto(o: { epost: string; namn: string; titel: st
   ]));
 }
 
+/* ---------- Vak & pyrsch ---------- */
+
+const vaklank = () => `${process.env.NEXT_PUBLIC_SITE_URL || site.url}/jaktklubb/medlem/vak`;
+
+/** Kvitto på en önskan om vak-/pyrschdygn, och besked till herrgården. */
+export async function mejlVakOnskad(o: { epost: string; namn: string; datum: string; typ: string; omrade?: string | null; pris: number; meddelande?: string | null; gast: boolean }) {
+  await skicka([o.epost], `Din önskan: ${o.typ} ${o.datum}`, html("Vi har tagit emot din önskan", [
+    `Hej ${o.namn}. Du har önskat <strong>${o.typ}</strong> dygnet <strong>${o.datum}</strong>${o.omrade ? `, helst ${fritext(o.omrade)}` : ""}.`,
+    `Jaktledaren tittar på vilka områden som är lediga och bekräftar inom en vardag. Du får ett mejl med område och praktiska uppgifter.`,
+    o.pris ? `Pris: <strong>${o.pris.toLocaleString("sv-SE")} kr</strong> — faktureras efter dygnet.` : `Dygnet ingår i ditt medlemskap.`,
+    `Du ser dina dygn på <a href="${vaklank()}">${vaklank()}</a>.`,
+  ]));
+  await skicka([site.email], `Vak/pyrsch önskas: ${o.namn}, ${o.datum}`, html("Önskat vak-/pyrschdygn", [
+    `${fritext(o.namn)} · ${fritext(o.epost)} · ${o.gast ? "gästjägare" : "medlem"}`,
+    `${o.typ}, ${o.datum}${o.omrade ? `, önskar ${fritext(o.omrade)}` : ""}${o.pris ? `, ${o.pris} kr` : ", ingår"}`,
+    o.meddelande ? `<strong>Meddelande</strong><br>${fritext(o.meddelande)}` : "",
+    `Svara under Jaktklubb › Vak & pyrsch i admin.`,
+  ].filter(Boolean), ""), o.epost);
+}
+
+/** Jaktledarens svar: bekräftat med område, eller avböjt. */
+export async function mejlVakSvar(o: { epost: string; namn: string; datum: string; typ: string; bekraftad: boolean; omrade?: string | null; vagbeskrivning?: string | null; svar?: string | null; pris: number }) {
+  if (o.bekraftad) {
+    await skicka([o.epost], `Bekräftat: ${o.typ} ${o.datum}`, html("Ditt dygn är bekräftat", [
+      `Hej ${o.namn}. <strong>${o.typ}</strong> dygnet <strong>${o.datum}</strong> är bekräftat.`,
+      o.omrade ? `Område: <strong>${fritext(o.omrade)}</strong>.${o.vagbeskrivning ? `<br>${fritext(o.vagbeskrivning)}` : ""}` : "",
+      o.svar ? `<strong>Från jaktledaren:</strong> ${fritext(o.svar)}` : "",
+      `Kom ihåg: jaktkort, ID och säkerhetskursen ska vara klara i kontot före dygnet. Rapportera skott och fällt vilt till jaktledaren direkt efteråt.`,
+      o.pris ? `Pris ${o.pris.toLocaleString("sv-SE")} kr, faktureras efter dygnet.` : "",
+      `Dina dygn: <a href="${vaklank()}">${vaklank()}</a>.`,
+    ].filter(Boolean), "Skitjakt!"));
+    return;
+  }
+  await skicka([o.epost], `Tyvärr: ${o.typ} ${o.datum}`, html("Dygnet gick inte att ordna", [
+    `Hej ${o.namn}. Vi kan tyvärr inte erbjuda <strong>${o.typ}</strong> dygnet <strong>${o.datum}</strong>.`,
+    o.svar ? `<strong>Från jaktledaren:</strong> ${fritext(o.svar)}` : "",
+    `Önska gärna ett annat datum: <a href="${vaklank()}">${vaklank()}</a>, eller ring ${site.phone}.`,
+  ].filter(Boolean), "Med vänliga hälsningar, Westsura Herrgård"));
+}
+
 export async function mejlAnmalan(o: { epost: string; namn: string; titel: string; datum: string; status: string; antal: number }) {
   const vantelista = o.status === "vantelista";
   await skicka([o.epost], vantelista ? `Du står på väntelista: ${o.titel}` : `Din anmälan: ${o.titel}`, html(

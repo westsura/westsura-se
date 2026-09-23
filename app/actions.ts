@@ -1,7 +1,8 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { supabaseAdmin, supabasePublik } from "@/lib/supabase";
-import { mejlBokning, mejlForfragan, mejlAnmalan, mejlMedlemsansokan, mejlJagarkonto } from "@/lib/epost";
+import { mejlBokning, mejlForfragan, mejlAnmalan, mejlMedlemsansokan, mejlJagarkonto, mejlVakOnskad } from "@/lib/epost";
 
 export type Svar<T = undefined> = { ok: true; data: T } | { ok: false; fel: string };
 
@@ -148,6 +149,42 @@ export async function skapaAnmalan(fd: FormData): Promise<Svar<{ status: string 
     }
   }
   return { ok: true, data: { status: rad.status } };
+}
+
+/* ---------- Vak & pyrsch, utlagt dygn (publikt) ---------- */
+/** Gäst bokar ett utlagt vak-/pyrschdygn. Skapar jägarkonto på samma sätt som anmälan till jaktdag. */
+export async function bokaVakUtbud(fd: FormData): Promise<Svar<{ pris: number }>> {
+  const utbudId = s(fd.get("utbud")), namn = s(fd.get("namn")), epost = s(fd.get("epost")).toLowerCase();
+  if (!utbudId || !namn || !epost.includes("@")) return { ok: false, fel: "Fyll i namn och en giltig e-postadress." };
+  const db = supabaseAdmin();
+  const idag = new Date().toISOString().slice(0, 10);
+  const { data: u, error: felU } = await db.from("vakutbud").select("id, datum, typ, pris, publicerad, synlighet").eq("id", utbudId).maybeSingle();
+  if (felU) return { ok: false, fel: felU.message };
+  if (!u || !u.publicerad || u.datum < idag || u.synlighet !== "alla") return { ok: false, fel: "Dygnet går inte att boka längre." };
+  const { data: kvar } = await db.rpc("vakutbud_kvar", { u: utbudId });
+  if (typeof kvar === "number" && kvar <= 0) return { ok: false, fel: "Dygnet är redan bokat." };
+
+  const { data: konto, error: felKonto } = await db.rpc("jagarkonto_for", { p_namn: namn, p_epost: epost, p_telefon: s(fd.get("telefon")) || null });
+  if (felKonto) return { ok: false, fel: felKonto.message };
+  const k = (konto as { id: string; status: string; ny: boolean }[] | null)?.[0];
+  if (!k) return { ok: false, fel: "Kunde inte skapa jägarkontot." };
+
+  const { data: finns } = await db.from("vakbokning").select("id").eq("jagare_id", k.id).eq("datum", u.datum).in("status", ["onskad", "bekraftad"]).maybeSingle();
+  if (finns) return { ok: false, fel: "Du har redan bokat det dygnet." };
+
+  const typ = u.typ === "bada" ? (s(fd.get("typ")) === "pyrsch" ? "pyrsch" : "vak") : u.typ;
+  const pris = k.status === "godkand" ? 0 : u.pris;
+  const { data: sasong } = await db.from("jaktsasong").select("id").eq("aktiv", true).maybeSingle();
+  const meddelande = s(fd.get("meddelande")) || null;
+  const { error } = await db.from("vakbokning").insert({ jagare_id: k.id, utbud_id: utbudId, sasong_id: sasong?.id ?? null, datum: u.datum, typ, pris, meddelande });
+  if (error) return { ok: false, fel: error.message };
+
+  try {
+    await mejlVakOnskad({ epost, namn, datum: u.datum, typ: typ === "vak" ? "Vak" : "Pyrsch", pris, meddelande, gast: k.status !== "godkand" });
+    if (k.ny) await mejlJagarkonto({ epost, namn, titel: typ === "vak" ? "vak" : "pyrsch", datum: u.datum });
+  } catch (e) { console.error("mejl misslyckades", e); }
+  revalidatePath("/jakt"); revalidatePath("/admin/jaktklubb/vak"); revalidatePath("/admin/jaktklubb");
+  return { ok: true, data: { pris } };
 }
 
 /* ---------- Westsuras Vänner ---------- */

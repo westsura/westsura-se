@@ -50,8 +50,8 @@ export default function Boka({ jaktdagar, dokumentKlara, kursKlar = true, gast =
   return (
     <>
       <div className="jk-jaktform">
-        <button className="btn" type="button" aria-pressed="true">Gemensam jakt</button>
-        <button className="btn btn--ghost" type="button" disabled title="Kommer senare">Vak &amp; pyrsch</button>
+        <span className="btn" aria-current="page">Gemensam jakt</span>
+        <Link className="btn btn--ghost" href="/jaktklubb/medlem/vak">Vak &amp; pyrsch</Link>
       </div>
 
       <div className="jk-manad">

@@ -31,9 +31,9 @@ export default function SasongKort({ sasong, nivaer, tagna, andraSasonger }: { s
 
       <div className="tablewrap">
         <table className="admin__table">
-          <thead><tr><th>Nivå</th><th className="num">Avgift</th><th className="num">Platser</th><th>Bokning öppnar</th><th></th></tr></thead>
+          <thead><tr><th>Nivå</th><th className="num">Avgift</th><th className="num">Platser</th><th>Vak &amp; pyrsch</th><th>Bokning öppnar</th><th></th></tr></thead>
           <tbody>
-            {!nivaer.length && <tr><td colSpan={5} className="empty">Inga nivåer ännu.</td></tr>}
+            {!nivaer.length && <tr><td colSpan={6} className="empty">Inga nivåer ännu.</td></tr>}
             {nivaer.map((n) => <NivaRad key={n.id} niva={n} tagna={tagna[n.id] ?? 0} />)}
           </tbody>
         </table>
@@ -52,12 +52,13 @@ export default function SasongKort({ sasong, nivaer, tagna, andraSasonger }: { s
 function NivaRad({ niva, tagna }: { niva: NivaRad; tagna: number }) {
   const [redigera, setRedigera] = useState(false);
   const [pending, start] = useTransition();
-  if (redigera) return <tr><td colSpan={5}><NivaForm sasongId={niva.sasong_id} niva={niva} onKlar={() => setRedigera(false)} /></td></tr>;
+  if (redigera) return <tr><td colSpan={6}><NivaForm sasongId={niva.sasong_id} niva={niva} onKlar={() => setRedigera(false)} /></td></tr>;
   return (
     <tr>
       <td><b>{niva.namn}</b>{niva.beskrivning && <><br /><small>{niva.beskrivning}</small></>}</td>
       <td className="num">{kr(niva.avgift)}</td>
       <td className="num">{tagna} av {niva.platser}</td>
+      <td>{niva.vakdygn_ingar == null ? "Obegränsat" : `${niva.vakdygn_ingar} dygn ingår`}{niva.vakdygn_pris ? <><br /><small>därefter {kr(niva.vakdygn_pris)}/dygn</small></> : null}</td>
       <td>{niva.bokning_oppnar ?? <small>—</small>}</td>
       <td className="admin__actions">
         <button className="btn btn--sm btn--ghost" onClick={() => setRedigera(true)}>Redigera</button>
@@ -79,6 +80,8 @@ function NivaForm({ sasongId, niva, nastaOrdning, onKlar }: { sasongId: string; 
       <div className="field"><label>Antal platser</label><input name="platser" type="number" min={0} defaultValue={niva?.platser ?? 10} /></div>
       <div className="field"><label>Bokning öppnar</label><input name="bokning_oppnar" type="date" defaultValue={niva?.bokning_oppnar ?? ""} /><p className="hint">Datum då nivån får boka säsongens jaktdagar. Tomt = direkt.</p></div>
       <div className="field"><label>Ordning</label><input name="ordning" type="number" defaultValue={niva?.ordning ?? nastaOrdning ?? 1} /></div>
+      <div className="field"><label>Vak &amp; pyrsch: ingående dygn per säsong</label><input name="vakdygn_ingar" type="number" min={0} defaultValue={niva?.vakdygn_ingar ?? ""} placeholder="Obegränsat" /><p className="hint">Tomt = obegränsat, ingår utan extra kostnad.</p></div>
+      <div className="field"><label>Pris per dygn utöver kvoten, kr</label><input name="vakdygn_pris" type="number" min={0} defaultValue={niva?.vakdygn_pris ?? 0} /></div>
       <div className="field field--full"><label>Beskrivning (syns på sajten)</label><textarea name="beskrivning" className="ta--xs" defaultValue={niva?.beskrivning ?? ""} /></div>
       <div className="field--full cta-row">
         <button className="btn btn--sm" type="submit" disabled={pending}>{pending ? "Sparar…" : niva ? "Spara" : "Lägg till nivå"}</button>

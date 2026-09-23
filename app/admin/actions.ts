@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import { kravAdmin } from "@/lib/admin";
-import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokumentstatus, mejlDokumentKlar } from "@/lib/epost";
+import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokumentstatus, mejlDokumentKlar, mejlVakSvar } from "@/lib/epost";
 import { Resend } from "resend";
 import { site } from "@/lib/site";
 import { FAKTURASTATUS } from "@/lib/faktura";
@@ -270,6 +270,9 @@ export async function sparaNiva(fd: FormData) {
     sasong_id: s(fd.get("sasong_id")), namn: s(fd.get("namn")), beskrivning: s(fd.get("beskrivning")) || null,
     avgift: Number(s(fd.get("avgift")) || 0), platser: Number(s(fd.get("platser")) || 0),
     bokning_oppnar: s(fd.get("bokning_oppnar")) || null, ordning: Number(s(fd.get("ordning")) || 0),
+    // Vak & pyrsch: tomt = obegränsat antal ingående dygn.
+    vakdygn_ingar: s(fd.get("vakdygn_ingar")) === "" ? null : Math.max(0, Number(s(fd.get("vakdygn_ingar")))),
+    vakdygn_pris: Math.max(0, Number(s(fd.get("vakdygn_pris")) || 0)),
   };
   if (!rad.sasong_id || !rad.namn) return { ok: false, fel: "Nivån behöver ett namn." };
   const id = s(fd.get("id"));
@@ -294,12 +297,138 @@ export async function taBortNiva(id: string) {
 export async function kopieraNivaer(franId: string, tillId: string) {
   await kravAdmin("jaktadmin");
   const db = await supabaseServer();
-  const { data: nivaer, error } = await db.from("medlemsniva").select("namn, beskrivning, avgift, platser, ordning").eq("sasong_id", franId);
+  const { data: nivaer, error } = await db.from("medlemsniva").select("namn, beskrivning, avgift, platser, ordning, vakdygn_ingar, vakdygn_pris").eq("sasong_id", franId);
   if (error) return { ok: false, fel: error.message };
   if (!nivaer?.length) return { ok: false, fel: "Inga nivåer att kopiera." };
   const { error: e2 } = await db.from("medlemsniva").insert(nivaer.map((n) => ({ ...n, sasong_id: tillId })));
   if (e2) return { ok: false, fel: e2.message };
   uppdateraSasonger();
+  return { ok: true };
+}
+
+/* ---------- Vak & pyrsch ---------- */
+function uppdateraVak() {
+  revalidatePath("/admin/jaktklubb/vak"); revalidatePath("/admin/jaktklubb"); revalidatePath("/jaktklubb/medlem/vak"); revalidatePath("/jakt");
+}
+
+/**
+ * Jaktledarens svar på ett önskat dygn: bekräfta med område, eller avböj.
+ * Ett bekräftat dygn med pris får ett fakturaunderlag direkt.
+ */
+export async function svaraVak(id: string, fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const beslut = s(fd.get("beslut"));
+  const omradeId = s(fd.get("omrade")) || null;
+  const svar = s(fd.get("svar")) || null;
+  const pris = Math.max(0, Number(s(fd.get("pris")) || 0));
+
+  const { data: b, error: felB } = await adm.from("vakbokning").select("*, jagare:jagare_id(namn, epost, telefon)").eq("id", id).maybeSingle();
+  if (felB) return { ok: false, fel: felB.message };
+  if (!b) return { ok: false, fel: "Bokningen hittades inte." };
+  const jagare = b.jagare as unknown as { namn: string; epost: string; telefon: string | null };
+  const typ = b.typ === "vak" ? "Vak" : "Pyrsch";
+
+  if (beslut === "avboj") {
+    const { error } = await adm.from("vakbokning").update({ status: "avbojd", svar }).eq("id", id);
+    if (error) return { ok: false, fel: error.message };
+    try { await mejlVakSvar({ epost: jagare.epost, namn: jagare.namn, datum: b.datum, typ, bekraftad: false, svar, pris: 0 }); } catch (e) { console.error("mejl misslyckades", e); }
+    uppdateraVak();
+    return { ok: true };
+  }
+
+  if (!omradeId) return { ok: false, fel: "Välj ett område att tilldela." };
+  const { data: omrade } = await adm.from("vakomrade").select("namn, vagbeskrivning").eq("id", omradeId).maybeSingle();
+  const { error } = await adm.from("vakbokning").update({ status: "bekraftad", omrade_id: omradeId, svar, pris }).eq("id", id);
+  if (error) return { ok: false, fel: error.code === "23505" ? "Området är redan tilldelat någon annan det dygnet." : error.message };
+
+  // Fakturaunderlag för dygn med pris — ett per bokning.
+  if (pris > 0 && !b.underlag_id) {
+    const { data: sasong } = await adm.from("jaktsasong").select("moms").eq("aktiv", true).maybeSingle();
+    const { data: u, error: felU } = await adm.from("fakturaunderlag").insert({
+      rubrik: `${typ} ${b.datum}, ${jagare.namn}`,
+      ...kundFalt(jagare.namn, jagare.epost, jagare.telefon, null),
+      anteckning: `Vak-/pyrschdygn ${b.datum}${omrade ? `, ${omrade.namn}` : ""}`,
+    }).select("id").single();
+    if (felU || !u) console.error("kunde inte skapa underlag för vakdygn", felU?.message);
+    else {
+      await adm.from("fakturarad").insert({ underlag_id: u.id, ordning: 0, beskrivning: `${typ} ${b.datum}${omrade ? `, ${omrade.namn}` : ""}`, antal: 1, enhet: "dygn", a_pris: pris, moms: sasong?.moms || 25 });
+      await adm.from("vakbokning").update({ underlag_id: u.id }).eq("id", id);
+      revalidatePath("/admin/fakturering");
+    }
+  }
+
+  try {
+    await mejlVakSvar({ epost: jagare.epost, namn: jagare.namn, datum: b.datum, typ, bekraftad: true, omrade: omrade?.namn ?? null, vagbeskrivning: omrade?.vagbeskrivning ?? null, svar, pris });
+  } catch (e) { console.error("mejl misslyckades", e); }
+  uppdateraVak();
+  return { ok: true };
+}
+
+export async function avbokaVakAdmin(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const { error } = await adm.from("vakbokning").update({ status: "avbokad" }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraVak();
+  return { ok: true };
+}
+
+/**
+ * Släpper ett dygn för vak/pyrsch. Alla dygn läggs ut av admin så att de inte
+ * krockar med drevjakterna. Bara medlemmar, eller även gäster (då med pris).
+ */
+export async function sparaVakutbud(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const rad = {
+    datum: s(fd.get("datum")), typ: s(fd.get("typ")) || "vak", omrade_id: s(fd.get("omrade_id")) || null,
+    synlighet: s(fd.get("synlighet")) === "alla" ? "alla" : "medlem",
+    pris: Math.max(0, Number(s(fd.get("pris")) || 0)), platser: Math.max(1, Number(s(fd.get("platser")) || 1)),
+    beskrivning: s(fd.get("beskrivning")) || null, publicerad: !!fd.get("publicerad"),
+  };
+  if (!rad.datum) return { ok: false, fel: "Välj ett datum." };
+  const id = s(fd.get("id"));
+  const { error } = id ? await adm.from("vakutbud").update(rad).eq("id", id) : await adm.from("vakutbud").insert(rad);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraVak();
+  return { ok: true };
+}
+
+export async function taBortVakutbud(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const { count } = await adm.from("vakbokning").select("id", { count: "exact", head: true }).eq("utbud_id", id).in("status", ["onskad", "bekraftad"]);
+  if (count) return { ok: false, fel: "Dygnet har bokningar — avboka dem först." };
+  const { error } = await adm.from("vakutbud").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraVak();
+  return { ok: true };
+}
+
+export async function sparaVakomrade(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const tal = (k: string) => { const v = s(fd.get(k)).replace(",", "."); return v ? Number(v) : null; };
+  const rad = {
+    namn: s(fd.get("namn")), typ: s(fd.get("typ")) || "torn", beskrivning: s(fd.get("beskrivning")) || null,
+    vagbeskrivning: s(fd.get("vagbeskrivning")) || null, nord: tal("nord"), ost: tal("ost"),
+    aktiv: !!fd.get("aktiv"), ordning: Number(s(fd.get("ordning")) || 0),
+  };
+  if (!rad.namn) return { ok: false, fel: "Området behöver ett namn." };
+  const id = s(fd.get("id"));
+  const { error } = id ? await adm.from("vakomrade").update(rad).eq("id", id) : await adm.from("vakomrade").insert(rad);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraVak();
+  return { ok: true };
+}
+
+export async function taBortVakomrade(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const { error } = await adm.from("vakomrade").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraVak();
   return { ok: true };
 }
 

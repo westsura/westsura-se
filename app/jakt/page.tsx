@@ -3,6 +3,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Hero, Vapen } from "@/components/Blocks";
 import Tillfallen, { type Tillfalle } from "@/components/Tillfallen";
+import VakUtbud from "@/components/VakUtbud";
+import type { Utbud } from "@/lib/vak";
 import { site } from "@/lib/site";
 import { supabasePublik } from "@/lib/supabase";
 
@@ -21,6 +23,15 @@ export default async function Jakt() {
     const { data } = await supabasePublik().from("tillfallen_publik").select("*").in("typ", ["jakt", "hundtraning", "jaktkurs"]).order("datum");
     alla = (data ?? []) as Tillfalle[];
   } catch (e) { console.error("Kunde inte hämta tillfällen", e); }
+  let utbud: Utbud[] = [];
+  try {
+    const db = supabasePublik();
+    const { data } = await db.from("vakutbud").select("id, datum, typ, pris, platser, beskrivning, publicerad, synlighet, omrade_id").order("datum");
+    utbud = await Promise.all(((data ?? []) as Utbud[]).map(async (u) => {
+      const { data: kvar } = await db.rpc("vakutbud_kvar", { u: u.id });
+      return { ...u, kvar: typeof kvar === "number" ? kvar : u.platser };
+    }));
+  } catch (e) { console.error("Kunde inte hämta vakdygn", e); }
   const jakttillfallen = alla.filter((t) => t.typ === "jakt");
   const hundtraning = alla.filter((t) => t.typ === "hundtraning");
   const jaktkurser = alla.filter((t) => t.typ === "jaktkurs");
@@ -43,6 +54,7 @@ export default async function Jakt() {
               <p>Utlysta jaktdagar, träningsdagar för hund och förare, och endagskurser. Boka en plats när det finns lediga — jägarexamen krävs för jakten, inte för hundträningen.</p>
               <ul className="door__list">
                 <li><a href="#jakttillfallen">Jakttillfällen<span>{jakttillfallen.length ? `${jakttillfallen.length} utlysta` : "inga datum just nu"}</span></a></li>
+                <li><a href="#vak">Vak &amp; pyrsch<span>{utbud.filter((u) => (u.kvar ?? 0) > 0).length ? `${utbud.filter((u) => (u.kvar ?? 0) > 0).length} lediga dygn` : "inga dygn just nu"}</span></a></li>
                 <li><a href="#hundtraning">Hundträning<span>{hundtraning.length ? `${hundtraning.length} träningsdagar` : "inga datum just nu"}</span></a></li>
                 <li><a href="#jaktkurser">Jaktkurser<span>{jaktkurser.length ? `${jaktkurser.length} kurser` : "inga datum just nu"}</span></a></li>
               </ul>
@@ -77,7 +89,20 @@ export default async function Jakt() {
         </div>
       </section>
 
-      <section className="section" id="hundtraning">
+      <section className="section" id="vak">
+        <div className="container split split--start split--wide">
+          <div className="prose">
+            <p className="label">Vak &amp; pyrsch</p>
+            <h2 className="lower">ett dygn för dig själv</h2>
+            <p>Vakjakt från torn i skymningen, eller pyrsch genom skogen i gryningen — ett dygn på egen hand på herrgårdens marker. Vildsvin och rådjur, och älg under älgjakten.</p>
+            <p>Vi släpper dygn löpande under säsongen, mellan drevjakterna. Du bokar, jaktledaren tilldelar torn eller område och bekräftar inom en vardag. Jaktkort, ID-handling och vår säkerhetskurs online ska vara klara före jakten — allt görs på ditt jägarkonto, som är kostnadsfritt. Skjutet vilt rapporteras till jaktledaren direkt efter dygnet.</p>
+            <p>Medlemmar i jaktklubben har vak och pyrsch ingående i medlemskapet, och fler dygn att välja på i medlemsklubben.</p>
+          </div>
+          <VakUtbud utbud={utbud} />
+        </div>
+      </section>
+
+      <section className="section tint" id="hundtraning">
         <div className="container split split--start split--wide">
           <div className="prose">
             <p className="label">Hundträning</p>
@@ -89,7 +114,7 @@ export default async function Jakt() {
         </div>
       </section>
 
-      <section className="section tint" id="jaktkurser">
+      <section className="section" id="jaktkurser">
         <div className="container split split--start split--wide">
           <div className="prose">
             <p className="label">Jaktkurser</p>

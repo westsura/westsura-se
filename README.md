@@ -53,6 +53,12 @@ Se `.env.example`. På Vercel: Settings → Environment Variables. `SUPABASE_SER
 
 `/admin` — inloggning med engångslänk per e-post. Behöriga adresser ligger i tabellen `admin_inbjudan` i Supabase (superadmin lägger till fler). Roller: superadmin, vardskap, kommunikation, jaktadmin, jaktledare.
 
+## Jaktklubben (etapp IV)
+
+- **Jägarkonto**: alla som anmäler sig till jakt (jaktdag eller vak-/pyrschdygn) får ett kostnadsfritt konto (`jaktmedlem.status = 'gast'`). Medlemskap ligger ovanpå (`godkand`). Portalen: `/jaktklubb/medlem`.
+- **Säkerhetskurs online**: avsnitt och frågor i `kursavsnitt`/`kursfraga`, provet rättas på servern (`lamnaProv`). Giltighet styrs i `kursinstallning`. Mjuk spärr vid bokning.
+- **Vak & pyrsch** (`lib/vak.ts`): områden i `vakomrade` (torn/vakplats/pyrschområde, SWEREF 99 TM för kartan). Alla dygn släpps av admin i `vakutbud` (så att vak/pyrsch inte stör drevjakterna) med `synlighet` 'medlem' eller 'alla'. Medlemmar önskar bland släppta dygn — pris enligt nivåns kvot (`medlemsniva.vakdygn_ingar`, tomt = obegränsat och ingår; `vakdygn_pris` därefter). Gäster bokar dygn med synlighet 'alla', till dygnets gästpris (publikt på `/jakt`). Admin (jaktledaren) tilldelar område och bekräftar under `/admin/jaktklubb/vak`; bekräftat dygn med pris får fakturaunderlag. En jägare per område och dygn (unikt index).
+
 ## Kommande etapper
 
 - **II** ✔ Bokningskalender, prisregler, förfrågningsinkorg, tillfällen och admin.

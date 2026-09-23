@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import { kravMedlem, kursStatus } from "@/lib/jakt";
-import { mejlDokumentVantar, mejlAnmalan } from "@/lib/epost";
+import { mejlDokumentVantar, mejlAnmalan, mejlVakOnskad } from "@/lib/epost";
+import { vakPris } from "@/lib/vak";
 import { site } from "@/lib/site";
 
 const s = (v: FormDataEntryValue | null) => (typeof v === "string" ? v.trim() : "");
@@ -128,6 +129,83 @@ export async function bokaJaktdag(tillfalleId: string): Promise<{ ok: boolean; f
   revalidatePath("/jaktklubb/medlem"); revalidatePath("/jaktklubb/medlem/boka"); revalidatePath("/jaktklubb/medlem/bokningar");
   revalidatePath("/admin/tillfallen");
   return { ok: true, status: rad.status };
+}
+
+/* ---------- Vak & pyrsch ---------- */
+
+/**
+ * Önskar ett vak- eller pyrschdygn bland dem herrgården lagt ut. Datumen släpps av
+ * admin så att vak och pyrsch inte stör drevjakterna; vissa dygn är bara för
+ * medlemmar, andra även för gäster. Medlemmar betalar enligt nivåns kvot, gäster
+ * dygnets pris. Jaktledaren (admin) bekräftar och sätter område.
+ */
+export async function onskaVakdygn(fd: FormData): Promise<{ ok: boolean; fel?: string; pris?: number }> {
+  const medlem = await kravMedlem();
+  const adm = supabaseAdmin();
+  const idag = new Date().toISOString().slice(0, 10);
+  const gast = medlem.status !== "godkand";
+  const utbudId = s(fd.get("utbud"));
+  let typ = s(fd.get("typ")) === "pyrsch" ? "pyrsch" : "vak";
+  const onskatOmrade = s(fd.get("omrade")) || null;
+  const meddelande = s(fd.get("meddelande")) || null;
+  let pris = 0;
+  if (!utbudId) return { ok: false, fel: "Välj ett av de utlagda dygnen." };
+
+  const { data: sasong } = await adm.from("jaktsasong").select("id").eq("aktiv", true).maybeSingle();
+  const { data: u, error } = await adm.from("vakutbud").select("id, datum, typ, pris, publicerad, synlighet").eq("id", utbudId).maybeSingle();
+  if (error) return { ok: false, fel: error.message };
+  if (!u || !u.publicerad || u.datum < idag) return { ok: false, fel: "Dygnet går inte att boka längre." };
+  if (gast && u.synlighet !== "alla") return { ok: false, fel: "Det här dygnet är bara för medlemmar." };
+  const { data: kvar } = await adm.rpc("vakutbud_kvar", { u: utbudId });
+  if (typeof kvar === "number" && kvar <= 0) return { ok: false, fel: "Dygnet är redan bokat." };
+  const datum: string = u.datum;
+  if (u.typ !== "bada") typ = u.typ;
+  pris = gast ? u.pris : 0;
+
+  // Medlemmens kvot: ingående dygn per säsong enligt nivån, därefter pris per dygn.
+  if (!gast) {
+    const { data: niva } = medlem.niva_id
+      ? await adm.from("medlemsniva").select("vakdygn_ingar, vakdygn_pris").eq("id", medlem.niva_id).maybeSingle()
+      : { data: null };
+    const { count } = await adm.from("vakbokning").select("id", { count: "exact", head: true })
+      .eq("jagare_id", medlem.id).in("status", ["onskad", "bekraftad"]).eq("sasong_id", sasong?.id ?? "00000000-0000-0000-0000-000000000000");
+    pris = vakPris(niva as { vakdygn_ingar: number | null; vakdygn_pris: number } | null, count ?? 0);
+  }
+
+  const { data: finns } = await adm.from("vakbokning").select("id").eq("jagare_id", medlem.id).eq("datum", datum).in("status", ["onskad", "bekraftad"]).maybeSingle();
+  if (finns) return { ok: false, fel: "Du har redan önskat det dygnet." };
+
+  const { error } = await adm.from("vakbokning").insert({
+    jagare_id: medlem.id, utbud_id: utbudId, sasong_id: sasong?.id ?? null, datum, typ,
+    onskat_omrade_id: onskatOmrade, pris, meddelande,
+  });
+  if (error) return { ok: false, fel: error.message };
+
+  let omradeNamn: string | null = null;
+  if (onskatOmrade) {
+    const { data: o } = await adm.from("vakomrade").select("namn").eq("id", onskatOmrade).maybeSingle();
+    omradeNamn = o?.namn ?? null;
+  }
+  try {
+    await mejlVakOnskad({ epost: medlem.epost, namn: medlem.namn, datum, typ: typ === "vak" ? "Vak" : "Pyrsch", omrade: omradeNamn, pris, meddelande, gast });
+  } catch (e) { console.error("mejl misslyckades", e); }
+
+  revalidatePath("/jaktklubb/medlem/vak"); revalidatePath("/jaktklubb/medlem"); revalidatePath("/admin/jaktklubb/vak"); revalidatePath("/admin/jaktklubb");
+  return { ok: true, pris };
+}
+
+/** Jägaren avbokar ett eget dygn som inte passerat. */
+export async function avbokaVakdygn(id: string): Promise<{ ok: boolean; fel?: string }> {
+  const medlem = await kravMedlem();
+  const adm = supabaseAdmin();
+  const idag = new Date().toISOString().slice(0, 10);
+  const { data: b } = await adm.from("vakbokning").select("id, datum, status").eq("id", id).eq("jagare_id", medlem.id).maybeSingle();
+  if (!b || (b.status !== "onskad" && b.status !== "bekraftad")) return { ok: false, fel: "Dygnet går inte att avboka." };
+  if (b.datum < idag) return { ok: false, fel: "Dygnet har redan varit." };
+  const { error } = await adm.from("vakbokning").update({ status: "avbokad" }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/jaktklubb/medlem/vak"); revalidatePath("/admin/jaktklubb/vak");
+  return { ok: true };
 }
 
 /* ---------- Säkerhetskurs ---------- */
