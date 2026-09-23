@@ -504,7 +504,7 @@ p { margin:0 0 20px; max-width:66ch; }
 .door__list a { display:flex; justify-content:space-between; align-items:baseline; gap:16px; padding:14px 0; text-decoration:none; color:var(--text-heading); font-family:var(--font-serif); font-weight:600; font-size:21px; }
 .door__list a span { font-family:var(--font-sans); font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--ws-gold-700); }
 .door__list a:hover { color:var(--ws-gold-700); }
-.door--dark { border-color:var(--ws-green-700); border-top-color:var(--ws-gold-400); }
+.door--dark { background:var(--ws-green-700); color:var(--ws-cream); border-color:var(--ws-green-700); border-top-color:var(--ws-gold-400); }
 .door--dark .door__body { padding-top: 0; }
 .door__emblem { display:flex; justify-content:center; padding:36px 0 20px; }
 .door--dark .door__body h2 { color:var(--ws-cream); }
