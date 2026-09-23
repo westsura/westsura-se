@@ -17,6 +17,7 @@ export default async function Sakerhetskurs() {
     adm.from("kursprov").select("inlamnad, poang, max, godkand").eq("medlem_id", medlem.id).not("inlamnad", "is", null).order("inlamnad", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
+  const avsnittLista = (avsnitt ?? []) as { id: string; rubrik: string; text: string }[];
   const giltighet = installning.giltighet === "sasong" ? "Gäller för säsongen." : installning.giltighet === "version" ? "Gäller tills kursens innehåll uppdateras." : "Gäller tills vidare.";
 
   return (
@@ -50,14 +51,14 @@ export default async function Sakerhetskurs() {
       <section className="jk-sektion">
         <div className="jk-sektion__topp">
           <h2 className="jk-h2">Kursen</h2>
-          <p className="jk-etikett">{avsnitt?.length ?? 0} avsnitt · en kvart</p>
+          <p className="jk-etikett">{avsnittLista.length} avsnitt · en kvart</p>
         </div>
         <div className="kurs">
-          {(avsnitt ?? []).map((a, i) => (
+          {avsnittLista.map((a, i) => (
             <article key={a.id} className="kurs__avsnitt" id={`avsnitt-${i + 1}`}>
               <p className="jk-etikett">Avsnitt {i + 1}</p>
               <h3 className="kurs__rubrik">{a.rubrik}</h3>
-              {a.text.split(/\n\s*\n/).map((st, n) => <p key={n} className="kurs__text">{st}</p>)}
+              {a.text.split(/\n\s*\n/).map((st: string, n: number) => <p key={n} className="kurs__text">{st}</p>)}
             </article>
           ))}
         </div>
