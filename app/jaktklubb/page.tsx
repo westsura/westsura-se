@@ -17,6 +17,13 @@ export const revalidate = 300;
 const kr = (n: number) => n.toLocaleString("sv-SE") + " kr";
 const RAKNEORD = ["", "ett", "två", "tre", "fyra", "fem"];
 
+/** Antal platser visas aldrig — bara knapphet när den finns. "20 av 20 lediga" säger att ingen sökt. */
+function platsText(kvar: number) {
+  if (kvar <= 0) return "Fullt för säsongen — ansökan hamnar på väntelistan";
+  if (kvar <= 3) return "Ett fåtal platser kvar";
+  return "Begränsat antal platser";
+}
+
 export default async function Jaktklubb() {
   let nivaer: Niva[] = [];
   try {
@@ -69,7 +76,7 @@ export default async function Jaktklubb() {
                     <span className="price">{kr(n.avgift)}<small> per år</small></span>
                   </div>
                   {n.beskrivning && <p className="small">{n.beskrivning}</p>}
-                  <p className="muted">{n.kvar > 0 ? `${n.kvar} av ${n.platser} platser lediga` : `Alla ${n.platser} platser är tagna — väntelista`}</p>
+                  <p className="muted">{platsText(n.kvar)}</p>
                 </div>
               ))}
               {!nivaer.length && (
