@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import SearchBar from "@/components/SearchBar";
 import Signup from "@/components/Signup";
+import Galleri from "@/components/Galleri";
 import { Hero, Kung, DogBand, CtaRow, Ornament } from "@/components/Blocks";
 import { img } from "@/lib/site";
 
@@ -38,19 +39,29 @@ export default function Home() {
               <Image src="/bilder/julmarknad-fasad.jpg" alt="Marknadsstånd med lokala varor vid herrgårdens gula fasad" fill sizes="(max-width: 860px) 100vw, 50vw" />
             </div>
           </div>
-          <div className="gallery">
-            {[
-              ["julmarknad-1.jpg", "Marknadsdagarna", "Besökare på marknaden med herrgården i bakgrunden"],
-              ["matsal.jpg", "Salongerna", "Matsalen med gustavianska stolar och fönster mot gården"],
-              ["ravaror.jpg", "Råvaror i säsong", "Färska örter hackas i köket"],
-              ["gaster.jpg", "Långa samtal", "Gäster i samtal vid bordet i salongen"],
-            ].map(([f, cap, alt]) => (
-              <figure key={f}>
-                <Image src={`/bilder/${f}`} alt={alt} fill sizes="(max-width: 900px) 50vw, 25vw" />
-                <figcaption>{cap}</figcaption>
-              </figure>
-            ))}
-          </div>
+          <Galleri teman={[
+            { rubrik: "Marknadsdagar", bilder: [
+              { src: "/bilder/julmarknad-1.jpg", alt: "Besökare på marknaden med herrgården i bakgrunden" },
+              { src: "/bilder/julmarknad-fasad.jpg", alt: "Marknadsstånd vid herrgårdens gula fasad" },
+              { src: "/bilder/julmarknad-2.jpg", alt: "Från marknadsdagarna på Westsura Herrgård" },
+              { src: "/bilder/julmarknad-3.jpg", alt: "Från marknadsdagarna på Westsura Herrgård" },
+            ] },
+            { rubrik: "Salongerna", bilder: [
+              { src: "/bilder/matsal.jpg", alt: "Matsalen med gustavianska stolar och fönster mot gården" },
+              { src: "/bilder/event.jpg", alt: "Dukat bord under kristallkronan, sett genom en dörröppning" },
+              { src: "/bilder/konferens.jpg", alt: "Konferensbordet under kristallkronan i salongen" },
+            ] },
+            { rubrik: "Råvaror i säsong", bilder: [
+              { src: "/bilder/ravaror.jpg", alt: "Färska örter hackas i köket" },
+              { src: "/bilder/skafferi.jpg", alt: "Från herrgårdens skafferi" },
+              { src: "/bilder/lingon.jpg", alt: "Lingon från markerna runt herrgården" },
+            ] },
+            { rubrik: "Långa samtal", bilder: [
+              { src: "/bilder/gaster.jpg", alt: "Gäster i samtal vid bordet i salongen" },
+              { src: "/bilder/gast-buffe.jpg", alt: "En gäst tar mat från buffén i salongen" },
+              { src: "/bilder/herrgarden.jpg", alt: "Picknick på gräsmattan framför herrgården" },
+            ] },
+          ]} />
         </div>
       </section>
 
@@ -77,14 +88,14 @@ export default function Home() {
               <p>Dagskonferens för upp till 25 personer, med lunch och fika på säsongens råvaror. 700 kr per person.</p>
               <span className="link-more">Boka konferens →</span>
             </Link>
-            <Link className="cat" href="/event">
+            <Link className="cat" href="/paket">
               <div className="cat__img fig">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.skal} alt="Två glas som skålar vid bordet på Westsura Herrgård" loading="lazy" />
+                <img src={img.eld} alt="Mat som lagas över öppen eld vid herrgården" loading="lazy" />
               </div>
-              <h3>Event</h3>
-              <p>Bröllop, födelsedagar, föreningsluncher och minnesstunder i salongerna eller trädgårdens tält.</p>
-              <span className="link-more">Skicka förfrågan →</span>
+              <h3>Paket</h3>
+              <p>Färdiga upplevelser: kanot på Strömsholms kanal, matlagning över öppen eld och golf i trakten — med en natt i flyglarna.</p>
+              <span className="link-more">Se paketen →</span>
             </Link>
             <Link className="cat" href="/jakt">
               <div className="cat__img fig">
@@ -121,7 +132,7 @@ export default function Home() {
         <div className="container narrow center">
           <Ornament />
           <p className="label">Westsuras Vänner</p>
-          <h2 className="lower">bli vän med herrgården</h2>
+          <h2 className="lower">nyheter från herrgården</h2>
           <p className="mx-auto">Nyhetsbrev med säsongens meny och kommande evenemang, förhandsinbjudan till höstdagar och temakvällar, och rabatt på herrgårdens egna arrangemang. Kostnadsfritt, och utan konto — bara din e-postadress.</p>
           <Signup />
         </div>

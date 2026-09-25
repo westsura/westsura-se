@@ -17,7 +17,7 @@ export default function Hundar() {
       <section className="section section--tight">
         <div className="container split split--start">
           <div className="prose">
-            <p>Vi vet att hunden för många är en självklar familjemedlem, och vi tycker om att även våra fyrbenta gäster ska känna sig hemma hos oss. Alla våra rum är hundvänliga, så du är välkommen att ta med din hund oavsett vilket rum du bokar. Ange gärna det i din bokning så att vi kan förbereda inför ert besök.</p>
+            <p>Vi vet att hunden för många är en självklar familjemedlem, och vi tycker om att även våra fyrbenta gäster ska känna sig hemma hos oss. Hunden är välkommen i alla våra rum, så du kan ta med den oavsett vilket rum du bokar. Ange gärna det i din bokning så att vi kan förbereda inför ert besök.</p>
             <p>Hos oss får hundar gärna hoppa upp i möblerna tillsammans med sina ägare. Vi uppskattar däremot om du hjälper oss att hålla dem rena genom att använda en filt eller handduk om hunden gärna ligger i säng eller soffa.</p>
             <h2 className="lower">för allas trivsel</h2>
             <p>För att både hundar, gäster och personal ska få en lugn och trivsam upplevelse uppskattar vi om din hund:</p>

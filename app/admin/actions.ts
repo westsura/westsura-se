@@ -165,6 +165,7 @@ export type Fakturarad = { id?: string; beskrivning: string; antal: number; enhe
 type KundFaktura = { foretag?: string; orgnr?: string; adress?: string; referens?: string; epost?: string } | null;
 
 const FRUKOST_PRIS = 95;
+const BRICKA_PRIS = 249;
 
 function kundFalt(namn: string, epost: string, telefon: string | null, f: KundFaktura) {
   return {
@@ -184,17 +185,23 @@ export async function skapaUnderlagFranBokning(bokningId: string): Promise<{ ok:
   if (felRader) return { ok: false, fel: felRader.message };
   const natter = Math.max(1, Math.round((new Date(b.avresa).getTime() - new Date(b.ankomst).getTime()) / 86400000));
   const period = `${datumKort(b.ankomst)}–${datumKort(b.avresa)}`;
-  const fr: Fakturarad[] = (rader ?? []).map((r) => {
+  // Paketbokning: paketet som en rad (moms 25 som utgångsläge — justeras i underlaget om paketet
+  // ska delas upp på boende och aktivitet), och bara de nätter som betalas utöver paketet.
+  const fr: Fakturarad[] = [];
+  if (b.paket_id) fr.push({ beskrivning: `${b.paket_namn ?? "Paket"}, ${datumKort(b.ankomst)}`, antal: b.paket_personer ?? b.antal_personer, enhet: "pers", a_pris: b.paket_pris ?? 0, moms: 25 });
+  for (const r of rader ?? []) {
+    if (b.paket_id && !r.belopp) continue;
     const e = r.enhet as unknown as { namn: string } | null;
-    return { beskrivning: `${e?.namn ?? "Boende"}, ${period}`, antal: r.natter, enhet: "natt", a_pris: r.pris_per_natt, moms: 12 };
-  });
+    fr.push({ beskrivning: `${e?.namn ?? "Boende"}, ${b.paket_id ? "extra nätter" : period}`, antal: r.natter, enhet: "natt", a_pris: r.pris_per_natt, moms: 12 });
+  }
   let delsumma = fr.reduce((a, r) => a + r.antal * r.a_pris, 0);
-  if (b.frukost) { const n = b.antal_personer * natter; fr.push({ beskrivning: "Frukostkorg", antal: n, enhet: "st", a_pris: FRUKOST_PRIS, moms: 12 }); delsumma += n * FRUKOST_PRIS; }
+  if (b.frukost && !b.paket_id) { const n = b.antal_personer * natter; fr.push({ beskrivning: "Frukostkorg", antal: n, enhet: "st", a_pris: FRUKOST_PRIS, moms: 12 }); delsumma += n * FRUKOST_PRIS; }
+  if (b.valkomstbricka) { const n = Math.max(1, b.antal_personer); fr.push({ beskrivning: "Västmanländsk välkomstbricka", antal: n, enhet: "st", a_pris: BRICKA_PRIS, moms: 12 }); delsumma += n * BRICKA_PRIS; }
   const rabatt = delsumma - b.summa;
   if (rabatt > 0) fr.push({ beskrivning: `Rabatt${b.rabattkod ? " (" + b.rabattkod + ")" : ""}`, antal: 1, enhet: "st", a_pris: -rabatt, moms: 12 });
 
   const { data: u, error } = await db.from("fakturaunderlag").insert({
-    bokning_id: bokningId, rubrik: `Boende ${period}, bokning ${b.nummer}`,
+    bokning_id: bokningId, rubrik: `${b.paket_id ? (b.paket_namn ?? "Paket") : "Boende"} ${period}, bokning ${b.nummer}`,
     ...kundFalt(b.gast_namn, b.gast_epost, b.gast_telefon, b.faktura as KundFaktura),
     forfallodatum: forfallo(b.ankomst),
   }).select("id").single();

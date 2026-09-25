@@ -62,7 +62,7 @@ export default async function Oversikt() {
             {!nyaBokningar?.length && <p className="empty">Inga preliminära bokningar.</p>}
             {nyaBokningar?.map((b) => (
               <Link key={b.id} href={`/admin/bokningar#${b.nummer}`} className="row">
-                <span className="row__main"><b>{b.gast_namn}</b> · {b.enheter}</span>
+                <span className="row__main"><b>{b.gast_namn}</b> · {b.paket_namn ?? b.enheter}</span>
                 <span className="row__meta">{datum(b.ankomst)}–{datum(b.avresa)} · {kr(b.summa)}</span>
               </Link>
             ))}
@@ -86,7 +86,7 @@ export default async function Oversikt() {
           {!ankomster?.length && <p className="empty">Inga ankomster den närmaste veckan.</p>}
           {ankomster?.map((b) => (
             <div key={b.id} className="row">
-              <span className="row__main"><b>{datum(b.ankomst)}</b> · {b.gast_namn} · {b.enheter}{b.antal_hundar ? " · 🐕" : ""}{b.frukost ? " · frukost" : ""}</span>
+              <span className="row__main"><b>{datum(b.ankomst)}</b> · {b.gast_namn} · {b.paket_namn ? `${b.paket_namn}${b.enheter ? " · " + b.enheter : ""}` : b.enheter}{b.antal_hundar ? " · 🐕" : ""}{b.frukost ? " · frukost" : ""}</span>
               <span className="row__meta">{b.status === "bekraftad" ? "Bekräftad" : "Preliminär"} · {b.gast_telefon}</span>
             </div>
           ))}

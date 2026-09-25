@@ -12,7 +12,7 @@ export type Enhet = {
   baddar: number; grundpris: number; egenskaper: string[]; beskrivning: string | null; notering: string | null; bild: string | null;
 };
 
-type Prisrad = { enhet_id: string; natter: number; pris_per_natt: number; belopp: number; frukost_belopp: number; rabatt: number; summa: number };
+type Prisrad = { enhet_id: string; natter: number; pris_per_natt: number; belopp: number; frukost_belopp: number; bricka_belopp: number; rabatt: number; summa: number };
 
 const kr = (n: number) => n.toLocaleString("sv-SE") + " kr";
 function plus(d: Date, n: number) { const x = new Date(d); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); }
@@ -28,6 +28,8 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
   const [laddar, setLaddar] = useState(true);
   const [valda, setValda] = useState<Set<string>>(new Set());
   const [frukost, setFrukost] = useState(false);
+  const [bricka, setBricka] = useState(false);
+  const [lasMer, setLasMer] = useState<"frukost" | "bricka" | null>(null);
   const [kod, setKod] = useState("");
   const [pris, setPris] = useState<Prisrad[] | null>(null);
   const [visaDelrum, setVisaDelrum] = useState(false);
@@ -56,9 +58,18 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
   const vanliga = enheter.filter((e) => !e.ar_hela_boendet);
   const helaVald = !!hela && valda.has(hela.id);
 
+  const qRef = useRef(q);
+  qRef.current = q;
+  const harSokt = useRef(false);
+
   /* Tillgänglighet från databasen */
   const sok = useCallback(async (nq: typeof q) => {
-    setQ(nq); setValda(new Set()); setPris(null); setLaddar(true); setFel(null);
+    // Valet nollställs bara om datumen ändrats — antal gäster och hund räknas om direkt.
+    const nyaDatum = nq.in !== qRef.current.in || nq.out !== qRef.current.out;
+    setQ(nq); setFel(null);
+    if (nyaDatum || !harSokt.current) { setValda(new Set()); setPris(null); }
+    harSokt.current = true;
+    setLaddar(true);
     const r = await hamtaTillganglighet(nq.in, nq.out);
     if (r.ok) setLedig(r.data); else setFel(r.fel);
     setLaddar(false);
@@ -69,9 +80,9 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
   useEffect(() => {
     if (valda.size === 0) { setPris(null); return; }
     let aktiv = true;
-    hamtaPris(Array.from(valda), q.in, q.out, frukost, Number(q.guests) || 2, kod).then((r) => { if (aktiv && r.ok) setPris(r.data); });
+    hamtaPris(Array.from(valda), q.in, q.out, frukost, Number(q.guests) || 2, kod, bricka).then((r) => { if (aktiv && r.ok) setPris(r.data); });
     return () => { aktiv = false; };
-  }, [valda, q.in, q.out, q.guests, frukost, kod]);
+  }, [valda, q.in, q.out, q.guests, frukost, bricka, kod]);
 
   /* Enheter som innehåller varandra: valet spärrar släkten */
   const sparrad = (e: Enhet) => {
@@ -91,12 +102,13 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
   const rader = useMemo(() => {
     if (!pris) return [];
     const r: { t: string; v: string; rabatt?: boolean }[] = pris.map((p) => ({ t: `${enheter.find((e) => e.id === p.enhet_id)?.namn ?? p.enhet_id} · ${p.natter} ${p.natter === 1 ? "natt" : "nätter"}`, v: kr(p.belopp) }));
-    if (pris[0].frukost_belopp) r.push({ t: "Frukostkorg", v: kr(pris[0].frukost_belopp) });
+    if (pris[0].frukost_belopp) r.push({ t: `Frukostkorg · ${q.guests} pers.`, v: kr(pris[0].frukost_belopp) });
+    if (pris[0].bricka_belopp) r.push({ t: `Välkomstbricka · ${q.guests} pers.`, v: kr(pris[0].bricka_belopp) });
     if (q.dog) r.push({ t: "Hund i rummet", v: "Ingen avgift" });
     if (pris[0].rabatt) r.push({ t: "Rabattkod", v: "−" + kr(pris[0].rabatt), rabatt: true });
     else if (kod.trim().length > 2) r.push({ t: "Koden känns inte igen", v: "—", rabatt: true });
     return r;
-  }, [pris, q.dog, kod, enheter]);
+  }, [pris, q.dog, q.guests, kod, enheter]);
 
   function boka(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -104,7 +116,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
     fd.set("enheter", Array.from(valda).join(","));
     fd.set("ankomst", q.in); fd.set("avresa", q.out);
     fd.set("personer", q.guests); fd.set("hundar", q.dog ? "1" : "0");
-    fd.set("frukost", frukost ? "1" : "0"); fd.set("kod", kod);
+    fd.set("frukost", frukost ? "1" : "0"); fd.set("bricka", bricka ? "1" : "0"); fd.set("kod", kod);
     setFel(null);
     start(async () => {
       const r = await skapaBokning(fd);
@@ -142,7 +154,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
         <p className="label">Boka din vistelse</p>
         <h2 className="lower h2--tight">se vad som är ledigt</h2>
 
-        <SearchBar inline onSearch={sok} />
+        <SearchBar inline onSearch={sok} initial={q} onChange={(nq) => setQ((x) => ({ ...x, guests: nq.guests, dog: nq.dog }))} />
 
         <div className="results-head" aria-live="polite">
           <p>{laddar ? "Söker…" : `Lediga enheter · ${q.in} till ${q.out} · ${n} ${n === 1 ? "natt" : "nätter"}`}</p>
@@ -169,7 +181,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                     </div>
                     <ul className="unit__meta">
                       {e.egenskaper.map((x) => <li key={x}>{x}</li>)}
-                      <li className="dog">Hundvänligt</li>
+                      <li className="dog">Hund välkommen</li>
                     </ul>
                     {e.beskrivning && <p>{e.beskrivning}</p>}
                     {e.notering && <p className="unit__note">{e.notering}</p>}
@@ -218,10 +230,22 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                 </>
               )}
               <div className="summary__opts">
-                <label className="checkfield checkfield--bare checkfield--top" htmlFor="frukost">
-                  <input type="checkbox" id="frukost" checked={frukost} onChange={(e) => setFrukost(e.target.checked)} />
-                  <span>Frukostkorg, 95&nbsp;kr per person och natt</span>
-                </label>
+                <div className="tillval">
+                  <label className="checkfield checkfield--bare checkfield--top" htmlFor="frukost">
+                    <input type="checkbox" id="frukost" checked={frukost} onChange={(e) => setFrukost(e.target.checked)} />
+                    <span>Frukostkorg, 95&nbsp;kr per person och natt</span>
+                  </label>
+                  <button type="button" className="linkbtn tillval__mer" aria-expanded={lasMer === "frukost"} onClick={() => setLasMer(lasMer === "frukost" ? null : "frukost")}>{lasMer === "frukost" ? "Dölj" : "Läs mer"}</button>
+                  {lasMer === "frukost" && <p className="hint tillval__text">En frukostkorg med lokala råvaror levereras till boendet på morgonen, så att ni kan börja dagen i lugn och ro. Utbudet varierar efter årstid. Vid större bokningar serveras frukosten i herrgården.</p>}
+                </div>
+                <div className="tillval">
+                  <label className="checkfield checkfield--bare checkfield--top" htmlFor="bricka">
+                    <input type="checkbox" id="bricka" checked={bricka} onChange={(e) => setBricka(e.target.checked)} />
+                    <span>Västmanländsk välkomstbricka, 249&nbsp;kr per person</span>
+                  </label>
+                  <button type="button" className="linkbtn tillval__mer" aria-expanded={lasMer === "bricka"} onClick={() => setLasMer(lasMer === "bricka" ? null : "bricka")}>{lasMer === "bricka" ? "Dölj" : "Läs mer"}</button>
+                  {lasMer === "bricka" && <p className="hint tillval__text">En smakfull välkomsthälsning på rummet med utvalda charkuterier och andra delikatesser från lokala producenter i Västmanland, tillsammans med alkoholfritt bubbel från Köpings Musteri.</p>}
+                </div>
                 <div className="field">
                   <label htmlFor="kod">Rabattkod från nyhetsbrevet</label>
                   <input type="text" id="kod" placeholder="t.ex. VANNER10" value={kod} onChange={(e) => setKod(e.target.value)} />

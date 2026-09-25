@@ -25,11 +25,11 @@ export async function hamtaTillganglighet(ankomst: string, avresa: string): Prom
   return { ok: true, data: m };
 }
 
-export async function hamtaPris(enheter: string[], ankomst: string, avresa: string, frukost: boolean, personer: number, kod: string) {
+export async function hamtaPris(enheter: string[], ankomst: string, avresa: string, frukost: boolean, personer: number, kod: string, bricka = false) {
   const db = supabasePublik();
-  const { data, error } = await db.rpc("prisforslag", { enheter, fran: ankomst, till: avresa, frukost, personer, kod: kod || null });
+  const { data, error } = await db.rpc("prisforslag", { enheter, fran: ankomst, till: avresa, frukost, personer, kod: kod || null, bricka });
   if (error) return { ok: false as const, fel: error.message };
-  return { ok: true as const, data: data as { enhet_id: string; natter: number; pris_per_natt: number; belopp: number; frukost_belopp: number; rabatt: number; summa: number }[] };
+  return { ok: true as const, data: data as { enhet_id: string; natter: number; pris_per_natt: number; belopp: number; frukost_belopp: number; bricka_belopp: number; rabatt: number; summa: number }[] };
 }
 
 /* ---------- Bokning ---------- */
@@ -46,6 +46,7 @@ export async function skapaBokning(fd: FormData): Promise<Svar<{ nummer: number;
     p_namn: namn, p_epost: epost, p_telefon: telefon,
     p_personer: Number(s(fd.get("personer")) || 2), p_hundar: Number(s(fd.get("hundar")) || 0),
     p_frukost: s(fd.get("frukost")) === "1", p_kod: s(fd.get("kod")) || null, p_meddelande: s(fd.get("meddelande")) || null,
+    p_bricka: s(fd.get("bricka")) === "1",
   });
   if (error) {
     const msg = /inte längre ledig/.test(error.message) ? "Någon hann före — en av enheterna är inte längre ledig för de valda datumen. Sök igen." : error.message;
@@ -64,8 +65,53 @@ export async function skapaBokning(fd: FormData): Promise<Svar<{ nummer: number;
   if (felEnheter) console.error("kunde inte hämta enhetsnamn till bokningsmejlet", felEnheter.message);
   const namnlista = enheter.map((id) => namnrader?.find((r) => r.id === id)?.namn ?? id);
   try {
-    await mejlBokning({ epost, namn, nummer: rad.nummer, ankomst, avresa, enheter: namnlista, summa: rad.summa, hundar: Number(s(fd.get("hundar")) || 0), frukost: s(fd.get("frukost")) === "1" });
+    await mejlBokning({ epost, namn, nummer: rad.nummer, ankomst, avresa, enheter: namnlista, summa: rad.summa, hundar: Number(s(fd.get("hundar")) || 0), frukost: s(fd.get("frukost")) === "1", bricka: s(fd.get("bricka")) === "1" });
   } catch (e) { console.error("mejl misslyckades", e); }
+  return { ok: true, data: { nummer: rad.nummer, summa: rad.summa } };
+}
+
+/* ---------- Paket ---------- */
+export type Paketpris = { paket_belopp: number; boende_belopp: number; bricka_belopp: number; summa: number; avresa: string; natter_totalt: number; betalda_natter: number };
+
+export async function hamtaPaketpris(paket: string, enheter: string[], ankomst: string, natter: number, personer: number, bricka: boolean): Promise<Svar<Paketpris>> {
+  const { data, error } = await supabasePublik().rpc("paketpris", { p_paket: paket, p_enheter: enheter.length ? enheter : null, p_ankomst: ankomst, p_natter: natter, p_personer: personer, p_bricka: bricka });
+  if (error) return { ok: false, fel: error.message };
+  return { ok: true, data: (data as Paketpris[])[0] };
+}
+
+export async function skapaPaketbokning(fd: FormData): Promise<Svar<{ nummer: number; summa: number }>> {
+  const paket = s(fd.get("paket")), ankomst = s(fd.get("ankomst"));
+  const namn = s(fd.get("namn")), epost = s(fd.get("epost")), telefon = s(fd.get("telefon"));
+  if (!paket || !/^\d{4}-\d{2}-\d{2}$/.test(ankomst)) return { ok: false, fel: "Välj ett datum." };
+  if (!namn || !epost.includes("@")) return { ok: false, fel: "Fyll i namn och en giltig e-postadress." };
+  const enheter = s(fd.get("enheter")).split(",").filter(Boolean);
+  const db = supabaseAdmin();
+  const { data, error } = await db.rpc("skapa_paketbokning", {
+    p_paket: paket, p_enheter: enheter.length ? enheter : null, p_ankomst: ankomst,
+    p_natter: Number(s(fd.get("natter")) || 0), p_personer: Number(s(fd.get("personer")) || 2), p_bricka: s(fd.get("bricka")) === "1",
+    p_namn: namn, p_epost: epost, p_telefon: telefon, p_hundar: s(fd.get("hund")) === "1" ? 1 : 0, p_meddelande: s(fd.get("meddelande")) || null,
+  });
+  if (error) {
+    const msg = /inte längre ledig/.test(error.message) ? "Någon hann före — ett av rummen är inte längre ledigt. Välj ett annat." : error.message;
+    return { ok: false, fel: msg };
+  }
+  const rad = (data as { bokning_id: string; nummer: number; summa: number }[])[0];
+  const faktura = fakturaFran(fd);
+  if (faktura) await db.from("bokning").update({ faktura }).eq("id", rad.bokning_id);
+
+  const [{ data: pk }, { data: b }, { data: namnrader }] = await Promise.all([
+    db.from("paket").select("namn").eq("id", paket).single(),
+    db.from("bokning").select("avresa").eq("id", rad.bokning_id).single(),
+    enheter.length ? db.from("enhet").select("id, namn").in("id", enheter) : Promise.resolve({ data: [] as { id: string; namn: string }[] }),
+  ]);
+  try {
+    await mejlBokning({
+      epost, namn, nummer: rad.nummer, ankomst, avresa: b?.avresa ?? ankomst,
+      enheter: [`${pk?.namn ?? paket} · ${s(fd.get("personer")) || 2} personer`, ...((namnrader ?? []) as { namn: string }[]).map((r) => r.namn)],
+      summa: rad.summa, hundar: s(fd.get("hund")) === "1" ? 1 : 0, frukost: false, bricka: s(fd.get("bricka")) === "1",
+    });
+  } catch (e) { console.error("mejl misslyckades", e); }
+  revalidatePath("/admin/bokningar"); revalidatePath("/admin");
   return { ok: true, data: { nummer: rad.nummer, summa: rad.summa } };
 }
 

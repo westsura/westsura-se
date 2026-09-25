@@ -40,7 +40,7 @@ export default async function Bokningar({ searchParams }: { searchParams: Promis
                   <td className="num">{b.nummer}</td>
                   <td><b>{b.gast_namn}</b><br /><small>{b.gast_epost}{b.gast_telefon ? " · " + b.gast_telefon : ""}</small>{b.meddelande && <><br /><small><em>{b.meddelande}</em></small></>}</td>
                   <td>{datum(b.ankomst)} – {datum(b.avresa)}</td>
-                  <td>{b.enheter}{b.frukost ? <><br /><small>Frukost</small></> : null}{b.antal_hundar ? <><br /><small>{b.antal_hundar} hund</small></> : null}{b.rabattkod ? <><br /><small>Kod {b.rabattkod}</small></> : null}</td>
+                  <td>{b.paket_namn ? <><b>{b.paket_namn}</b> · {b.paket_personer} pers.{b.enheter ? <br /> : null}</> : null}{b.enheter}{b.valkomstbricka ? <><br /><small>Välkomstbricka</small></> : null}{b.frukost ? <><br /><small>Frukost</small></> : null}{b.antal_hundar ? <><br /><small>{b.antal_hundar} hund</small></> : null}{b.rabattkod ? <><br /><small>Kod {b.rabattkod}</small></> : null}</td>
                   <td className="num">{b.antal_personer}</td>
                   <td className="num">{kr(b.summa)}</td>
                   <td><span className={`pill pill--${b.status}`}>{b.status}</span><br /><small>{b.kalla}</small></td>

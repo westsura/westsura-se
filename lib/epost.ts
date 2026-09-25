@@ -31,17 +31,17 @@ async function skicka(till: string[], amne: string, body: string, svaraTill?: st
   return true;
 }
 
-export async function mejlBokning(o: { epost: string; namn: string; nummer: number; ankomst: string; avresa: string; enheter: string[]; summa: number; hundar: number; frukost: boolean }) {
+export async function mejlBokning(o: { epost: string; namn: string; nummer: number; ankomst: string; avresa: string; enheter: string[]; summa: number; hundar: number; frukost: boolean; bricka?: boolean }) {
   const kr = o.summa.toLocaleString("sv-SE") + " kr";
   const rader = [
     `Tack ${o.namn}, vi har tagit emot din bokning med nummer <strong>${o.nummer}</strong>.`,
-    `<strong>${o.ankomst} till ${o.avresa}</strong><br>${o.enheter.join("<br>")}${o.frukost ? "<br>Frukostkorg" : ""}${o.hundar ? `<br>${o.hundar} hund${o.hundar > 1 ? "ar" : ""} — varmt välkomna` : ""}`,
+    `<strong>${o.ankomst} till ${o.avresa}</strong><br>${o.enheter.join("<br>")}${o.frukost ? "<br>Frukostkorg" : ""}${o.bricka ? "<br>Västmanländsk välkomstbricka" : ""}${o.hundar ? `<br>${o.hundar} hund${o.hundar > 1 ? "ar" : ""} — varmt välkomna` : ""}`,
     `Summa: <strong>${kr}</strong>. Betalning senast 7 dagar före ankomst, eller mot faktura enligt överenskommelse.`,
     `Bokningen är preliminär tills du fått vår bekräftelse, som kommer inom en vardag. Fri avbokning fram till 7 dagar före ankomst.`,
   ];
   await skicka([o.epost], `Din bokning ${o.nummer} på Westsura Herrgård`, html("Vi har tagit emot din bokning", rader));
   await skicka([site.email], `Ny bokning ${o.nummer}: ${o.namn}, ${o.ankomst}–${o.avresa}`,
-    html("Ny bokning på webben", [`${o.namn} · ${o.epost}`, `${o.ankomst} till ${o.avresa}: ${o.enheter.join(", ")}`, `Summa ${kr}. ${o.hundar ? o.hundar + " hund(ar). " : ""}${o.frukost ? "Frukost. " : ""}`, `Bekräfta i admin.`], ""), o.epost);
+    html("Ny bokning på webben", [`${o.namn} · ${o.epost}`, `${o.ankomst} till ${o.avresa}: ${o.enheter.join(", ")}`, `Summa ${kr}. ${o.hundar ? o.hundar + " hund(ar). " : ""}${o.frukost ? "Frukost. " : ""}${o.bricka ? "Välkomstbricka. " : ""}`, `Bekräfta i admin.`], ""), o.epost);
 }
 
 export async function mejlForfragan(o: { epost: string; namn: string; typ: string; nummer: number; datum?: string; antal?: string; meddelande?: string; telefon?: string }) {

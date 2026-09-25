@@ -8,7 +8,7 @@ import { img } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Boende — bo i våra flyglar från 1683",
   description:
-    "Övernatta i Westsura Herrgårds fyra flyglar från 1683 i Surahammar, Västmanland. Spröjsade fönster, djupa fönsternischer, sexton bäddar i åtta rum, gemensamhetskök och frukostkorg med lokala råvaror. Hundvänligt i samtliga rum.",
+    "Övernatta i Westsura Herrgårds fyra flyglar från 1683 i Surahammar, Västmanland. Spröjsade fönster, djupa fönsternischer, sexton bäddar i åtta rum, gemensamhetskök och frukostkorg med lokala råvaror. Hunden är välkommen i alla rum.",
   alternates: { canonical: "/boende" },
 };
 

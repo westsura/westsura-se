@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: { default: "Westsura Herrgård — en levande herrgårdsdestination i Västmanland", template: "%s | Westsura Herrgård" },
   description:
-    "Historisk herrgård från 1680 i Surahammar. Boende i flyglarna, dagskonferens, bröllop och fest, jakt och jakthundsträning. Hundvänligt i samtliga rum.",
+    "Historisk herrgård från 1680 i Surahammar. Boende i flyglarna, dagskonferens, bröllop och fest, jakt och jakthundsträning. Hunden är välkommen i alla rum.",
   openGraph: { type: "website", locale: "sv_SE", siteName: site.name },
   robots: indexera ? { index: true, follow: true } : { index: false, follow: false, nocache: true },
 };

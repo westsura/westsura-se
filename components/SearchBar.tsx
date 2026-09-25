@@ -9,13 +9,25 @@ function plusDays(d: Date, n: number) {
   return x.toISOString().slice(0, 10);
 }
 
-export default function SearchBar({ inline = false, onSearch }: { inline?: boolean; onSearch?: (q: { in: string; out: string; guests: string; dog: boolean }) => void }) {
+export type Sokning = { in: string; out: string; guests: string; dog: boolean };
+
+/**
+ * Sökrutan. På startsidan skickar den vidare till /boende. På boendesidan (inline)
+ * anropas onSearch vid Sök, och onChange direkt när antal gäster eller hund ändras —
+ * så att priset räknas om utan att man behöver söka igen.
+ */
+export default function SearchBar({ inline = false, onSearch, onChange, initial }: {
+  inline?: boolean;
+  onSearch?: (q: Sokning) => void;
+  onChange?: (q: Sokning) => void;
+  initial?: Sokning;
+}) {
   const router = useRouter();
   const today = new Date();
-  const [inD, setIn] = useState(plusDays(today, 7));
-  const [outD, setOut] = useState(plusDays(today, 9));
-  const [guests, setGuests] = useState("2");
-  const [dog, setDog] = useState(false);
+  const [inD, setIn] = useState(initial?.in ?? plusDays(today, 7));
+  const [outD, setOut] = useState(initial?.out ?? plusDays(today, 9));
+  const [guests, setGuests] = useState(initial?.guests ?? "2");
+  const [dog, setDog] = useState(initial?.dog ?? false);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,19 +49,16 @@ export default function SearchBar({ inline = false, onSearch }: { inline?: boole
       </div>
       <div className="field">
         <label htmlFor="s-guests">Gäster</label>
-        <select id="s-guests" value={guests} onChange={(e) => setGuests(e.target.value)}>
-          <option value="1">1 gäst</option>
-          <option value="2">2 gäster</option>
-          <option value="3">3 gäster</option>
-          <option value="4">4 gäster</option>
-          <option value="8">5–8 gäster</option>
-          <option value="16">9 gäster eller fler</option>
+        <select id="s-guests" value={guests} onChange={(e) => { setGuests(e.target.value); onChange?.({ in: inD, out: outD, guests: e.target.value, dog }); }}>
+          {Array.from({ length: 16 }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={String(n)}>{n} {n === 1 ? "gäst" : "gäster"}</option>
+          ))}
         </select>
       </div>
       <div className="field">
         <span className="field-label">Hund</span>
         <label className="checkfield" htmlFor="s-dog">
-          <input type="checkbox" id="s-dog" checked={dog} onChange={(e) => setDog(e.target.checked)} />
+          <input type="checkbox" id="s-dog" checked={dog} onChange={(e) => { setDog(e.target.checked); onChange?.({ in: inD, out: outD, guests, dog: e.target.checked }); }} />
           <span>Vi har med hund</span>
         </label>
       </div>

@@ -25,7 +25,7 @@ export default function Signup() {
       </form>
       {fel && <p className="fel" role="alert">{fel}</p>}
       <p className="hint hint--after">
-        Några brev om året. Avsluta när du vill. Vi följer vår <Link href="/integritetspolicy">integritetspolicy</Link>.
+        Några mail om året. Avsluta när du vill. Vi följer vår <Link href="/integritetspolicy">integritetspolicy</Link>.
       </p>
     </>
   );

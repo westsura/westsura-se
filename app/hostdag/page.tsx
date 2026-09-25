@@ -46,7 +46,7 @@ export default function Hostdag() {
       <section className="section tint">
         <div className="container narrow center">
           <p className="label">Missa inte nästa</p>
-          <h2 className="lower">bli vän med herrgården</h2>
+          <h2 className="lower">få inbjudan först</h2>
           <p className="mx-auto">Westsuras Vänner får inbjudan till höstdagar, julmarknad och temakvällar några dagar innan de blir offentliga.</p>
           <Signup />
         </div>
