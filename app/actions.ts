@@ -243,6 +243,9 @@ export async function bokaVakUtbud(fd: FormData): Promise<Svar<{ pris: number }>
 }
 
 /* ---------- Westsuras Vänner ---------- */
+const VAN_RABATT_PROCENT = 10;
+const VAN_RABATT_DAGAR = 60;
+
 export async function anmalVan(fd: FormData): Promise<Svar> {
   const namn = s(fd.get("namn")), epost = s(fd.get("epost")).toLowerCase();
   if (!epost.includes("@")) return { ok: false, fel: "Ange en giltig e-postadress." };
@@ -253,13 +256,16 @@ export async function anmalVan(fd: FormData): Promise<Svar> {
   if (error) return { ok: false, fel: error.message };
   if (!fanns || fanns.avanmald_tid) {
     try {
-      const { data: k } = await db.from("rabattkod").select("kod, typ, varde").eq("kod", "VANNER10").eq("aktiv", true).maybeSingle();
-      await mejlVanValkommen({
-        epost, namn: namn || null,
-        kod: k?.kod ?? "VANNER10",
-        rabatt: k ? (k.typ === "procent" ? `${k.varde} % rabatt` : `${k.varde} kr rabatt`) : "10 % rabatt",
-        avsluta: avanmalLank(epost),
+      // Personlig kod: gäller en bokning och bara under en begränsad tid.
+      const tecken = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      const kod = "VAN-" + Array.from({ length: 6 }, () => tecken[Math.floor(Math.random() * tecken.length)]).join("");
+      const giltigTill = new Date(Date.now() + VAN_RABATT_DAGAR * 86400000).toISOString().slice(0, 10);
+      const { error: felKod } = await db.from("rabattkod").insert({
+        kod, typ: "procent", varde: VAN_RABATT_PROCENT, giltig_till: giltigTill, max_antal: 1, galler: "boende",
+        beskrivning: `Välkomstkod till ${epost}`,
       });
+      if (felKod) throw new Error(felKod.message);
+      await mejlVanValkommen({ epost, namn: namn || null, kod, procent: VAN_RABATT_PROCENT, giltigTill, avsluta: avanmalLank(epost) });
     } catch (e) { console.error("välkomstmejl misslyckades", e); }
   }
   return { ok: true, data: undefined };

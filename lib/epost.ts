@@ -73,12 +73,14 @@ export async function mejlMedlemsansokan(o: { epost: string; namn: string; telef
 /* ---------- Westsuras Vänner ---------- */
 
 /** Välkomstmejl till nya vänner, med rabattkoden och en länk för att avsluta. */
-export async function mejlVanValkommen(o: { epost: string; namn?: string | null; kod: string; rabatt: string; avsluta: string }) {
+export async function mejlVanValkommen(o: { epost: string; namn?: string | null; kod: string; procent: number; giltigTill: string; avsluta: string }) {
+  const datum = new Date(o.giltigTill + "T12:00:00").toLocaleDateString("sv-SE", { day: "numeric", month: "long", year: "numeric" });
   const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
   await skicka([o.epost], "Välkommen till Westsuras Vänner", html("Välkommen till Westsuras Vänner", [
     `${o.namn ? `Hej ${fritext(o.namn)}, tack` : "Tack"} för att du vill följa livet på herrgården.`,
     `Några gånger om året skickar vi nyheter från Westsura: säsongens meny, kommande evenemang och inbjudningar till höstdagar, julmarknad och temakvällar — ofta några dagar innan de blir offentliga.`,
-    `Som tack får du <strong>${o.rabatt}</strong> när du bokar boende hos oss. Skriv koden <strong style="letter-spacing:.08em">${o.kod}</strong> i rutan för rabattkod när du bokar på <a href="${bas}/boende" style="color:#7d6530">${bas.replace(/^https?:\/\//, "")}/boende</a>.`,
+    `Som vän till Westsura får du en tillfällig rabattkod på <strong>${o.procent} %</strong> när du bokar boende hos oss: <strong style="letter-spacing:.08em">${o.kod}</strong>`,
+    `Koden är personlig, gäller en bokning och kan användas till och med <strong>${datum}</strong>. Skriv den i rutan för rabattkod när du bokar på <a href="${bas}/boende" style="color:#7d6530">${bas.replace(/^https?:\/\//, "")}/boende</a>.`,
   ], "Varmt välkommen till herrgården.") .replace("</div></body>",
     `<p style="font-size:12px;color:#6b9483;margin:16px 0 0">Vill du inte längre få mejl från oss? <a href="${o.avsluta}" style="color:#6b9483">Avsluta här</a>.</p></div></body>`));
 }

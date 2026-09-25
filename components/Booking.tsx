@@ -247,8 +247,8 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                   {lasMer === "bricka" && <p className="hint tillval__text">En smakfull välkomsthälsning på rummet med utvalda charkuterier och andra delikatesser från lokala producenter i Västmanland, tillsammans med alkoholfritt bubbel från Köpings Musteri.</p>}
                 </div>
                 <div className="field">
-                  <label htmlFor="kod">Rabattkod från nyhetsbrevet</label>
-                  <input type="text" id="kod" placeholder="t.ex. VANNER10" value={kod} onChange={(e) => setKod(e.target.value)} />
+                  <label htmlFor="kod">Rabattkod</label>
+                  <input type="text" id="kod" placeholder="Har du fått en kod? Skriv den här" value={kod} onChange={(e) => setKod(e.target.value)} autoComplete="off" />
                 </div>
 
                 {steg === "valj" ? (
