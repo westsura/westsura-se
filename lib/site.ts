@@ -26,28 +26,31 @@ export const nav = [
   { href: "/om-oss", label: "Om oss" },
 ];
 
-/** Bilder som ännu ligger på nuvarande westsura.se. Byts mot lokala filer när fotografen varit här. */
-export const wp = "https://westsura.se/wp-content/uploads/";
+/**
+ * Bilder från gamla WordPress-sajten, nu kopierade till public/bilder/wp/ (samma filnamn).
+ * Byts mot nya bilder när fotografen varit här.
+ */
+const wp = "/bilder/wp/";
 export const img = {
-  heroMatsal: wp + "2026/05/foretagsfotograf-stockholm-vasteras-brandingfoto-lumavisual-71.jpg",
-  sang: wp + "2026/03/Hemsida-Framsida4-958x1024.jpg",
-  sangStor: wp + "2026/03/Hemsida-Framsida4.jpg",
-  skal: wp + "2026/05/Skal-958x1024.jpg",
-  sovrum: wp + "2026/07/Hemsida-Avlanga-bilder10.jpg",
-  fasan: wp + "2026/03/Hemsida-Framsida3-958x1024.jpg",
-  brud: wp + "2024/11/brud.png",
-  konferensrum: wp + "2026/05/foretagsfotograf-stockholm-vasteras-brandingfoto-lumavisual-21.jpg",
-  /* Historiska bilder från Om oss på nuvarande sajt */
-  hist1760: wp + "2025/10/Westsura_Herrgard.jpg",
-  histTersmeden: wp + "2025/10/PerReinholdTersmeden.jpg",
-  hist1928: wp + "2025/10/westsura-1928-1536x1139.jpg",
-  histSkola: wp + "2025/10/Skogsbruksskola.jpg",
-  /* Paketbilder från nuvarande sajt */
-  paketKanotDag: wp + "2026/08/Div.-mallar-600-x-400-px3.jpg",
-  paketKanotKvall: wp + "2026/08/Div.-mallar-600-x-400-px4.jpg",
-  paketGlod: wp + "2026/08/Laga-mat-utomus-i-Westsura-1.jpg",
-  paketGolf: wp + "2026/05/4.jpg",
-  eld: wp + "2026/08/Mat-over-oppen-eld-wetsura-herrgard.jpg",
+  heroMatsal: wp + "foretagsfotograf-stockholm-vasteras-brandingfoto-lumavisual-71.jpg",
+  sang: wp + "Hemsida-Framsida4-958x1024.jpg",
+  sangStor: wp + "Hemsida-Framsida4.jpg",
+  skal: wp + "Skal-958x1024.jpg",
+  sovrum: wp + "Hemsida-Avlanga-bilder10.jpg",
+  fasan: wp + "Hemsida-Framsida3-958x1024.jpg",
+  brud: wp + "brud.png",
+  konferensrum: wp + "foretagsfotograf-stockholm-vasteras-brandingfoto-lumavisual-21.jpg",
+  /* Historiska bilder från Om oss på gamla sajten */
+  hist1760: wp + "Westsura_Herrgard.jpg",
+  histTersmeden: wp + "PerReinholdTersmeden.jpg",
+  hist1928: wp + "westsura-1928-1536x1139.jpg",
+  histSkola: wp + "Skogsbruksskola.jpg",
+  /* Paketbilder från gamla sajten */
+  paketKanotDag: wp + "Div.-mallar-600-x-400-px3.jpg",
+  paketKanotKvall: wp + "Div.-mallar-600-x-400-px4.jpg",
+  paketGlod: wp + "Laga-mat-utomus-i-Westsura-1.jpg",
+  paketGolf: wp + "4.jpg",
+  eld: wp + "Mat-over-oppen-eld-wetsura-herrgard.jpg",
 };
 
 export const kungCitat =

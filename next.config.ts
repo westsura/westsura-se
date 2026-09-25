@@ -2,9 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "westsura.se", pathname: "/wp-content/uploads/**" },
-    ],
+    // Bilderna skickas som de är från /public. Vercels bildförminskning har en månadsgräns
+    // på gratisplanen, och när den tog slut slutade bilderna visas.
+    unoptimized: true,
   },
   async headers() {
     if (process.env.INDEXERA === "1") return [];
