@@ -134,7 +134,7 @@ export default function PaketBokning({ paket, enheter }: Props) {
               return (
                 <label key={e.id} className={`paketbok__enhet${vald ? " is-vald" : ""}${sparr ? " is-sparr" : ""}`}>
                   <input type="checkbox" checked={vald} disabled={sparr} onChange={() => toggla(e.id)} />
-                  <span><b>{e.namn}</b><small>{e.baddar} bäddar{upptagen ? " · bokad" : ""}</small></span>
+                  <span><b>{e.namn}</b><small>{e.baddar} bäddar{upptagen ? " · inte ledig" : ""}</small></span>
                 </label>
               );
             })}

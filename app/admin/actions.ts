@@ -683,6 +683,169 @@ export async function avslutaMedlemskap(id: string): Promise<{ ok: boolean; fel?
   return { ok: true };
 }
 
+/** Ändra kontaktuppgifter och nivå för en medlem, sökande eller gästjägare. Byts e-posten flyttas även inloggningen. */
+export async function sparaJaktmedlem(id: string, fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const { data: m } = await adm.from("jaktmedlem").select("epost, anvandare_id").eq("id", id).maybeSingle();
+  if (!m) return { ok: false, fel: "Hittades inte." };
+  const epost = s(fd.get("epost")).toLowerCase();
+  if (!s(fd.get("namn")) || !epost.includes("@")) return { ok: false, fel: "Namn och en giltig e-post behövs." };
+  const rad: Record<string, unknown> = {
+    namn: s(fd.get("namn")), epost, telefon: s(fd.get("telefon")) || null, ort: s(fd.get("ort")) || null, hund: s(fd.get("hund")) || null,
+  };
+  if (fd.has("niva_id")) rad.niva_id = s(fd.get("niva_id")) || null;
+  if (epost !== m.epost && m.anvandare_id) {
+    const { error: felAuth } = await adm.auth.admin.updateUserById(m.anvandare_id, { email: epost, email_confirm: true });
+    if (felAuth) return { ok: false, fel: `Inloggningen kunde inte flyttas till den nya adressen: ${felAuth.message}` };
+  }
+  const { error } = await adm.from("jaktmedlem").update(rad).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraJaktklubb(id);
+  return { ok: true };
+}
+
+/**
+ * Tar bort en medlem, sökande eller gästjägare helt: dokumentkopior, kursförsök och vakbokningar.
+ * Anmälningar och skott ligger kvar (utan koppling) för historiken. Inloggningen tas bort om den inte också är admin.
+ */
+export async function taBortJaktmedlem(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const { data: m } = await adm.from("jaktmedlem").select("anvandare_id").eq("id", id).maybeSingle();
+  if (!m) return { ok: false, fel: "Hittades inte." };
+  const felDok = await raderaMedlemsdokument(id);
+  if (felDok) return { ok: false, fel: `Dokumenten kunde inte raderas: ${felDok}` };
+  const { error } = await adm.from("jaktmedlem").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  if (m.anvandare_id) {
+    const { data: arAdmin } = await adm.from("admin_anvandare").select("id").eq("id", m.anvandare_id).maybeSingle();
+    if (!arAdmin) await adm.auth.admin.deleteUser(m.anvandare_id);
+  }
+  revalidatePath("/admin/jaktklubb");
+  return { ok: true };
+}
+
+/* ---------- Westsuras Vänner ---------- */
+export async function sparaVan(id: string, fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("kommunikation", "vardskap");
+  const epost = s(fd.get("epost")).toLowerCase();
+  if (!epost.includes("@")) return { ok: false, fel: "Ange en giltig e-postadress." };
+  const { error } = await supabaseAdmin().from("van").update({ namn: s(fd.get("namn")) || null, epost }).eq("id", id);
+  if (error) return { ok: false, fel: error.code === "23505" ? "Adressen finns redan i listan." : error.message };
+  revalidatePath("/admin/vanner");
+  return { ok: true };
+}
+
+export async function taBortVan(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("kommunikation", "vardskap");
+  const { error } = await supabaseAdmin().from("van").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/vanner"); revalidatePath("/admin");
+  return { ok: true };
+}
+
+/* ---------- Priser ---------- */
+function uppdateraPriser() { revalidatePath("/admin/priser"); revalidatePath("/boende"); revalidatePath("/paket"); }
+
+export async function sparaGrundpris(id: string, pris: number): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("vardskap");
+  if (!Number.isFinite(pris) || pris < 0) return { ok: false, fel: "Ange ett pris i kronor." };
+  const { error } = await supabaseAdmin().from("enhet").update({ grundpris: Math.round(pris) }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraPriser();
+  return { ok: true };
+}
+
+export async function sparaPrissasong(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("vardskap");
+  const rad = { namn: s(fd.get("namn")), fran: s(fd.get("fran")), till: s(fd.get("till")) };
+  if (!rad.namn || !rad.fran || !rad.till) return { ok: false, fel: "Namn, från och till behövs." };
+  if (rad.till < rad.fran) return { ok: false, fel: "Slutdatum måste vara efter startdatum." };
+  const id = s(fd.get("id"));
+  const adm = supabaseAdmin();
+  const { error } = id ? await adm.from("sasong").update(rad).eq("id", id) : await adm.from("sasong").insert(rad);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraPriser();
+  return { ok: true };
+}
+
+export async function taBortPrissasong(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("vardskap");
+  const { error } = await supabaseAdmin().from("sasong").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraPriser();
+  return { ok: true };
+}
+
+/** En prisregel: fast nattpris eller procentuell justering, för ett rum eller alla, en säsong, vissa veckodagar eller ett datum. */
+export async function sparaPrisregel(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("vardskap");
+  const veckodagar = fd.getAll("veckodag").map((v) => Number(v)).filter((n) => n >= 0 && n <= 6);
+  const rad = {
+    namn: s(fd.get("namn")) || "Prisregel",
+    enhet_id: s(fd.get("enhet_id")) || null,
+    sasong_id: s(fd.get("sasong_id")) || null,
+    veckodagar: veckodagar.length ? veckodagar : null,
+    datum: s(fd.get("datum")) || null,
+    typ: s(fd.get("typ")) === "procent" ? "procent" : "pris",
+    varde: Math.round(Number(s(fd.get("varde")) || 0)),
+    prioritet: Math.round(Number(s(fd.get("prioritet")) || 0)),
+    aktiv: !!fd.get("aktiv"),
+  };
+  if (!rad.enhet_id && !rad.sasong_id && !rad.veckodagar && !rad.datum) return { ok: false, fel: "Välj minst ett villkor: rum, säsong, veckodagar eller datum." };
+  if (rad.typ === "pris" && rad.varde <= 0) return { ok: false, fel: "Ange nattpriset i kronor." };
+  const id = s(fd.get("id"));
+  const adm = supabaseAdmin();
+  const { error } = id ? await adm.from("prisregel").update(rad).eq("id", id) : await adm.from("prisregel").insert(rad);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraPriser();
+  return { ok: true };
+}
+
+export async function taBortPrisregel(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("vardskap");
+  const { error } = await supabaseAdmin().from("prisregel").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraPriser();
+  return { ok: true };
+}
+
+export async function hamtaPrisexempel(fran: string): Promise<{ ok: true; data: { enhet_id: string; datum: string; pris: number }[] } | { ok: false; fel: string }> {
+  await kravAdmin("vardskap");
+  const { data, error } = await supabaseAdmin().rpc("prisexempel", { fran, dagar: 14 });
+  if (error) return { ok: false, fel: error.message };
+  return { ok: true, data: data as { enhet_id: string; datum: string; pris: number }[] };
+}
+
+/* ---------- Tillfällen: ta bort ---------- */
+/** Tar bort tillfället med dess anmälningar och såtar. Registrerade skott ligger kvar i avskjutningen. */
+export async function taBortTillfalle(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("vardskap", "jaktadmin");
+  const { error } = await supabaseAdmin().from("tillfalle").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/tillfallen"); revalidatePath("/jakt"); revalidatePath("/jaktklubb/medlem/boka");
+  return { ok: true };
+}
+
+/* ---------- Användare: ta bort ---------- */
+export async function taBortAdmin(epost: string): Promise<{ ok: boolean; fel?: string }> {
+  const jag = await kravAdmin("superadmin");
+  const e = epost.toLowerCase();
+  if (e === jag.epost.toLowerCase()) return { ok: false, fel: "Du kan inte ta bort dig själv." };
+  const adm = supabaseAdmin();
+  const { data: anv } = await adm.from("admin_anvandare").select("id").eq("epost", e).maybeSingle();
+  if (anv) {
+    await adm.from("medlemsdokument").update({ granskad_av: null }).eq("granskad_av", anv.id);
+    const { error } = await adm.from("admin_anvandare").delete().eq("id", anv.id);
+    if (error) return { ok: false, fel: error.message };
+  }
+  const { error } = await adm.from("admin_inbjudan").delete().eq("epost", e);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/anvandare");
+  return { ok: true };
+}
+
 export async function sparaMedlemsanteckning(id: string, anteckning: string) {
   await kravAdmin("jaktadmin");
   const db = await supabaseServer();

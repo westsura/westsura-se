@@ -26,6 +26,13 @@ export async function hamtaTillganglighet(ankomst: string, avresa: string): Prom
   return { ok: true, data: m };
 }
 
+/** Pris per natt och rum för en vistelse — prisregler (helg, säsong) inräknade. */
+export async function hamtaNattpriser(ankomst: string, avresa: string): Promise<Svar<{ enhet_id: string; datum: string; pris: number }[]>> {
+  const { data, error } = await supabasePublik().rpc("nattpriser", { fran: ankomst, till: avresa });
+  if (error) return { ok: false, fel: error.message };
+  return { ok: true, data: (data ?? []) as { enhet_id: string; datum: string; pris: number }[] };
+}
+
 export async function hamtaPris(enheter: string[], ankomst: string, avresa: string, frukost: boolean, personer: number, kod: string, bricka = false) {
   const db = supabasePublik();
   const { data, error } = await db.rpc("prisforslag", { enheter, fran: ankomst, till: avresa, frukost, personer, kod: kod || null, bricka });

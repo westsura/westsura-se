@@ -3,6 +3,8 @@ import { kravAdmin } from "@/lib/admin";
 import { supabaseServer } from "@/lib/supabase";
 import TillfalleForm from "./TillfalleForm";
 import AnmalanRad from "./AnmalanRad";
+import TaBortKnapp from "@/components/TaBortKnapp";
+import { taBortTillfalle } from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 const TYP: Record<string, string> = { jakt: "Jakt", hundtraning: "Hundträning", jaktkurs: "Jaktkurs", evenemang: "Evenemang" };
@@ -31,6 +33,8 @@ export default async function Tillfallen() {
               <div className="admin__actions">
                 {t.typ === "jakt" && <Link className="btn btn--sm" href={`/admin/tillfallen/${t.id}`}>Jaktledarvy</Link>}
                 <TillfalleForm tillfalle={t} />
+                <TaBortKnapp gor={taBortTillfalle.bind(null, t.id)}
+                  fraga={`Ta bort "${t.titel}" ${t.datum}?${a.length ? ` De ${a.length} anmälningarna försvinner också — hör av er till de anmälda först.` : ""} Det går inte att ångra.`} />
               </div>
             </div>
             {a.length > 0 && (

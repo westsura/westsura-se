@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { useSearchParams } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
 import Fakturafalt from "@/components/Fakturafalt";
-import { hamtaTillganglighet, hamtaPris, skapaBokning } from "@/app/actions";
+import { hamtaTillganglighet, hamtaPris, hamtaNattpriser, skapaBokning } from "@/app/actions";
 import { img, site } from "@/lib/site";
 
 export type Enhet = {
@@ -29,6 +29,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
   const [valda, setValda] = useState<Set<string>>(new Set());
   const [frukost, setFrukost] = useState(false);
   const [bricka, setBricka] = useState(false);
+  const [nattpris, setNattpris] = useState<{ enhet_id: string; datum: string; pris: number }[]>([]);
   const [lasMer, setLasMer] = useState<"frukost" | "bricka" | null>(null);
   const [kod, setKod] = useState("");
   const [pris, setPris] = useState<Prisrad[] | null>(null);
@@ -70,8 +71,9 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
     if (nyaDatum || !harSokt.current) { setValda(new Set()); setPris(null); }
     harSokt.current = true;
     setLaddar(true);
-    const r = await hamtaTillganglighet(nq.in, nq.out);
+    const [r, np] = await Promise.all([hamtaTillganglighet(nq.in, nq.out), hamtaNattpriser(nq.in, nq.out)]);
     if (r.ok) setLedig(r.data); else setFel(r.fel);
+    if (np.ok) setNattpris(np.data);
     setLaddar(false);
   }, []);
   useEffect(() => { sok(q); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
@@ -99,16 +101,40 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
   const antalLediga = vanliga.filter((e) => !e.ingar_i && ledig[e.id]).length;
   const summa = pris?.[0]?.summa ?? 0;
 
+  /* Lägsta nattpris per rum för de sökta datumen (prisregler inräknade) — till "från X kr" på korten. */
+  const franPris = (e: Enhet) => {
+    const p = nattpris.filter((x) => x.enhet_id === e.id).map((x) => x.pris);
+    return p.length ? Math.min(...p) : e.grundpris;
+  };
+
+  /* Om nätterna kostar olika delas rummet upp: "2 nätter à 1 350 kr" och "fre, lör à 1 650 kr". */
+  const VD = ["sön", "mån", "tis", "ons", "tor", "fre", "lör"];
+  const uppdelning = (enhetId: string) => {
+    const natter = nattpris.filter((x) => x.enhet_id === enhetId);
+    const priser = [...new Set(natter.map((x) => x.pris))].sort((a, b) => a - b);
+    if (priser.length < 2) return [];
+    return priser.map((p, i) => {
+      const d = natter.filter((x) => x.pris === p);
+      const dagar = i === 0 ? `${d.length} ${d.length === 1 ? "natt" : "nätter"}` : d.map((x) => VD[new Date(x.datum + "T12:00:00").getDay()]).join(", ");
+      return { t: `${dagar} à ${kr(p)}`, v: kr(p * d.length) };
+    });
+  };
+
   const rader = useMemo(() => {
     if (!pris) return [];
-    const r: { t: string; v: string; rabatt?: boolean }[] = pris.map((p) => ({ t: `${enheter.find((e) => e.id === p.enhet_id)?.namn ?? p.enhet_id} · ${p.natter} ${p.natter === 1 ? "natt" : "nätter"}`, v: kr(p.belopp) }));
+    const r: { t: string; v: string; rabatt?: boolean; under?: boolean }[] = [];
+    for (const p of pris) {
+      r.push({ t: `${enheter.find((e) => e.id === p.enhet_id)?.namn ?? p.enhet_id} · ${p.natter} ${p.natter === 1 ? "natt" : "nätter"}`, v: kr(p.belopp) });
+      for (const u of uppdelning(p.enhet_id)) r.push({ ...u, under: true });
+    }
     if (pris[0].frukost_belopp) r.push({ t: `Frukostkorg · ${q.guests} pers.`, v: kr(pris[0].frukost_belopp) });
     if (pris[0].bricka_belopp) r.push({ t: `Välkomstbricka · ${q.guests} pers.`, v: kr(pris[0].bricka_belopp) });
     if (q.dog) r.push({ t: "Hund i rummet", v: "Ingen avgift" });
     if (pris[0].rabatt) r.push({ t: "Rabattkod", v: "−" + kr(pris[0].rabatt), rabatt: true });
     else if (kod.trim().length > 2) r.push({ t: "Koden känns inte igen", v: "—", rabatt: true });
     return r;
-  }, [pris, q.dog, q.guests, kod, enheter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pris, q.dog, q.guests, kod, enheter, nattpris]);
 
   function boka(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -177,7 +203,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                   <div className="unit__body">
                     <div className="unit__top">
                       <h3>{e.namn}</h3>
-                      <div className="unit__price"><span className="amount">{kr(e.grundpris)}</span><span className="per">per natt</span></div>
+                      <div className="unit__price"><span className="per">från</span><span className="amount">{kr(franPris(e))}</span><span className="per">per natt</span></div>
                     </div>
                     <ul className="unit__meta">
                       {e.egenskaper.map((x) => <li key={x}>{x}</li>)}
@@ -192,7 +218,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                         </button>
                       )}
                       {laddar ? <span className="unit__status">Söker…</span>
-                        : upptagen ? <span className="unit__status">Bokad dessa datum</span>
+                        : upptagen ? <span className="unit__status">Inte ledig dessa datum</span>
                         : block && !vald ? <span className="unit__status">{helaVald ? "Ingår i hela boendet" : "Upptagen av ditt val"}</span>
                         : (
                           <>
@@ -210,9 +236,9 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
               <div className="card card--accent unit--hela">
                 <h3>{hela.namn}</h3>
                 <p>{hela.beskrivning}</p>
-                <p className="price price--lg">{kr(hela.grundpris)}<small>per natt</small></p>
+                <p className="price price--lg"><small>från</small> {kr(franPris(hela))}<small>per natt</small></p>
                 {!laddar && ledig[hela.id] === false
-                  ? <span className="unit__status">Någon enhet är bokad dessa datum — hela boendet går inte att boka</span>
+                  ? <span className="unit__status">Hela boendet är inte ledigt dessa datum</span>
                   : <button className={`btn${helaVald ? "" : " btn--ghost"}`} type="button" disabled={laddar} onClick={() => setValda(helaVald ? new Set() : new Set([hela.id]))}>{helaVald ? "Valt — ta bort" : "Boka hela boendet"}</button>}
               </div>
             )}
@@ -225,7 +251,8 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                 <p className="empty">Välj en eller flera enheter i listan, så räknar vi fram priset här.</p>
               ) : (
                 <>
-                  {rader.map((x, i) => <div key={i} className={`sumrow${x.rabatt ? " sumrow--discount" : ""}`}><span>{x.t}</span><span>{x.v}</span></div>)}
+                  {rader.map((x, i) => <div key={i} className={`sumrow${x.rabatt ? " sumrow--discount" : ""}${x.under ? " sumrow--under" : ""}`}><span>{x.t}</span><span>{x.v}</span></div>)}
+                  {rader.some((x) => x.under) && <p className="hint">Vissa nätter kostar mer, till exempel helger eller högsäsong.</p>}
                   <div className="sumrow sumrow--total"><span>Totalt</span><span>{kr(summa)}</span></div>
                 </>
               )}

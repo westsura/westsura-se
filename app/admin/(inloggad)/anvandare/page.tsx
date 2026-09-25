@@ -2,6 +2,8 @@ import { kravAdmin } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/supabase";
 import { authIdFor } from "@/lib/konto";
 import SattLosenord from "./SattLosenord";
+import TaBortKnapp from "@/components/TaBortKnapp";
+import { taBortAdmin } from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +11,7 @@ type Inbjudan = { epost: string; namn: string | null; roller: string[]; skapad: 
 
 /** Superadmin: vilka som får logga in i admin och deras lösenord. Inbjudningar läggs till i tabellen admin_inbjudan. */
 export default async function Anvandare() {
-  await kravAdmin("superadmin");
+  const jag = await kravAdmin("superadmin");
   const { data } = await supabaseAdmin().from("admin_inbjudan").select("*").order("skapad");
   const lista = (data ?? []) as Inbjudan[];
   const harKonto = await Promise.all(lista.map(async (i) => !!(await authIdFor(i.epost))));
@@ -31,7 +33,12 @@ export default async function Anvandare() {
                   <td>{i.epost}</td>
                   <td>{i.roller.join(", ")}</td>
                   <td><span className={`pill pill--${harKonto[n] ? "godkand" : "saknas"}`}>{harKonto[n] ? "Finns" : "Inget ännu"}</span></td>
-                  <td><SattLosenord epost={i.epost} /></td>
+                  <td className="admin__actions">
+                    <SattLosenord epost={i.epost} />
+                    {i.epost.toLowerCase() !== jag.epost.toLowerCase() && (
+                      <TaBortKnapp gor={taBortAdmin.bind(null, i.epost)} fraga={`Ta bort ${i.namn ?? i.epost} från admin? Personen kan inte längre logga in i admin.`} />
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

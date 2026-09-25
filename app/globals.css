@@ -376,6 +376,9 @@ p { margin:0 0 20px; max-width:66ch; }
   display:block; line-height:1.1; font-variant-numeric:tabular-nums; white-space:nowrap;
 }
 .unit__price .per { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ws-ink-40); display:block; margin-top:3px; }
+.unit__price .per:first-child { margin:0 0 2px; }
+.sumrow--under { padding:4px 0 4px 14px; font-size:14px; color:var(--ws-ink-70); border-bottom:0; }
+.sumrow--under span:last-child { color:var(--ws-ink-70); }
 .unit__meta { display:flex; flex-wrap:wrap; gap:6px; margin:0; padding:0; list-style:none; }
 .unit__meta li {
   font-size:11px; letter-spacing:.1em; text-transform:uppercase; line-height:1;
@@ -389,6 +392,7 @@ p { margin:0 0 20px; max-width:66ch; }
 .unit__status { font-size:13px; color:var(--ws-ink-40); letter-spacing:.06em; text-transform:uppercase; }
 .unit.is-selected { border-color:var(--accent); box-shadow:inset 3px 0 0 var(--accent); }
 .unit.is-unavailable { opacity:.55; }
+.unit.is-unavailable .unit__img img { filter:grayscale(1); }
 .unit.is-unavailable:hover { border-color:var(--border-subtle); }
 @media (max-width:640px) {
   .unit { grid-template-columns:1fr; }
