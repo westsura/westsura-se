@@ -49,7 +49,7 @@ export const img = {
   paketKanotDag: wp + "Div.-mallar-600-x-400-px3.jpg",
   paketKanotKvall: wp + "Div.-mallar-600-x-400-px4.jpg",
   paketGlod: wp + "Laga-mat-utomus-i-Westsura-1.jpg",
-  paketGolf: wp + "4.jpg",
+  paketGolf: wp + "Sura-GK.png",
   eld: wp + "Mat-over-oppen-eld-wetsura-herrgard.jpg",
 };
 

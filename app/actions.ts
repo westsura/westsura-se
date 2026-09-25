@@ -71,10 +71,10 @@ export async function skapaBokning(fd: FormData): Promise<Svar<{ nummer: number;
 }
 
 /* ---------- Paket ---------- */
-export type Paketpris = { paket_belopp: number; boende_belopp: number; bricka_belopp: number; summa: number; avresa: string; natter_totalt: number; betalda_natter: number };
+export type Paketpris = { paket_belopp: number; boende_belopp: number; bricka_belopp: number; frukost_belopp: number; summa: number; avresa: string; natter_totalt: number; betalda_natter: number };
 
-export async function hamtaPaketpris(paket: string, enheter: string[], ankomst: string, natter: number, personer: number, bricka: boolean): Promise<Svar<Paketpris>> {
-  const { data, error } = await supabasePublik().rpc("paketpris", { p_paket: paket, p_enheter: enheter.length ? enheter : null, p_ankomst: ankomst, p_natter: natter, p_personer: personer, p_bricka: bricka });
+export async function hamtaPaketpris(paket: string, enheter: string[], ankomst: string, natter: number, personer: number, bricka: boolean, frukost = false): Promise<Svar<Paketpris>> {
+  const { data, error } = await supabasePublik().rpc("paketpris", { p_paket: paket, p_enheter: enheter.length ? enheter : null, p_ankomst: ankomst, p_natter: natter, p_personer: personer, p_bricka: bricka, p_frukost: frukost });
   if (error) return { ok: false, fel: error.message };
   return { ok: true, data: (data as Paketpris[])[0] };
 }
@@ -90,6 +90,7 @@ export async function skapaPaketbokning(fd: FormData): Promise<Svar<{ nummer: nu
     p_paket: paket, p_enheter: enheter.length ? enheter : null, p_ankomst: ankomst,
     p_natter: Number(s(fd.get("natter")) || 0), p_personer: Number(s(fd.get("personer")) || 2), p_bricka: s(fd.get("bricka")) === "1",
     p_namn: namn, p_epost: epost, p_telefon: telefon, p_hundar: s(fd.get("hund")) === "1" ? 1 : 0, p_meddelande: s(fd.get("meddelande")) || null,
+    p_frukost: s(fd.get("frukost")) === "1",
   });
   if (error) {
     const msg = /inte längre ledig/.test(error.message) ? "Någon hann före — ett av rummen är inte längre ledigt. Välj ett annat." : error.message;
@@ -108,7 +109,7 @@ export async function skapaPaketbokning(fd: FormData): Promise<Svar<{ nummer: nu
     await mejlBokning({
       epost, namn, nummer: rad.nummer, ankomst, avresa: b?.avresa ?? ankomst,
       enheter: [`${pk?.namn ?? paket} · ${s(fd.get("personer")) || 2} personer`, ...((namnrader ?? []) as { namn: string }[]).map((r) => r.namn)],
-      summa: rad.summa, hundar: s(fd.get("hund")) === "1" ? 1 : 0, frukost: false, bricka: s(fd.get("bricka")) === "1",
+      summa: rad.summa, hundar: s(fd.get("hund")) === "1" ? 1 : 0, frukost: s(fd.get("frukost")) === "1", bricka: s(fd.get("bricka")) === "1",
     });
   } catch (e) { console.error("mejl misslyckades", e); }
   revalidatePath("/admin/bokningar"); revalidatePath("/admin");

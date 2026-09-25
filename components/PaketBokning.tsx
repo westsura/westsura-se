@@ -24,6 +24,8 @@ export default function PaketBokning({ paket, enheter }: Props) {
   const [extra, setExtra] = useState(0);
   const [valda, setValda] = useState<string[]>([]);
   const [bricka, setBricka] = useState(false);
+  const [frukost, setFrukost] = useState(false);
+  const [lasMer, setLasMer] = useState<"frukost" | "bricka" | null>(null);
   const [hund, setHund] = useState(false);
   const [ledig, setLedig] = useState<Record<string, boolean>>({});
   const [pris, setPris] = useState<Paketpris | null>(null);
@@ -54,9 +56,9 @@ export default function PaketBokning({ paket, enheter }: Props) {
   useEffect(() => {
     if (!oppen) return;
     let aktiv = true;
-    hamtaPaketpris(paket.id, natterTotalt > 0 ? valda : [], ankomst, betalda, personer, bricka && natterTotalt > 0).then((r) => { if (aktiv && r.ok) setPris(r.data); });
+    hamtaPaketpris(paket.id, natterTotalt > 0 ? valda : [], ankomst, betalda, personer, bricka && natterTotalt > 0, frukost && betalda > 0).then((r) => { if (aktiv && r.ok) setPris(r.data); });
     return () => { aktiv = false; };
-  }, [oppen, paket.id, valda, ankomst, betalda, personer, bricka, natterTotalt]);
+  }, [oppen, paket.id, valda, ankomst, betalda, personer, bricka, frukost, natterTotalt]);
 
   const toggla = (id: string) => setValda((v) => v.includes(id) ? v.filter((x) => x !== id) : [...v, id]);
   const krockar = (e: PaketEnhet) =>
@@ -70,7 +72,7 @@ export default function PaketBokning({ paket, enheter }: Props) {
     const fd = new FormData(ev.currentTarget);
     fd.set("paket", paket.id); fd.set("ankomst", ankomst); fd.set("personer", String(personer));
     fd.set("natter", String(betalda)); fd.set("enheter", behoverRum ? valda.join(",") : "");
-    fd.set("bricka", bricka && behoverRum ? "1" : "0"); fd.set("hund", hund ? "1" : "0");
+    fd.set("bricka", bricka && behoverRum ? "1" : "0"); fd.set("frukost", frukost && betalda > 0 ? "1" : "0"); fd.set("hund", hund ? "1" : "0");
     setFel(null);
     start(async () => {
       const r = await skapaPaketbokning(fd);
@@ -139,10 +141,25 @@ export default function PaketBokning({ paket, enheter }: Props) {
           </div>
           {valda.length > 0 && baddar < personer && <p className="notice notice--fel">De valda rummen har {baddar} bäddar — välj fler för {personer} personer.</p>}
 
-          <label className="checkfield checkfield--bare paketbok__rad" htmlFor={`pb-br-${paket.id}`}>
-            <input id={`pb-br-${paket.id}`} type="checkbox" checked={bricka} onChange={(e) => setBricka(e.target.checked)} />
-            <span>Västmanländsk välkomstbricka på rummet, 249&nbsp;kr per person — charkuterier och delikatesser från lokala producenter, med alkoholfritt bubbel från Köpings Musteri.</span>
-          </label>
+          <p className="label paketbok__rubrik">Tillval</p>
+          {betalda > 0 ? (
+            <div className="tillval">
+              <label className="checkfield checkfield--bare checkfield--top" htmlFor={`pb-fr-${paket.id}`}>
+                <input id={`pb-fr-${paket.id}`} type="checkbox" checked={frukost} onChange={(e) => setFrukost(e.target.checked)} />
+                <span>Frukostkorg{paket.ingarNatt ? " även de extra nätterna" : ""}, 95&nbsp;kr per person och natt</span>
+              </label>
+              <button type="button" className="linkbtn tillval__mer" aria-expanded={lasMer === "frukost"} onClick={() => setLasMer(lasMer === "frukost" ? null : "frukost")}>{lasMer === "frukost" ? "Dölj" : "Läs mer"}</button>
+              {lasMer === "frukost" && <p className="hint tillval__text">En frukostkorg med lokala råvaror levereras till boendet på morgonen, så att ni kan börja dagen i lugn och ro. Utbudet varierar efter årstid.{paket.ingarNatt ? " Första morgonen ingår den redan i paketet." : ""}</p>}
+            </div>
+          ) : paket.ingarNatt ? <p className="hint">Frukostkorgen ingår i paketet. Stannar ni längre kan ni välja till den även de extra nätterna.</p> : null}
+          <div className="tillval">
+            <label className="checkfield checkfield--bare checkfield--top" htmlFor={`pb-br-${paket.id}`}>
+              <input id={`pb-br-${paket.id}`} type="checkbox" checked={bricka} onChange={(e) => setBricka(e.target.checked)} />
+              <span>Västmanländsk välkomstbricka, 249&nbsp;kr per person</span>
+            </label>
+            <button type="button" className="linkbtn tillval__mer" aria-expanded={lasMer === "bricka"} onClick={() => setLasMer(lasMer === "bricka" ? null : "bricka")}>{lasMer === "bricka" ? "Dölj" : "Läs mer"}</button>
+            {lasMer === "bricka" && <p className="hint tillval__text">En smakfull välkomsthälsning på rummet med utvalda charkuterier och andra delikatesser från lokala producenter i Västmanland, tillsammans med alkoholfritt bubbel från Köpings Musteri.</p>}
+          </div>
         </>
       )}
 
@@ -155,6 +172,7 @@ export default function PaketBokning({ paket, enheter }: Props) {
         <div className="paketbok__summa">
           <div className="sumrow"><span>{paket.namn} · {personer} pers.</span><span>{kr(pris.paket_belopp)}</span></div>
           {pris.boende_belopp > 0 && <div className="sumrow"><span>{paket.ingarNatt ? "Extra" : "Boende"} · {pris.betalda_natter} {pris.betalda_natter === 1 ? "natt" : "nätter"}</span><span>{kr(pris.boende_belopp)}</span></div>}
+          {pris.frukost_belopp > 0 && <div className="sumrow"><span>Frukostkorg · {pris.betalda_natter} {pris.betalda_natter === 1 ? "natt" : "nätter"}</span><span>{kr(pris.frukost_belopp)}</span></div>}
           {pris.bricka_belopp > 0 && <div className="sumrow"><span>Välkomstbricka</span><span>{kr(pris.bricka_belopp)}</span></div>}
           <div className="sumrow sumrow--total"><span>Totalt</span><span>{kr(pris.summa)}</span></div>
         </div>

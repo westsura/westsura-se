@@ -195,6 +195,11 @@ export async function skapaUnderlagFranBokning(bokningId: string): Promise<{ ok:
     fr.push({ beskrivning: `${e?.namn ?? "Boende"}, ${b.paket_id ? "extra nätter" : period}`, antal: r.natter, enhet: "natt", a_pris: r.pris_per_natt, moms: 12 });
   }
   let delsumma = fr.reduce((a, r) => a + r.antal * r.a_pris, 0);
+  if (b.frukost && b.paket_id) {
+    // I paket gäller frukosttillvalet bara de extra nätterna.
+    const n = (b.paket_personer ?? b.antal_personer) * ((rader ?? [])[0]?.natter ?? 0);
+    if (n > 0) { fr.push({ beskrivning: "Frukostkorg, extra nätter", antal: n, enhet: "st", a_pris: FRUKOST_PRIS, moms: 12 }); delsumma += n * FRUKOST_PRIS; }
+  }
   if (b.frukost && !b.paket_id) { const n = b.antal_personer * natter; fr.push({ beskrivning: "Frukostkorg", antal: n, enhet: "st", a_pris: FRUKOST_PRIS, moms: 12 }); delsumma += n * FRUKOST_PRIS; }
   if (b.valkomstbricka) { const n = Math.max(1, b.antal_personer); fr.push({ beskrivning: "Västmanländsk välkomstbricka", antal: n, enhet: "st", a_pris: BRICKA_PRIS, moms: 12 }); delsumma += n * BRICKA_PRIS; }
   const rabatt = delsumma - b.summa;
