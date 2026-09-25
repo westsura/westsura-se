@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin, supabasePublik } from "@/lib/supabase";
-import { mejlBokning, mejlForfragan, mejlAnmalan, mejlMedlemsansokan, mejlJagarkonto, mejlVakOnskad } from "@/lib/epost";
+import { mejlBokning, mejlForfragan, mejlAnmalan, mejlMedlemsansokan, mejlJagarkonto, mejlVakOnskad, mejlVanValkommen } from "@/lib/epost";
 import { inloggningForNyttKonto } from "@/lib/konto";
+import { avanmalLank, giltigToken } from "@/lib/avanmal";
 
 export type Svar<T = undefined> = { ok: true; data: T } | { ok: false; fel: string };
 
@@ -246,7 +247,29 @@ export async function anmalVan(fd: FormData): Promise<Svar> {
   const namn = s(fd.get("namn")), epost = s(fd.get("epost")).toLowerCase();
   if (!epost.includes("@")) return { ok: false, fel: "Ange en giltig e-postadress." };
   const db = supabaseAdmin();
+  // Välkomstmejl bara till nya vänner, eller till den som avslutat och kommer tillbaka.
+  const { data: fanns } = await db.from("van").select("avanmald_tid").eq("epost", epost).maybeSingle();
   const { error } = await db.from("van").upsert({ namn: namn || null, epost, kalla: s(fd.get("kalla")) || "webb", avanmald_tid: null }, { onConflict: "epost" });
+  if (error) return { ok: false, fel: error.message };
+  if (!fanns || fanns.avanmald_tid) {
+    try {
+      const { data: k } = await db.from("rabattkod").select("kod, typ, varde").eq("kod", "VANNER10").eq("aktiv", true).maybeSingle();
+      await mejlVanValkommen({
+        epost, namn: namn || null,
+        kod: k?.kod ?? "VANNER10",
+        rabatt: k ? (k.typ === "procent" ? `${k.varde} % rabatt` : `${k.varde} kr rabatt`) : "10 % rabatt",
+        avsluta: avanmalLank(epost),
+      });
+    } catch (e) { console.error("välkomstmejl misslyckades", e); }
+  }
+  return { ok: true, data: undefined };
+}
+
+/** Avslutar prenumerationen från länken i mejlet. */
+export async function avslutaVan(epost: string, token: string): Promise<Svar> {
+  const e = epost.trim().toLowerCase();
+  if (!e.includes("@") || !giltigToken(e, token)) return { ok: false, fel: "Länken fungerar inte. Hör av dig så hjälper vi dig." };
+  const { error } = await supabaseAdmin().from("van").update({ avanmald_tid: new Date().toISOString() }).eq("epost", e);
   if (error) return { ok: false, fel: error.message };
   return { ok: true, data: undefined };
 }
