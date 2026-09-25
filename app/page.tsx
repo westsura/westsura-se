@@ -88,14 +88,14 @@ export default function Home() {
               <p>Dagskonferens för upp till 25 personer, med lunch och fika på säsongens råvaror. 700 kr per person.</p>
               <span className="link-more">Boka konferens →</span>
             </Link>
-            <Link className="cat" href="/paket">
+            <Link className="cat" href="/event">
               <div className="cat__img fig">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.eld} alt="Mat som lagas över öppen eld vid herrgården" loading="lazy" />
+                <img src={img.skal} alt="Två glas som skålar vid bordet på Westsura Herrgård" loading="lazy" />
               </div>
-              <h3>Paket</h3>
-              <p>Färdiga upplevelser: kanot på Strömsholms kanal, matlagning över öppen eld och golf i trakten — med en natt i flyglarna.</p>
-              <span className="link-more">Se paketen →</span>
+              <h3>Event</h3>
+              <p>Bröllop, födelsedagar, föreningsluncher och minnesstunder i salongerna eller trädgårdens tält.</p>
+              <span className="link-more">Skicka förfrågan →</span>
             </Link>
             <Link className="cat" href="/jakt">
               <div className="cat__img fig">
@@ -109,18 +109,19 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FIRA HOS OSS */}
-      <section className="section" id="fira">
+      {/* PAKET */}
+      <section className="section" id="paket">
         <div className="container split">
           <div className="fig fig--43">
-            <Image src="/bilder/fest.jpg" alt="Dukat bord med glas inför festen på herrgården" fill sizes="(max-width: 860px) 100vw, 50vw" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={img.eld} alt="Mat som lagas över öppen eld vid herrgården" loading="lazy" />
           </div>
           <div>
-            <p className="label">Fira hos oss</p>
-            <h2 className="lower">bröllop, fest och sällskap</h2>
-            <p>Bröllopet i salongerna eller i tältet i trädgården. Födelsedagen med hela släkten. Föreningens lunch, årsmötet, minnesstunden. Herrgården rymmer sällskapet — sexton bäddar om ni vill stanna över natten.</p>
-            <p>Varje arrangemang planeras i dialog med er. Berätta vad ni tänker er, så hör vi av oss med ett förslag.</p>
-            <CtaRow />
+            <p className="label">Paket & erbjudanden</p>
+            <h2 className="lower">upplevelser att längta till</h2>
+            <p>Paddla Strömsholms kanal en dag eller en kväll, spela golf på Surahammars GK, eller laga mat över öppen eld i den gamla ruinen. Färdiga paket som kombinerar herrgårdsboendet med naturen, maten och trakten runtomkring.</p>
+            <p>Boka paketet direkt — och stanna gärna en natt till.</p>
+            <CtaRow primaryHref="/paket" primaryLabel="Se paketen" />
           </div>
         </div>
       </section>
