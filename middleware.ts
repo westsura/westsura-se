@@ -3,6 +3,17 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 /** Håller admin-sessionen vid liv och skickar utloggade till inloggningen. */
 export async function middleware(req: NextRequest) {
+  // Gamla WordPress-adresser med stor bokstav (/Konferens) → /konferens.
+  // Görs här och inte i next.config, där matchningen inte skiljer på stora och små bokstäver.
+  const sokvag = req.nextUrl.pathname.replace(/\/$/, "");
+  if (STORA.includes(sokvag.slice(1).toLowerCase())) {
+    if (sokvag !== sokvag.toLowerCase()) {
+      const url = req.nextUrl.clone(); url.pathname = sokvag.toLowerCase();
+      return NextResponse.redirect(url, 308);
+    }
+    return NextResponse.next();
+  }
+
   let res = NextResponse.next({ request: req });
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return res;
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
@@ -46,4 +57,11 @@ export async function middleware(req: NextRequest) {
   return res;
 }
 
-export const config = { matcher: ["/admin/:path*", "/jaktklubb/medlem/:path*", "/jaktklubb/login"] };
+const STORA = ["konferens", "boende", "jakt", "event", "paket", "kontakt", "om-oss", "brollop", "hundar"];
+
+export const config = {
+  matcher: [
+    "/admin/:path*", "/jaktklubb/medlem/:path*", "/jaktklubb/login",
+    "/konferens", "/boende", "/jakt", "/event", "/paket", "/kontakt", "/om-oss", "/brollop", "/hundar",
+  ],
+};

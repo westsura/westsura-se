@@ -24,8 +24,8 @@ const nextConfig: NextConfig = {
       { source: "/golfpaket", destination: "/paket", permanent: true },
       // Jaktklubbens sida hette /jaktklubben fram till september 2026.
       { source: "/jaktklubben", destination: "/jaktklubb", permanent: true },
-      // Gamla WordPress-adresser som Google har indexerat, stavade med stor bokstav.
-      ...["Konferens", "Boende", "Jakt", "Event", "Paket", "Kontakt", "Om-oss", "Om-Oss", "Brollop", "Hundar"].map((s) => ({ source: `/${s}`, destination: `/${s.toLowerCase()}`, permanent: true })),
+      // Gamla adresser med stor bokstav (/Konferens) hanteras i middleware.ts —
+      // här skulle de matcha även /konferens och ge en oändlig omdirigering.
       // WordPress egna sidor: författare, kategorier, taggar, flöden och inloggning.
       { source: "/author/:slug*", destination: "/om-oss", permanent: true },
       { source: "/category/:slug*", destination: "/", permanent: true },
