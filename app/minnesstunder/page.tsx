@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Landing from "@/components/Landing";
 
 export const metadata: Metadata = {
-  title: "Minnesstund i lugn herrgårdsmiljö — Surahammar, Västmanland",
+  title: "Minnesstund i herrgårdsmiljö, Surahammar",
   description:
     "Boka minnesstund efter begravningen på Westsura Herrgård i Surahammar. Stillsamma salonger, kaffe och lättare måltid, omtanke om detaljerna. Lokal för minnesstund i Västmanland.",
   alternates: { canonical: "/minnesstunder" },

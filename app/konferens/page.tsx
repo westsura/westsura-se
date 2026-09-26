@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Landing from "@/components/Landing";
 
 export const metadata: Metadata = {
-  title: "Konferens på herrgård i Västmanland — dagskonferens 700 kr/person",
+  title: "Dagskonferens på herrgård i Västmanland",
   description:
     "Boka dagskonferens på Westsura Herrgård i Surahammar, tre mil från Västerås. Konferenslokal för upp till 25 personer, förmiddagsfika, lunch och eftermiddagsfika på lokala råvaror. 700 kr per person exkl. moms.",
   alternates: { canonical: "/konferens" },

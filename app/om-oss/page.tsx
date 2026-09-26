@@ -5,7 +5,7 @@ import Timeline, { type Epok } from "@/components/Timeline";
 import { img } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Om oss — herrgårdens historia från 1354 och vår vision",
+  title: "Om oss — herrgårdens historia sedan 1354",
   description:
     "Westsura Herrgård i Surahammar: säteri på 1600-talet, kungligt jaktbesök 1687, skogsinstitut, skola och sedan 2024 en levande herrgårdsdestination. Läs hela historien och visionen.",
   alternates: { canonical: "/om-oss" },

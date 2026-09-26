@@ -6,7 +6,7 @@ import InquiryForm from "@/components/InquiryForm";
 import { img } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Fira hos oss — bröllop, fest och sällskap i herrgårdsmiljö",
+  title: "Bröllop, fest och event på herrgård",
   description:
     "Bröllop, födelsedagar, föreningsluncher och minnesstunder på Westsura Herrgård i Surahammar, Västmanland. Salonger med historisk karaktär, tält i trädgården och sexton bäddar för övernattning.",
   alternates: { canonical: "/event" },

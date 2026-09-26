@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import SearchBar from "@/components/SearchBar";
@@ -5,6 +6,8 @@ import Signup from "@/components/Signup";
 import Galleri from "@/components/Galleri";
 import { Hero, Kung, DogBand, CtaRow, Ornament } from "@/components/Blocks";
 import { img } from "@/lib/site";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default function Home() {
   return (

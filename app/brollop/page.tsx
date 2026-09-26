@@ -3,7 +3,7 @@ import Landing from "@/components/Landing";
 import { img } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Bröllop på herrgård i Västmanland — Westsura Herrgård",
+  title: "Bröllop på herrgård i Västmanland",
   description:
     "Gift er på Westsura Herrgård i Surahammar — bröllopslokal i Västmanland nära Västerås. Vigsel och fest i salongerna från 1760 eller i tält i trädgården, med sexton bäddar för gästerna.",
   alternates: { canonical: "/brollop" },

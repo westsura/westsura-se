@@ -100,6 +100,9 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
   const synliga = vanliga.filter((e) => !e.ingar_i || visaDelrum);
   const antalLediga = vanliga.filter((e) => !e.ingar_i && ledig[e.id]).length;
   const summa = pris?.[0]?.summa ?? 0;
+  const gaster = Number(q.guests) || 2;
+  const baddar = Array.from(valda).reduce((n, id) => n + (enheter.find((e) => e.id === id)?.baddar ?? 0), 0);
+  const forFaBaddar = valda.size > 0 && baddar < gaster;
 
   /* Lägsta nattpris per rum för de sökta datumen (prisregler inräknade) — till "från X kr" på korten. */
   const franPris = (e: Enhet) => {
@@ -278,8 +281,9 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                   <input type="text" id="kod" placeholder="Har du fått en kod? Skriv den här" value={kod} onChange={(e) => setKod(e.target.value)} autoComplete="off" />
                 </div>
 
+                {forFaBaddar && <p className="notice notice--fel" role="alert">De valda rummen har {baddar} bäddar. Välj fler rum för {gaster} gäster.</p>}
                 {steg === "valj" ? (
-                  <button className="btn btn--block" type="button" disabled={valda.size === 0 || !pris} onClick={gaVidare}>Gå vidare till bokning</button>
+                  <button className="btn btn--block" type="button" disabled={valda.size === 0 || !pris || forFaBaddar} onClick={gaVidare}>Gå vidare till bokning</button>
                 ) : (
                   <form onSubmit={boka} className="form form--1">
                     <div className="field"><label htmlFor="b-namn">Namn</label><input id="b-namn" name="namn" required autoComplete="name" /></div>
@@ -308,7 +312,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
             <small>{helaVald ? "Hela boendet" : `${valda.size} ${valda.size === 1 ? "enhet vald" : "enheter valda"}`} · {n} {n === 1 ? "natt" : "nätter"}</small>
             <strong>{pris ? kr(summa) : "Räknar…"}</strong>
           </div>
-          <button className="btn" type="button" disabled={!pris} onClick={gaVidare}>Gå vidare →</button>
+          <button className="btn" type="button" disabled={!pris || forFaBaddar} onClick={gaVidare}>{forFaBaddar ? "Välj fler rum" : "Gå vidare →"}</button>
         </div>
       </div>
     </section>

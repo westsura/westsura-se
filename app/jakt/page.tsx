@@ -11,7 +11,7 @@ import { supabasePublik } from "@/lib/supabase";
 export const metadata: Metadata = {
   title: "Jakt, jaktkurser och jakthundsträning i Västmanland",
   description:
-    "Jakt på Westsura Herrgård i Surahammar: skogsfågel, fältfågel, rådjur och älg in på knuten. Boka enstaka jakttillfällen, jaktkurser och träningsdagar för fågelhundar. Marker med tradition sedan Karl XI:s björnjakt 1687, boende och mat på herrgården. Sluten jaktklubb för medlemmar.",
+    "Jakt i Surahammar: drevjakt, vak och pyrsch, jaktkurser och träning för fågelhundar på herrgårdens marker — med boende och mat. Jaktklubb för medlemmar.",
   alternates: { canonical: "/jakt" },
 };
 

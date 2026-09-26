@@ -49,6 +49,11 @@ export async function skapaBokning(fd: FormData): Promise<Svar<{ nummer: number;
   if (!namn || !epost.includes("@")) return { ok: false, fel: "Fyll i namn och en giltig e-postadress." };
 
   const db = supabaseAdmin();
+  // Fler gäster än bäddar går inte att boka från sajten (admin kan boka manuellt vid behov).
+  const personer = Number(s(fd.get("personer")) || 2);
+  const { data: baddrad } = await db.from("enhet").select("baddar").in("id", enheter);
+  const baddar = ((baddrad ?? []) as { baddar: number }[]).reduce((n, r) => n + r.baddar, 0);
+  if (baddar < personer) return { ok: false, fel: `De valda rummen har ${baddar} bäddar. Välj fler rum för ${personer} gäster.` };
   const { data, error } = await db.rpc("skapa_bokning", {
     p_enheter: enheter, p_ankomst: ankomst, p_avresa: avresa,
     p_namn: namn, p_epost: epost, p_telefon: telefon,

@@ -13,12 +13,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/event", priority: 0.8, freq: "monthly" },
     { path: "/hundar", priority: 0.7, freq: "monthly" },
     { path: "/jakt", priority: 0.7, freq: "monthly" },
+    { path: "/jaktklubb", priority: 0.6, freq: "monthly" },
     { path: "/paket", priority: 0.7, freq: "monthly" },
     { path: "/hostdag", priority: 0.6, freq: "weekly" },
     { path: "/om-oss", priority: 0.5, freq: "yearly" },
     { path: "/goda-grannar", priority: 0.5, freq: "monthly" },
     { path: "/kontakt", priority: 0.5, freq: "yearly" },
     { path: "/villkor", priority: 0.2, freq: "yearly" },
+    { path: "/integritetspolicy", priority: 0.1, freq: "yearly" },
   ];
   return pages.map((p) => ({ url: site.url + p.path, lastModified: now, changeFrequency: p.freq, priority: p.priority }));
 }

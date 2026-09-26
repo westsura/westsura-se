@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Hero } from "@/components/Blocks";
 
 export const metadata: Metadata = {
-  title: "Hundvänligt boende i Västmanland — hundar välkomna i alla rum",
+  title: "Hundvänligt boende i Västmanland",
   description: "Hundvänlig herrgård i Surahammar, Västmanland. Hunden är välkommen i samtliga gästrum utan tillägg, och även vid fest och evenemang. Läs våra riktlinjer för en trivsam vistelse.",
   alternates: { canonical: "/hundar" },
 };

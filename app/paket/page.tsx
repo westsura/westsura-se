@@ -5,7 +5,7 @@ import { img, site } from "@/lib/site";
 import { supabasePublik } from "@/lib/supabase";
 
 export const metadata: Metadata = {
-  title: "Paket & erbjudanden — kanot, golf och matlagning över öppen eld",
+  title: "Paket — kanot, golf och mat över öppen eld",
   description:
     "Färdiga paket på Westsura Herrgård: kanotpaddling på Strömsholms kanal med övernattning, golfpaket med Surahammars GK, och matlagning över öppen eld. Herrgårdsboende i Västmanland.",
   alternates: { canonical: "/paket" },

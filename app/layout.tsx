@@ -20,7 +20,9 @@ export const metadata: Metadata = {
   title: { default: "Westsura Herrgård — en levande herrgårdsdestination i Västmanland", template: "%s | Westsura Herrgård" },
   description:
     "Historisk herrgård från 1680 i Surahammar. Boende i flyglarna, dagskonferens, bröllop och fest, jakt och jakthundsträning. Hunden är välkommen i alla rum.",
-  openGraph: { type: "website", locale: "sv_SE", siteName: site.name },
+  // Delningsbild när en sida länkas i sociala medier eller meddelanden.
+  openGraph: { type: "website", locale: "sv_SE", siteName: site.name, images: [{ url: "/bilder/matsal.jpg", width: 1067, height: 1600, alt: "Matsalen på Westsura Herrgård" }] },
+  twitter: { card: "summary_large_image" },
   robots: indexera ? { index: true, follow: true } : { index: false, follow: false, nocache: true },
 };
 
@@ -39,6 +41,11 @@ const orgJsonLd = {
     addressRegion: site.address.region,
     addressCountry: "SE",
   },
+  image: site.url + "/bilder/matsal.jpg",
+  logo: site.url + "/bilder/logo-lockup-gron.png",
+  priceRange: "1 050–8 400 kr per natt",
+  currenciesAccepted: "SEK",
+  numberOfRooms: 8,
   petsAllowed: true,
   checkinTime: "15:00",
   checkoutTime: "11:00",

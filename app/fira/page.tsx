@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Landing from "@/components/Landing";
 
 export const metadata: Metadata = {
-  title: "Fira födelsedag, jubileum eller föreningens lunch på herrgård",
+  title: "Födelsedag, jubileum och föreningslunch",
   description:
     "Fira hos oss på Westsura Herrgård i Surahammar: födelsedagar, jubileum, släktträffar och luncher för föreningar och sällskap. Lokal med plats för gemenskap i Västmanland, tre mil från Västerås.",
   alternates: { canonical: "/fira" },
