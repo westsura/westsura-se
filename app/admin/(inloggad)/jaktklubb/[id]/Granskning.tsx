@@ -13,7 +13,10 @@ export default function Granskning({ namn, typ, d, forslagGiltigTill }: { namn: 
   const [fel, setFel] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const router = useRouter();
-  const status = d?.status ?? "saknas";
+  // Jaktkort och älgskyttemärke gäller ett jaktår; ett utgånget godkännande visas som saknat.
+  const arsvis = typ === "jaktkort" || typ === "algskyttemarke";
+  const utgangen = d?.status === "godkand" && !!d.giltig_till && d.giltig_till < new Date().toISOString().slice(0, 10);
+  const status = utgangen ? "saknas" : d?.status ?? "saknas";
 
   const oppna = () => start(async () => {
     setFel(null);
@@ -23,7 +26,7 @@ export default function Granskning({ namn, typ, d, forslagGiltigTill }: { namn: 
 
   const granska = (godkand: boolean) => start(async () => {
     setFel(null);
-    const r = await granskaDokument(d!.id, godkand, godkand && typ === "jaktkort" ? giltig : null, godkand ? null : kommentar);
+    const r = await granskaDokument(d!.id, godkand, godkand && arsvis ? giltig : null, godkand ? null : kommentar);
     if (r.ok) { setVisaKommentar(false); router.refresh(); } else setFel(r.fel ?? "Något gick fel.");
   });
 
@@ -44,12 +47,12 @@ export default function Granskning({ namn, typ, d, forslagGiltigTill }: { namn: 
         )}
       </span>
       <span className="row__meta">
-        {d?.giltig_till ? `t.o.m. ${d.giltig_till} · ` : ""}
-        <span className={`pill pill--${status}`}>{DOKUMENTSTATUS[status]}</span>
+        {d?.giltig_till ? `${utgangen ? "gällde" : ""} t.o.m. ${d.giltig_till} · ` : ""}
+        <span className={`pill pill--${status}`}>{utgangen ? "Utgånget" : DOKUMENTSTATUS[status]}</span>
         {d && (
           <span className="admin__actions" style={{ marginTop: 8, justifyContent: "flex-end" }}>
             <button className="btn btn--sm btn--ghost" type="button" disabled={pending} onClick={oppna}>Öppna</button>
-            {typ === "jaktkort" && status !== "godkand" && (
+            {arsvis && status !== "godkand" && (
               <input type="date" value={giltig} onChange={(e) => setGiltig(e.target.value)} disabled={pending} title="Giltigt till och med" />
             )}
             {status !== "godkand" && <button className="btn btn--sm" type="button" disabled={pending} onClick={() => granska(true)}>Godkänn</button>}

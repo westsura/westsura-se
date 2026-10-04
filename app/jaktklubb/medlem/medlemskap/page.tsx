@@ -4,6 +4,7 @@ import { kravMedlem, kursStatus, arMedlem } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
 import { kr } from "@/lib/faktura";
 import { DOKUMENT, sasongKort } from "../delar";
+import { kottlage } from "@/lib/kott";
 import Uppladdning from "./Uppladdning";
 import LoggaUt from "./LoggaUt";
 
@@ -15,6 +16,8 @@ type Dokument = { typ: string; status: string; giltig_till: string | null; komme
 /** Vad medlemmen ser om varje dokument. Ett saknat dokument har ingen rad alls. */
 function besked(d?: Dokument) {
   if (!d) return { text: "Saknas — ladda upp", klass: "saknas" };
+  // Jaktkort och älgskyttemärke gäller ett jaktår i taget: efter giltighetsdatumet laddas ett nytt upp.
+  if (d.status === "godkand" && d.giltig_till && d.giltig_till < new Date().toISOString().slice(0, 10)) return { text: `Gällde t.o.m. ${d.giltig_till} — ladda upp för det nya jaktåret`, klass: "saknas" };
   if (d.status === "godkand") return { text: d.giltig_till ? `Godkänd t.o.m. ${d.giltig_till}` : "Godkänd", klass: "godkand" };
   if (d.status === "underkand") return { text: `Underkänd${d.kommentar ? ` — ${d.kommentar}` : ""}`, klass: "underkand" };
   return { text: "Inskickad, väntar på granskning", klass: "inskickad" };
@@ -41,6 +44,11 @@ export default async function Medlemskap() {
 
   const gast = !arMedlem(medlem);
 
+  // Älgkött: hur många av säsongens genomförda älgjakter medlemmen deltagit på.
+  const { data: aktiv } = gast ? { data: null } : await adm.from("jaktsasong").select("fran, till").eq("aktiv", true).maybeSingle();
+  const kott = aktiv ? await kottlage(aktiv) : null;
+  const jag = kott?.deltagare.find((d) => d.id === medlem.id);
+
   return (
     <>
       <header className="jk-valkommen">
@@ -64,6 +72,12 @@ export default async function Medlemskap() {
               <div><dt>Säsong</dt><dd>{sasongKort(sasong?.namn)}</dd></div>
               <div><dt>Status</dt><dd>● Medlemskap aktivt</dd></div>
               <div><dt>Årsavgift</dt><dd>{avgift}</dd></div>
+              {kott && kott.algjakter.length > 0 && (
+                <div><dt>Älgjakter</dt><dd>
+                  Deltagit {jag?.deltagit ?? 0} av {kott.algjakter.length} hittills —{" "}
+                  {jag?.berattigad ? "du får del av älgköttet." : `minst ${kott.kravAntal} behövs för del av älgköttet.`}
+                </dd></div>
+              )}
             </>
           )}
           <div><dt>Säkerhets- &amp; skyttekurs</dt><dd>{kurs.godkand ? `Godkänd ${kurs.datum?.slice(0, 10) ?? ""}` : <Link className="jk-lank" href="/jaktklubb/medlem/sakerhetskurs">Inte genomförd — gör kursen →</Link>}</dd></div>
@@ -72,7 +86,7 @@ export default async function Medlemskap() {
 
       <section className="jk-kort jk-kort--ljus jk-kort--bred">
         <p className="jk-etikett">Dina dokument</p>
-        <p className="jk-lede">Alla tre ska vara godkända före din första jaktdag. Kopiorna ligger i en privat lagringsyta, syns bara för jaktklubbens admin och raderas när {gast ? "kontot" : "medlemskapet"} avslutas.</p>
+        <p className="jk-lede">Alla tre ska vara godkända före din första jaktdag, och jaktkort och älgskyttemärke förnyas varje jaktår (1 juli–30 juni). Kopiorna ligger i en privat lagringsyta, syns bara för jaktklubbens admin och raderas när {gast ? "kontot" : "medlemskapet"} avslutas.</p>
         {DOKUMENT.map((d) => {
           const b = besked(dok(d.typ));
           return (

@@ -7,7 +7,7 @@ import Underlag from "./Underlag";
 export const dynamic = "force-dynamic";
 
 export default async function UnderlagSida({ params }: { params: Promise<{ id: string }> }) {
-  await kravAdmin("vardskap");
+  await kravAdmin("ekonomi");
   const { id } = await params;
   const db = await supabaseServer();
   const { data: u } = await db.from("fakturaunderlag_admin").select("*").eq("id", id).maybeSingle();

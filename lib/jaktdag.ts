@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import type { Sat, Pass, Deltagare, Skott, Plats } from "@/lib/avskjutning";
+import { giltigaIdag } from "@/lib/dokument";
 
 export type Jaktdag = {
   tillfalle: { id: string; titel: string; datum: string; tid: string | null; samling: string | null; program: string | null; typ: string; jaktledare_id: string | null; publicerad: boolean };
@@ -29,7 +30,7 @@ export async function hamtaJaktdag(tillfalleId: string): Promise<Jaktdag | null>
   const jagareIds = ((anmalningar ?? []) as { jagare_id: string | null }[]).map((a) => a.jagare_id).filter(Boolean) as string[];
   const [{ data: dokument }, { data: jagare }] = jagareIds.length
     ? await Promise.all([
-        adm.from("medlemsdokument").select("medlem_id").in("medlem_id", jagareIds).eq("status", "godkand"),
+        adm.from("medlemsdokument").select("medlem_id").in("medlem_id", jagareIds).eq("status", "godkand").or(giltigaIdag()),
         adm.from("jaktmedlem").select("id, status, kurs_godkand").in("id", jagareIds),
       ])
     : [{ data: [] }, { data: [] }];

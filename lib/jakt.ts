@@ -7,6 +7,7 @@ export type Medlem = {
   status: string; sasong_id: string | null; niva_id: string | null;
   underlag_id: string | null; kurs_genomford: boolean;
   kurs_godkand: string | null; kurs_version: number | null;
+  ekipage?: string | null; ekipage_status?: string | null;
 };
 
 export type Kursinstallning = { antal_fragor: number; godkant_procent: number; giltighet: "sasong" | "version" | "alltid"; version: number; ingress: string | null };
@@ -65,6 +66,23 @@ export async function kravMedlem(): Promise<Medlem> {
   // Medlemmar och gästjägare har konto; sökande, avslutade och avböjda kommer inte in.
   if (!medlem || (medlem.status !== "godkand" && medlem.status !== "gast")) redirect("/jaktklubb/login?fel=ingen-behorighet");
   return medlem;
+}
+
+/** Rabatt på boendets nätter för godkända hundekipage, i procent. */
+export const EKIPAGE_RABATT = 50;
+
+/**
+ * Är besökaren inloggad som godkänt hundekipage? Ger rabattprocenten, annars 0.
+ * Avgörs alltid här på servern — rabatten kan inte begäras från webbläsaren.
+ */
+export async function ekipageRabatt(): Promise<number> {
+  try {
+    const db = await supabaseServer();
+    const { data: { user } } = await db.auth.getUser();
+    if (!user) return 0;
+    const { data } = await supabaseAdmin().from("jaktmedlem").select("id").eq("anvandare_id", user.id).eq("ekipage_status", "godkand").maybeSingle();
+    return data ? EKIPAGE_RABATT : 0;
+  } catch { return 0; }
 }
 
 /** Gästjägare har konto men inte medlemskap: inga ingående dagar, ingen förtur, inget klubbmaterial. */

@@ -33,6 +33,8 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
   const [lasMer, setLasMer] = useState<"frukost" | "bricka" | null>(null);
   const [kod, setKod] = useState("");
   const [pris, setPris] = useState<Prisrad[] | null>(null);
+  /** Rabattprocent för inloggat, godkänt hundekipage — avgörs på servern. */
+  const [ekipage, setEkipage] = useState(0);
   const [visaDelrum, setVisaDelrum] = useState(false);
   const [steg, setSteg] = useState<"valj" | "uppgifter" | "klar">("valj");
   const [fel, setFel] = useState<string | null>(null);
@@ -82,7 +84,7 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
   useEffect(() => {
     if (valda.size === 0) { setPris(null); return; }
     let aktiv = true;
-    hamtaPris(Array.from(valda), q.in, q.out, frukost, Number(q.guests) || 2, kod, bricka).then((r) => { if (aktiv && r.ok) setPris(r.data); });
+    hamtaPris(Array.from(valda), q.in, q.out, frukost, Number(q.guests) || 2, kod, bricka).then((r) => { if (aktiv && r.ok) { setPris(r.data); setEkipage(r.ekipage); } });
     return () => { aktiv = false; };
   }, [valda, q.in, q.out, q.guests, frukost, bricka, kod]);
 
@@ -133,11 +135,12 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
     if (pris[0].frukost_belopp) r.push({ t: `Frukostkorg · ${q.guests} pers.`, v: kr(pris[0].frukost_belopp) });
     if (pris[0].bricka_belopp) r.push({ t: `Välkomstbricka · ${q.guests} pers.`, v: kr(pris[0].bricka_belopp) });
     if (q.dog) r.push({ t: "Hund i rummet", v: "Ingen avgift" });
-    if (pris[0].rabatt) r.push({ t: "Rabattkod", v: "−" + kr(pris[0].rabatt), rabatt: true });
+    if (ekipage && pris[0].rabatt) r.push({ t: `Hundförarrabatt ${ekipage} % på boendet`, v: "−" + kr(pris[0].rabatt), rabatt: true });
+    else if (pris[0].rabatt) r.push({ t: "Rabattkod", v: "−" + kr(pris[0].rabatt), rabatt: true });
     else if (kod.trim().length > 2) r.push({ t: "Koden känns inte igen", v: "—", rabatt: true });
     return r;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pris, q.dog, q.guests, kod, enheter, nattpris]);
+  }, [pris, q.dog, q.guests, kod, enheter, nattpris, ekipage]);
 
   function boka(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -276,10 +279,14 @@ export default function Booking({ enheter }: { enheter: Enhet[] }) {
                   <button type="button" className="linkbtn tillval__mer" aria-expanded={lasMer === "bricka"} onClick={() => setLasMer(lasMer === "bricka" ? null : "bricka")}>{lasMer === "bricka" ? "Dölj" : "Läs mer"}</button>
                   {lasMer === "bricka" && <p className="hint tillval__text">En smakfull välkomsthälsning på rummet med utvalda charkuterier och andra delikatesser från lokala producenter i Västmanland, tillsammans med alkoholfritt bubbel från Köpings Musteri.</p>}
                 </div>
-                <div className="field">
-                  <label htmlFor="kod">Rabattkod</label>
-                  <input type="text" id="kod" placeholder="Har du fått en kod? Skriv den här" value={kod} onChange={(e) => setKod(e.target.value)} autoComplete="off" />
-                </div>
+                {ekipage ? (
+                  <p className="hint">Du är inloggad som hundekipage och får {ekipage}&nbsp;% rabatt på boendet. Rabattkoder kan inte läggas ovanpå.</p>
+                ) : (
+                  <div className="field">
+                    <label htmlFor="kod">Rabattkod</label>
+                    <input type="text" id="kod" placeholder="Har du fått en kod? Skriv den här" value={kod} onChange={(e) => setKod(e.target.value)} autoComplete="off" />
+                  </div>
+                )}
 
                 {forFaBaddar && <p className="notice notice--fel" role="alert">De valda rummen har {baddar} bäddar. Välj fler rum för {gaster} gäster.</p>}
                 {steg === "valj" ? (

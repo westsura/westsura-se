@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import { kravMedlem, kursStatus } from "@/lib/jakt";
 import { mejlDokumentVantar, mejlAnmalan, mejlVakOnskad } from "@/lib/epost";
-import { vakPris } from "@/lib/vak";
+import { vakPris, VAKVILT } from "@/lib/vak";
+import { giltigaIdag } from "@/lib/dokument";
 import { kollaLosenord } from "@/lib/konto";
 import { site } from "@/lib/site";
 
@@ -125,7 +126,7 @@ export async function bokaJaktdag(tillfalleId: string): Promise<{ ok: boolean; f
 
   // Alla tre handlingar ska vara godkända före första jaktdag.
   const { count, error: felDok } = await adm.from("medlemsdokument")
-    .select("id", { count: "exact", head: true }).eq("medlem_id", medlem.id).eq("status", "godkand");
+    .select("id", { count: "exact", head: true }).eq("medlem_id", medlem.id).eq("status", "godkand").or(giltigaIdag());
   if (felDok) return { ok: false, fel: felDok.message };
   if (count !== 3) return { ok: false, fel: "Ladda upp och få dina dokument godkända innan du bokar." };
 
@@ -196,7 +197,7 @@ export async function onskaVakdygn(fd: FormData): Promise<{ ok: boolean; fel?: s
       ? await adm.from("medlemsniva").select("vakdygn_ingar, vakdygn_pris").eq("id", medlem.niva_id).maybeSingle()
       : { data: null };
     const { count } = await adm.from("vakbokning").select("id", { count: "exact", head: true })
-      .eq("jagare_id", medlem.id).in("status", ["onskad", "bekraftad"]).eq("sasong_id", sasong?.id ?? "00000000-0000-0000-0000-000000000000");
+      .eq("jagare_id", medlem.id).in("status", ["onskad", "bekraftad"]).is("vilt", null).eq("sasong_id", sasong?.id ?? "00000000-0000-0000-0000-000000000000");
     pris = vakPris(niva as { vakdygn_ingar: number | null; vakdygn_pris: number } | null, count ?? 0);
   }
 
@@ -220,6 +221,43 @@ export async function onskaVakdygn(fd: FormData): Promise<{ ok: boolean; fel?: s
 
   revalidatePath("/jaktklubb/medlem/vak"); revalidatePath("/jaktklubb/medlem"); revalidatePath("/admin/jaktklubb/vak"); revalidatePath("/admin/jaktklubb");
   return { ok: true, pris };
+}
+
+/**
+ * Anmäld vakjakt: medlemmen föreslår ett eget datum — framför allt för bäver och vildsvin —
+ * och herrgården godkänner så att det inte krockar med annan jakt. Räknas inte mot kvoten.
+ */
+export async function anmalVakjakt(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  const medlem = await kravMedlem();
+  if (medlem.status !== "godkand") return { ok: false, fel: "Anmäld vakjakt är för medlemmar i jaktlaget." };
+  const adm = supabaseAdmin();
+  const idag = new Date().toISOString().slice(0, 10);
+  const datum = s(fd.get("datum"));
+  const vilt = s(fd.get("vilt"));
+  const onskatOmrade = s(fd.get("omrade")) || null;
+  const meddelande = s(fd.get("meddelande")) || null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum) || datum < idag) return { ok: false, fel: "Välj ett datum från och med i dag." };
+  if (!VAKVILT[vilt]) return { ok: false, fel: "Välj vilt." };
+
+  const { data: finns } = await adm.from("vakbokning").select("id").eq("jagare_id", medlem.id).eq("datum", datum).in("status", ["onskad", "bekraftad"]).maybeSingle();
+  if (finns) return { ok: false, fel: "Du har redan ett vakdygn det datumet." };
+  const { data: sasong } = await adm.from("jaktsasong").select("id").eq("aktiv", true).maybeSingle();
+  const { error } = await adm.from("vakbokning").insert({
+    jagare_id: medlem.id, utbud_id: null, sasong_id: sasong?.id ?? null, datum, typ: "vak", vilt,
+    onskat_omrade_id: onskatOmrade, pris: 0, meddelande,
+  });
+  if (error) return { ok: false, fel: error.message };
+
+  let omradeNamn: string | null = null;
+  if (onskatOmrade) {
+    const { data: o } = await adm.from("vakomrade").select("namn").eq("id", onskatOmrade).maybeSingle();
+    omradeNamn = o?.namn ?? null;
+  }
+  try {
+    await mejlVakOnskad({ epost: medlem.epost, namn: medlem.namn, datum, typ: `Vakjakt på ${VAKVILT[vilt].toLowerCase()}`, omrade: omradeNamn, pris: 0, meddelande, gast: false });
+  } catch (e) { console.error("mejl misslyckades", e); }
+  revalidatePath("/jaktklubb/medlem/vak"); revalidatePath("/admin/jaktklubb/vak"); revalidatePath("/admin/jaktklubb");
+  return { ok: true };
 }
 
 /** Jägaren avbokar ett eget dygn som inte passerat. */

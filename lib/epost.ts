@@ -54,7 +54,7 @@ export async function mejlForfragan(o: { epost: string; namn: string; typ: strin
   ], ""), o.epost);
 }
 
-export async function mejlMedlemsansokan(o: { epost: string; namn: string; telefon: string; ort?: string; jakterfarenhet: string; hund?: string; meddelande?: string; niva: string; flera: boolean }) {
+export async function mejlMedlemsansokan(o: { epost: string; namn: string; telefon: string; ort?: string; jakterfarenhet: string; hund?: string; meddelande?: string; niva: string; flera: boolean; yrke?: string }) {
   await skicka([o.epost], `Din ansökan till Westsura Herrgårds jaktklubb`, html("Tack för din ansökan", [
     `Hej ${o.namn}, vi har tagit emot din ansökan om medlemskap i jaktklubben.`,
     `Antalet platser är begränsat och medlemskap beviljas av herrgården. Vi läser din ansökan och hör av oss personligen — räkna med några dagar. Är säsongen fullsatt sätter vi upp dig på väntelistan och hör av oss när en plats blir ledig.`,
@@ -64,6 +64,7 @@ export async function mejlMedlemsansokan(o: { epost: string; namn: string; telef
     `${fritext(o.namn)} · ${fritext(o.epost)} · ${fritext(o.telefon)}${o.ort ? " · " + fritext(o.ort) : ""}`,
     o.flera ? `Önskad nivå: <strong>${fritext(o.niva)}</strong>` : "",
     `<strong>Jakterfarenhet</strong><br>${fritext(o.jakterfarenhet)}`,
+    o.yrke ? `<strong>Yrke och arbetstider</strong><br>${fritext(o.yrke)}` : "",
     o.hund ? `<strong>Hund</strong><br>${fritext(o.hund)}` : "",
     o.meddelande ? `<strong>Meddelande</strong><br>${fritext(o.meddelande)}` : "",
     `Hantera i admin under Jaktklubb.`,
@@ -161,6 +162,60 @@ export async function mejlJagarkonto(o: { epost: string; namn: string; titel: st
       : `<a href="${bas}/jaktklubb/login" style="color:#7d6530">Logga in på jägarkontot</a> med den här e-postadressen och ditt lösenord.`,
     `Kontot är kostnadsfritt. Vill du jaga mer hos oss under säsongen finns medlemskapet i jaktklubben, med ingående dagar och förtur till bokningen.`,
   ]));
+}
+
+/** Ny admin: vilka delar hen fått, och inloggningsuppgifter (lösenord bara om kontot skapades nu). */
+export async function mejlAdminValkommen(o: { epost: string; namn: string; omraden: string[]; losenord?: string | null; av: string }) {
+  const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
+  await skicka([o.epost], `Du har fått tillgång till Westsuras admin`, html("Välkommen till admin", [
+    `Hej ${fritext(o.namn)}. ${fritext(o.av)} har gett dig tillgång till administrationen för Westsura Herrgård.`,
+    `Du kommer åt: <strong>${o.omraden.map(fritext).join(", ")}</strong>.`,
+    o.losenord
+      ? `<a href="${bas}/admin/login" style="color:#7d6530">Logga in i admin</a> med den här e-postadressen och det tillfälliga lösenordet <strong>${o.losenord}</strong>. Byt till ett eget under <em>Byt lösenord</em> när du är inne.`
+      : `<a href="${bas}/admin/login" style="color:#7d6530">Logga in i admin</a> med den här e-postadressen och ditt vanliga lösenord. Har du glömt det finns en länk på inloggningssidan.`,
+  ]));
+}
+
+/* ---------- Hundekipage ---------- */
+
+const EKIPAGENAMN: Record<string, string> = { hundforare: "hundförare", eftersok: "eftersöksekipage" };
+
+/** Kvitto till den som registrerat ett ekipage, och besked till herrgården. */
+export async function mejlEkipageRegistrerat(o: { epost: string; namn: string; telefon: string; ort?: string; ekipage: string; jagarexamen: boolean; hundar: { namn: string; ras: string | null; driver: string[]; eftersok: boolean; meriter: string | null }[]; meddelande?: string }) {
+  await skicka([o.epost], `Ditt hundekipage hos Westsura Herrgård`, html("Tack för din registrering", [
+    `Hej ${fritext(o.namn)}. Vi har tagit emot din registrering som ${EKIPAGENAMN[o.ekipage]} med ${o.hundar.map((h) => fritext(h.namn)).join(" och ")}.`,
+    `Vi går igenom uppgifterna och hör av oss. När ekipaget är godkänt får du ett mejl med inloggning till ditt konto — och halva priset på boendet hos oss.`,
+    `Frågor under tiden? Ring ${site.phone}.`,
+  ], "Med vänliga hälsningar, Westsura Herrgård"));
+  await skicka([site.email], `Nytt hundekipage: ${o.namn}`, html("Nytt hundekipage att godkänna", [
+    `${fritext(o.namn)} · ${fritext(o.epost)} · ${fritext(o.telefon)}${o.ort ? " · " + fritext(o.ort) : ""}`,
+    `<strong>${EKIPAGENAMN[o.ekipage].replace(/^./, (c) => c.toUpperCase())}</strong> · jägarexamen: ${o.jagarexamen ? "ja" : "nej"}`,
+    ...o.hundar.map((h) => `<strong>${fritext(h.namn)}</strong>${h.ras ? ", " + fritext(h.ras) : ""}${h.driver.length ? " — " + h.driver.join(", ") : ""}${h.eftersok ? " · eftersök" : ""}${h.meriter ? "<br>" + fritext(h.meriter) : ""}`),
+    o.meddelande ? `<strong>Meddelande</strong><br>${fritext(o.meddelande)}` : "",
+    `Godkänn under Jaktklubb › Hundekipage i admin.`,
+  ].filter(Boolean), ""), o.epost);
+}
+
+/** Ekipaget är godkänt — med inloggning (lösenord bara om kontot skapades nu). */
+export async function mejlEkipageGodkant(o: { epost: string; namn: string; losenord?: string | null; rabatt: number }) {
+  const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
+  await skicka([o.epost], `Ditt hundekipage är godkänt`, html("Välkommen som hundekipage", [
+    `Hej ${fritext(o.namn)}. Ditt ekipage är godkänt hos Westsura Herrgård. Vi hör av oss inför jakter där vi behöver hundar.`,
+    o.losenord
+      ? `<a href="${bas}/jaktklubb/login" style="color:#7d6530">Logga in på ditt konto</a> med den här e-postadressen och lösenordet <strong>${o.losenord}</strong>. Byt gärna till ett eget när du är inne.`
+      : `<a href="${bas}/jaktklubb/login" style="color:#7d6530">Logga in på ditt konto</a> med den här e-postadressen och ditt lösenord.`,
+    `Som godkänt ekipage får du ${o.rabatt} % rabatt på boendet för dig och hunden, och medlemspris på maten. Logga in innan du <a href="${bas}/boende" style="color:#7d6530">bokar boende</a> så dras rabatten automatiskt.`,
+  ]));
+}
+
+/** Inbjudan till en jaktdag, skickad från admin till utvalda ekipage. */
+export async function mejlEkipageInbjudan(o: { epost: string; namn: string; titel: string; datum: string; tid?: string | null; text?: string }) {
+  const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
+  await skicka([o.epost], `Inbjudan: ${o.titel} ${o.datum}`, html("Vi behöver hundar", [
+    `Hej ${fritext(o.namn)}. Vi skulle gärna ha med dig och din hund på <strong>${fritext(o.titel)}</strong>, ${o.datum}${o.tid ? ", " + fritext(o.tid) : ""}.`,
+    o.text ? fritext(o.text) : "",
+    `Svara på det här mejlet eller ring ${site.phone} om du kan vara med. Vill du stanna över natten bor du till halva priset — <a href="${bas}/boende" style="color:#7d6530">boka här</a> när du är inloggad.`,
+  ].filter(Boolean)), site.email);
 }
 
 /* ---------- Vak & pyrsch ---------- */

@@ -17,7 +17,8 @@ export default async function Oversikt() {
   const vardskap = harRoll(admin, "vardskap");
   const vanner = vardskap || harRoll(admin, "kommunikation");
   const tillfallen = vardskap || harRoll(admin, "jaktadmin");
-  const tomt = !vardskap && !vanner && !tillfallen;
+  const ekonomi = harRoll(admin, "ekonomi");
+  const tomt = !vardskap && !vanner && !tillfallen && !ekonomi;
 
   const idag = new Date().toISOString().slice(0, 10);
   const omEnVecka = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
@@ -28,7 +29,7 @@ export default async function Oversikt() {
     vardskap ? db.from("bokningar_admin").select("*").neq("status", "avbokad").eq("avresa", idag) : inget,
     vardskap ? db.from("bokningar_admin").select("*").eq("status", "preliminar").order("skapad", { ascending: false }) : inget,
     vardskap ? db.from("forfragan").select("*").in("status", ["ny", "pagar"]).order("skapad", { ascending: false }) : inget,
-    vardskap ? db.from("fakturaunderlag").select("*", { count: "exact", head: true }).eq("status", "ej_fakturerad") : inget,
+    ekonomi ? db.from("fakturaunderlag").select("*", { count: "exact", head: true }).eq("status", "ej_fakturerad") : inget,
     vanner ? db.from("van").select("*", { count: "exact", head: true }).is("avanmald_tid", null) : inget,
     tillfallen ? db.from("tillfalle").select("*").gte("datum", idag).order("datum") : inget,
     tillfallen ? db.from("anmalan").select("tillfalle_id, antal, status") : inget,
@@ -50,7 +51,7 @@ export default async function Oversikt() {
         {vardskap && <Link href="/admin/bokningar?status=preliminar" className="stat"><b>{nyaBokningar?.length ?? 0}</b><span>Bokningar att bekräfta</span></Link>}
         {vardskap && <Link href="/admin/forfragningar" className="stat"><b>{nyaForfragningar?.length ?? 0}</b><span>Obesvarade förfrågningar</span></Link>}
         {vardskap && <Link href="/admin/kalender" className="stat"><b>{ankomster?.length ?? 0}</b><span>Ankomster inom en vecka</span></Link>}
-        {vardskap && <Link href="/admin/fakturering" className="stat"><b>{attFakturera ?? 0}</b><span>Att fakturera</span></Link>}
+        {ekonomi && <Link href="/admin/fakturering" className="stat"><b>{attFakturera ?? 0}</b><span>Att fakturera</span></Link>}
         {tillfallen && <Link href="/admin/tillfallen" className="stat"><b>{kommande?.length ?? 0}</b><span>Kommande tillfällen</span></Link>}
         {vanner && <Link href="/admin/vanner" className="stat"><b>{antalVanner ?? 0}</b><span>Westsuras Vänner</span></Link>}
       </div>

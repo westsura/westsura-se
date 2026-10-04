@@ -20,7 +20,12 @@ export type Vakbokning = {
   datum: string; typ: "vak" | "pyrsch"; onskat_omrade_id: string | null; omrade_id: string | null;
   status: "onskad" | "bekraftad" | "avbojd" | "avbokad"; pris: number;
   meddelande: string | null; svar: string | null; underlag_id: string | null; skapad: string;
+  /** Satt för anmäld vakjakt (medlemmens eget datum), null för utlagda dygn. */
+  vilt?: string | null;
 };
+
+/** Vilt vid anmäld vakjakt — framför allt bäver och vildsvin. */
+export const VAKVILT: Record<string, string> = { baver: "Bäver", vildsvin: "Vildsvin", rav: "Räv" };
 
 export const OMRADETYP: Record<Omrade["typ"], string> = { torn: "Torn", vakplats: "Vakplats", pyrschomrade: "Pyrschområde", pass: "Pass (drevjakt)", samling: "Samlingsplats" };
 /** Typer som går att tilldela för vak och pyrsch. Pass och samlingsplatser finns för drevjakten och kartan. */

@@ -7,7 +7,7 @@ import TaBortKnapp from "./TaBortKnapp";
 export const dynamic = "force-dynamic";
 
 export default async function Fakturering({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
-  await kravAdmin("vardskap");
+  await kravAdmin("ekonomi");
   const { status = "ej_fakturerad" } = await searchParams;
   const db = await supabaseServer();
   let q = db.from("fakturaunderlag_admin").select("*").order("skapad", { ascending: false });

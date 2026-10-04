@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import { kravAdmin } from "@/lib/admin";
-import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokumentstatus, mejlDokumentKlar, mejlVakSvar } from "@/lib/epost";
+import { OMRADEN, ROLLNAMN, type Roll } from "@/lib/roller";
+import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokumentstatus, mejlDokumentKlar, mejlVakSvar, mejlAdminValkommen, mejlEkipageGodkant, mejlEkipageInbjudan } from "@/lib/epost";
+import { EKIPAGE_RABATT } from "@/lib/jakt";
+import { giltigaIdag } from "@/lib/dokument";
 import { Resend } from "resend";
 import { site } from "@/lib/site";
 import { FAKTURASTATUS } from "@/lib/faktura";
@@ -176,13 +179,17 @@ function kundFalt(namn: string, epost: string, telefon: string | null, f: KundFa
 
 /** Underlag från en boendebokning: en rad per enhet, frukost, ev. rabatt — allt hämtat ur bokningen. */
 export async function skapaUnderlagFranBokning(bokningId: string): Promise<{ ok: true; id: string } | { ok: false; fel: string }> {
+  await kravAdmin("ekonomi");
   const db = await supabaseServer();
   const { data: b, error: felBokning } = await db.from("bokningar_admin").select("*").eq("id", bokningId).single();
   if (felBokning) return { ok: false, fel: felBokning.message };
   if (!b) return { ok: false, fel: "Bokningen hittades inte." };
   if (b.underlag_id) return { ok: true, id: b.underlag_id };
-  const { data: rader, error: felRader } = await db.from("bokningsrad").select("natter, pris_per_natt, belopp, enhet:enhet_id(namn)").eq("bokning_id", bokningId);
+  const { data: rader, error: felRader } = await db.from("bokningsrad").select("enhet_id, natter, pris_per_natt, belopp, enhet:enhet_id(namn)").eq("bokning_id", bokningId);
   if (felRader) return { ok: false, fel: felRader.message };
+  // Pris per natt och enhet, så att nätter med olika pris (helg, säsong) blir egna rader.
+  const { data: np } = b.paket_id ? { data: null } : await db.rpc("nattpriser", { fran: b.ankomst, till: b.avresa });
+  const nattpriser = (np ?? []) as { enhet_id: string; datum: string; pris: number }[];
   const natter = Math.max(1, Math.round((new Date(b.avresa).getTime() - new Date(b.ankomst).getTime()) / 86400000));
   const period = `${datumKort(b.ankomst)}–${datumKort(b.avresa)}`;
   // Paketbokning: paketet som en rad (moms 25 som utgångsläge — justeras i underlaget om paketet
@@ -192,6 +199,22 @@ export async function skapaUnderlagFranBokning(bokningId: string): Promise<{ ok:
   for (const r of rader ?? []) {
     if (b.paket_id && !r.belopp) continue;
     const e = r.enhet as unknown as { namn: string } | null;
+    if (!b.paket_id) {
+      // En rad per nattpris. Används bara om dagens priser stämmer med det som bokades —
+      // har priserna ändrats sedan dess blir det en rad med bokningens snittpris som förut.
+      const egna = nattpriser.filter((p) => p.enhet_id === r.enhet_id);
+      const grupper = new Map<number, string[]>();
+      for (const p of egna) grupper.set(Number(p.pris), [...(grupper.get(Number(p.pris)) ?? []), p.datum]);
+      const summaNu = egna.reduce((a, p) => a + Number(p.pris), 0);
+      const bokat = Number(r.belopp ?? r.natter * r.pris_per_natt);
+      if (grupper.size > 1 && egna.length === r.natter && Math.abs(summaNu - bokat) < 1) {
+        for (const [pris, datum] of [...grupper].sort((a, c) => a[0] - c[0])) {
+          datum.sort();
+          fr.push({ beskrivning: `${e?.namn ?? "Boende"}, ${datum.length === 1 ? "natten" : "nätterna"} ${datum.map(datumKort).join(", ")}`, antal: datum.length, enhet: "natt", a_pris: pris, moms: 12 });
+        }
+        continue;
+      }
+    }
     fr.push({ beskrivning: `${e?.namn ?? "Boende"}, ${b.paket_id ? "extra nätter" : period}`, antal: r.natter, enhet: "natt", a_pris: r.pris_per_natt, moms: 12 });
   }
   let delsumma = fr.reduce((a, r) => a + r.antal * r.a_pris, 0);
@@ -203,7 +226,7 @@ export async function skapaUnderlagFranBokning(bokningId: string): Promise<{ ok:
   if (b.frukost && !b.paket_id) { const n = b.antal_personer * natter; fr.push({ beskrivning: "Frukostkorg", antal: n, enhet: "st", a_pris: FRUKOST_PRIS, moms: 12 }); delsumma += n * FRUKOST_PRIS; }
   if (b.valkomstbricka) { const n = Math.max(1, b.antal_personer); fr.push({ beskrivning: "Västmanländsk välkomstbricka", antal: n, enhet: "st", a_pris: BRICKA_PRIS, moms: 12 }); delsumma += n * BRICKA_PRIS; }
   const rabatt = delsumma - b.summa;
-  if (rabatt > 0) fr.push({ beskrivning: `Rabatt${b.rabattkod ? " (" + b.rabattkod + ")" : ""}`, antal: 1, enhet: "st", a_pris: -rabatt, moms: 12 });
+  if (rabatt > 0) fr.push({ beskrivning: b.ekipage_rabatt ? `Hundförarrabatt ${b.ekipage_rabatt} % på boendet` : `Rabatt${b.rabattkod ? " (" + b.rabattkod + ")" : ""}`, antal: 1, enhet: "st", a_pris: -rabatt, moms: 12 });
 
   const { data: u, error } = await db.from("fakturaunderlag").insert({
     bokning_id: bokningId, rubrik: `${b.paket_id ? (b.paket_namn ?? "Paket") : "Boende"} ${period}, bokning ${b.nummer}`,
@@ -219,6 +242,7 @@ export async function skapaUnderlagFranBokning(bokningId: string): Promise<{ ok:
 
 /** Underlag från en förfrågan (event, konferens, jakt): rubrik och kund fylls i, raderna skriver ni själva. */
 export async function skapaUnderlagFranForfragan(forfraganId: string): Promise<{ ok: true; id: string } | { ok: false; fel: string }> {
+  await kravAdmin("ekonomi");
   const db = await supabaseServer();
   const { data: f, error: felForfragan } = await db.from("forfragan").select("*").eq("id", forfraganId).single();
   if (felForfragan) return { ok: false, fel: felForfragan.message };
@@ -237,6 +261,7 @@ export async function skapaUnderlagFranForfragan(forfraganId: string): Promise<{
 }
 
 export async function skapaTomtUnderlag(): Promise<{ ok: true; id: string } | { ok: false; fel: string }> {
+  await kravAdmin("ekonomi");
   const db = await supabaseServer();
   const { data: u, error } = await db.from("fakturaunderlag").insert({ rubrik: "Nytt underlag", kund_namn: "" }).select("id").single();
   if (error || !u) return { ok: false, fel: error?.message ?? "Kunde inte skapa underlag." };
@@ -245,6 +270,7 @@ export async function skapaTomtUnderlag(): Promise<{ ok: true; id: string } | { 
 }
 
 export async function sparaUnderlag(id: string, fd: FormData, rader: Fakturarad[]) {
+  await kravAdmin("ekonomi");
   const db = await supabaseServer();
   const d = (k: string) => s(fd.get(k)) || null;
   const status = s(fd.get("status")) as "ej_fakturerad" | "fakturerad" | "betald" | "krediterad";
@@ -266,6 +292,7 @@ export async function sparaUnderlag(id: string, fd: FormData, rader: Fakturarad[
 
 /** Bara ofakturerade underlag får tas bort — är det fakturerat finns en faktura i Fortnox. */
 export async function taBortUnderlag(id: string) {
+  await kravAdmin("ekonomi");
   const db = await supabaseServer();
   const { data: u, error: felUppslag } = await db.from("fakturaunderlag").select("status").eq("id", id).maybeSingle();
   if (felUppslag) return { ok: false, fel: felUppslag.message };
@@ -569,6 +596,7 @@ export async function sparaTillfalle(fd: FormData) {
     pris: s(fd.get("pris")) ? Number(s(fd.get("pris"))) : null, publicerad: !!fd.get("publicerad"),
     synlighet: s(fd.get("synlighet")) === "medlem" ? "medlem" : "publik",
     samling: s(fd.get("samling")) || null, program: s(fd.get("program")) || null,
+    algjakt: s(fd.get("typ")) === "jakt" && !!fd.get("algjakt"),
   };
   const id = s(fd.get("id"));
   const { error } = id ? await db.from("tillfalle").update(rad).eq("id", id) : await db.from("tillfalle").insert(rad);
@@ -726,6 +754,55 @@ export async function taBortJaktmedlem(id: string): Promise<{ ok: boolean; fel?:
   return { ok: true };
 }
 
+/* ---------- Hundekipage ---------- */
+/** Godkänner ett ekipage: skapar inloggning om den saknas och skickar besked med rabatten. */
+export async function godkannEkipage(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const { data: m, error: felM } = await adm.from("jaktmedlem").select("namn, epost, ekipage").eq("id", id).maybeSingle();
+  if (felM) return { ok: false, fel: felM.message };
+  if (!m?.ekipage) return { ok: false, fel: "Hittar inget ekipage." };
+  const { error } = await adm.from("jaktmedlem").update({ ekipage_status: "godkand", ekipage_sedan: new Date().toISOString() }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  let losenord: string | null = null;
+  if (!(await authIdFor(m.epost))) {
+    losenord = slumpaLosenord();
+    const k = await sattLosenord(m.epost, losenord);
+    if (k.ok) await adm.from("jaktmedlem").update({ anvandare_id: k.id }).eq("id", id);
+    else { console.error("kunde inte skapa inloggning", k.fel); losenord = null; }
+  }
+  try { await mejlEkipageGodkant({ epost: m.epost, namn: m.namn, losenord, rabatt: EKIPAGE_RABATT }); } catch (e) { console.error("mejl misslyckades", e); }
+  revalidatePath("/admin/jaktklubb/ekipage"); revalidatePath("/admin/jaktklubb");
+  return { ok: true };
+}
+
+/** Avböjer — eller drar tillbaka — ett ekipage. Kontot finns kvar men rabatten försvinner. */
+export async function avbojEkipage(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("jaktadmin");
+  const { error } = await supabaseAdmin().from("jaktmedlem").update({ ekipage_status: "avbojd" }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/jaktklubb/ekipage");
+  return { ok: true };
+}
+
+/** Skickar en inbjudan till en jaktdag till de valda ekipagen. */
+export async function bjudInEkipage(tillfalleId: string, ids: string[], text: string): Promise<{ ok: boolean; fel?: string; skickade?: number }> {
+  await kravAdmin("jaktadmin");
+  if (!ids.length) return { ok: false, fel: "Välj minst ett ekipage." };
+  const adm = supabaseAdmin();
+  const { data: t } = await adm.from("tillfalle").select("titel, datum, tid").eq("id", tillfalleId).maybeSingle();
+  if (!t) return { ok: false, fel: "Välj en jaktdag." };
+  const { data: lista, error } = await adm.from("jaktmedlem").select("namn, epost").in("id", ids).eq("ekipage_status", "godkand");
+  if (error) return { ok: false, fel: error.message };
+  const datum = new Date(t.datum + "T12:00:00").toLocaleDateString("sv-SE", { weekday: "long", day: "numeric", month: "long" });
+  let skickade = 0;
+  for (const m of lista ?? []) {
+    try { await mejlEkipageInbjudan({ epost: m.epost, namn: m.namn, titel: t.titel, datum, tid: t.tid, text: text.trim() || undefined }); skickade++; }
+    catch (e) { console.error("inbjudan misslyckades", m.epost, e); }
+  }
+  return { ok: true, skickade };
+}
+
 /* ---------- Westsuras Vänner ---------- */
 export async function sparaVan(id: string, fd: FormData): Promise<{ ok: boolean; fel?: string }> {
   await kravAdmin("kommunikation", "vardskap");
@@ -749,7 +826,7 @@ export async function taBortVan(id: string): Promise<{ ok: boolean; fel?: string
 function uppdateraPriser() { revalidatePath("/admin/priser"); revalidatePath("/boende"); revalidatePath("/paket"); }
 
 export async function sparaGrundpris(id: string, pris: number): Promise<{ ok: boolean; fel?: string }> {
-  await kravAdmin("vardskap");
+  await kravAdmin("ekonomi");
   if (!Number.isFinite(pris) || pris < 0) return { ok: false, fel: "Ange ett pris i kronor." };
   const { error } = await supabaseAdmin().from("enhet").update({ grundpris: Math.round(pris) }).eq("id", id);
   if (error) return { ok: false, fel: error.message };
@@ -758,7 +835,7 @@ export async function sparaGrundpris(id: string, pris: number): Promise<{ ok: bo
 }
 
 export async function sparaPrissasong(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
-  await kravAdmin("vardskap");
+  await kravAdmin("ekonomi");
   const rad = { namn: s(fd.get("namn")), fran: s(fd.get("fran")), till: s(fd.get("till")) };
   if (!rad.namn || !rad.fran || !rad.till) return { ok: false, fel: "Namn, från och till behövs." };
   if (rad.till < rad.fran) return { ok: false, fel: "Slutdatum måste vara efter startdatum." };
@@ -771,7 +848,7 @@ export async function sparaPrissasong(fd: FormData): Promise<{ ok: boolean; fel?
 }
 
 export async function taBortPrissasong(id: string): Promise<{ ok: boolean; fel?: string }> {
-  await kravAdmin("vardskap");
+  await kravAdmin("ekonomi");
   const { error } = await supabaseAdmin().from("sasong").delete().eq("id", id);
   if (error) return { ok: false, fel: error.message };
   uppdateraPriser();
@@ -780,7 +857,7 @@ export async function taBortPrissasong(id: string): Promise<{ ok: boolean; fel?:
 
 /** En prisregel: fast nattpris eller procentuell justering, för ett rum eller alla, en säsong, vissa veckodagar eller ett datum. */
 export async function sparaPrisregel(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
-  await kravAdmin("vardskap");
+  await kravAdmin("ekonomi");
   const veckodagar = fd.getAll("veckodag").map((v) => Number(v)).filter((n) => n >= 0 && n <= 6);
   const rad = {
     namn: s(fd.get("namn")) || "Prisregel",
@@ -804,7 +881,7 @@ export async function sparaPrisregel(fd: FormData): Promise<{ ok: boolean; fel?:
 }
 
 export async function taBortPrisregel(id: string): Promise<{ ok: boolean; fel?: string }> {
-  await kravAdmin("vardskap");
+  await kravAdmin("ekonomi");
   const { error } = await supabaseAdmin().from("prisregel").delete().eq("id", id);
   if (error) return { ok: false, fel: error.message };
   uppdateraPriser();
@@ -812,7 +889,7 @@ export async function taBortPrisregel(id: string): Promise<{ ok: boolean; fel?: 
 }
 
 export async function hamtaPrisexempel(fran: string): Promise<{ ok: true; data: { enhet_id: string; datum: string; pris: number }[] } | { ok: false; fel: string }> {
-  await kravAdmin("vardskap");
+  await kravAdmin("ekonomi");
   const { data, error } = await supabaseAdmin().rpc("prisexempel", { fran, dagar: 14 });
   if (error) return { ok: false, fel: error.message };
   return { ok: true, data: data as { enhet_id: string; datum: string; pris: number }[] };
@@ -825,6 +902,61 @@ export async function taBortTillfalle(id: string): Promise<{ ok: boolean; fel?: 
   const { error } = await supabaseAdmin().from("tillfalle").delete().eq("id", id);
   if (error) return { ok: false, fel: error.message };
   revalidatePath("/admin/tillfallen"); revalidatePath("/jakt"); revalidatePath("/jaktklubb/medlem/boka");
+  return { ok: true };
+}
+
+/* ---------- Användare: lägg till och ändra behörighet ---------- */
+const TILLATNA_ROLLER = OMRADEN.map((o) => o.roll);
+const rensaRoller = (r: string[]) => [...new Set(r)].filter((x): x is Roll => (TILLATNA_ROLLER as string[]).includes(x));
+
+/**
+ * Lägger till en admin med valda områden. Saknar adressen konto skapas ett med tillfälligt
+ * lösenord; har personen redan ett (t.ex. som jaktmedlem) används det. Välkomstmejl skickas.
+ */
+export async function laggTillAdmin(fd: FormData): Promise<{ ok: boolean; fel?: string; losenord?: string | null }> {
+  const jag = await kravAdmin("superadmin");
+  const namn = s(fd.get("namn")), epost = s(fd.get("epost")).toLowerCase();
+  const roller = rensaRoller(fd.getAll("roll").map(String));
+  if (!namn) return { ok: false, fel: "Skriv personens namn." };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(epost)) return { ok: false, fel: "Ange en giltig e-postadress." };
+  if (!roller.length) return { ok: false, fel: "Välj minst ett område." };
+  const adm = supabaseAdmin();
+  const { data: finns } = await adm.from("admin_inbjudan").select("epost").eq("epost", epost).maybeSingle();
+  if (finns) return { ok: false, fel: "Adressen finns redan bland användarna — ändra behörigheten i listan i stället." };
+
+  const { error } = await adm.from("admin_inbjudan").insert({ epost, namn, roller });
+  if (error) return { ok: false, fel: error.message };
+
+  // Inget konto än: skapa ett med tillfälligt lösenord. Triggern kopplar det till admin.
+  let losenord: string | null = null;
+  if (!(await authIdFor(epost))) {
+    losenord = slumpaLosenord();
+    const k = await sattLosenord(epost, losenord);
+    if (!k.ok) {
+      await adm.from("admin_inbjudan").delete().eq("epost", epost);
+      return { ok: false, fel: k.fel };
+    }
+  }
+  try {
+    await mejlAdminValkommen({ epost, namn, omraden: roller.map((r) => ROLLNAMN[r] ?? r), losenord, av: jag.namn ?? "Westsura Herrgård" });
+  } catch (e) { console.error("Välkomstmejl till ny admin misslyckades", e); }
+  revalidatePath("/admin/anvandare");
+  return { ok: true, losenord };
+}
+
+/** Ändrar vilka områden en admin kommer åt. Man kan inte ta ifrån sig själv Allt. */
+export async function sparaAdminRoller(epost: string, valda: string[]): Promise<{ ok: boolean; fel?: string }> {
+  const jag = await kravAdmin("superadmin");
+  const e = epost.toLowerCase();
+  const roller = rensaRoller(valda);
+  if (!roller.length) return { ok: false, fel: "Välj minst ett område, eller ta bort användaren." };
+  if (e === jag.epost.toLowerCase() && !roller.includes("superadmin")) return { ok: false, fel: "Du kan inte ta bort Allt från dig själv." };
+  const adm = supabaseAdmin();
+  const { error } = await adm.from("admin_inbjudan").update({ roller }).eq("epost", e);
+  if (error) return { ok: false, fel: error.message };
+  const { error: felAnv } = await adm.from("admin_anvandare").update({ roller }).eq("epost", e);
+  if (felAnv) return { ok: false, fel: felAnv.message };
+  revalidatePath("/admin/anvandare");
   return { ok: true };
 }
 
@@ -892,7 +1024,7 @@ export async function granskaDokument(dokumentId: string, godkand: boolean, gilt
     .select("id, typ, medlem_id, jaktmedlem(namn, epost)").eq("id", dokumentId).maybeSingle();
   if (felUppslag) return { ok: false, fel: felUppslag.message };
   if (!d) return { ok: false, fel: "Dokumentet hittades inte." };
-  if (godkand && d.typ === "jaktkort" && !giltigTill) return { ok: false, fel: "Jaktkortet behöver ett giltighetsdatum." };
+  if (godkand && (d.typ === "jaktkort" || d.typ === "algskyttemarke") && !giltigTill) return { ok: false, fel: "Ange hur länge handlingen gäller — normalt jaktårets slut, 30 juni." };
   if (!godkand && !kommentar?.trim()) return { ok: false, fel: "Skriv en kommentar så medlemmen vet vad som behöver kompletteras." };
 
   const { error } = await adm.from("medlemsdokument").update({
@@ -912,7 +1044,7 @@ export async function granskaDokument(dokumentId: string, godkand: boolean, gilt
     // När den tredje handlingen blir godkänd är medlemmen klar för säsongen.
     if (godkand) {
       const { count, error: felRakning } = await adm.from("medlemsdokument")
-        .select("id", { count: "exact", head: true }).eq("medlem_id", d.medlem_id).eq("status", "godkand");
+        .select("id", { count: "exact", head: true }).eq("medlem_id", d.medlem_id).eq("status", "godkand").or(giltigaIdag());
       if (felRakning) console.error("kunde inte räkna godkända dokument", felRakning.message);
       else if (count === 3) {
         try { await mejlDokumentKlar({ epost: medlem.epost, namn: medlem.namn }); } catch (e) { console.error("mejl misslyckades", e); }

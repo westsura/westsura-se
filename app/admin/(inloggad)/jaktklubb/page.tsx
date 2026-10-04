@@ -19,11 +19,13 @@ export default async function Jaktklubb() {
   const { data: dokument } = await db.from("medlemsdokument").select("*");
   const { data: meddelanden } = await db.from("klubbmeddelande").select("*").order("datum", { ascending: false }).limit(20);
   const { count: vakAttSvara } = await db.from("vakbokning").select("id", { count: "exact", head: true }).eq("status", "onskad");
+  const { count: ekipageAttGodkanna } = await db.from("jaktmedlem").select("id", { count: "exact", head: true }).eq("ekipage_status", "sokande");
 
   const alla = (medlemmar ?? []) as Medlem[];
   const ansokningar = alla.filter((m) => m.status === "sokande" || m.status === "vantelista");
   const godkanda = alla.filter((m) => m.status === "godkand");
-  const gaster = alla.filter((m) => m.status === "gast");
+  // Rena hundekipage (inget jaktdeltagande) visas under Hundekipage, inte bland gästjägarna.
+  const gaster = alla.filter((m) => m.status === "gast" && !(m.ekipage && (m as { konto_skapat_via?: string }).konto_skapat_via === "ekipage"));
 
   // Avgiftsstatus ligger i fakturaunderlag, som bara vardskap når genom RLS.
   const underlagIds = godkanda.map((m) => m.underlag_id).filter(Boolean) as string[];
@@ -34,6 +36,13 @@ export default async function Jaktklubb() {
   const niva = (id: string | null) => (nivaer ?? []).find((n: Niva) => n.id === id);
   const avgift = (m: Medlem) => underlag?.find((u) => u.id === m.underlag_id)?.status;
   const dok = (m: Medlem, typ: string) => (dokument as Dokument[] | null)?.find((d) => d.medlem_id === m.id && d.typ === typ);
+  // Jaktkort och älgskyttemärke gäller ett jaktår — ett utgånget godkännande räknas som saknat.
+  const idag = new Date().toISOString().slice(0, 10);
+  const dokStatus = (m: Medlem, typ: string) => {
+    const d = dok(m, typ);
+    if (!d) return "saknas";
+    return d.status === "godkand" && d.giltig_till && d.giltig_till < idag ? "saknas" : d.status;
+  };
 
   return (
     <>
@@ -45,6 +54,7 @@ export default async function Jaktklubb() {
         <div className="admin__actions">
           {sasong && <span className="admin__meta">{sasong.fran} – {sasong.till}</span>}
           <Link className="btn btn--sm btn--ghost" href="/admin/jaktklubb/vak">Vak &amp; pyrsch{vakAttSvara ? ` (${vakAttSvara})` : ""}</Link>
+          <Link className="btn btn--sm btn--ghost" href="/admin/jaktklubb/ekipage">Hundekipage{ekipageAttGodkanna ? ` (${ekipageAttGodkanna})` : ""}</Link>
           <Link className="btn btn--sm btn--ghost" href="/admin/jaktklubb/avskjutning">Avskjutning</Link>
           <Link className="btn btn--sm btn--ghost" href="/admin/jaktklubb/sasonger">Säsonger &amp; nivåer</Link>
           <Link className="btn btn--sm btn--ghost" href="/admin/sakerhetskurs">Säkerhetskurs</Link>
@@ -87,7 +97,7 @@ export default async function Jaktklubb() {
                     <td>{avgift(m) ? FAKTURASTATUS[avgift(m)!] : "Inget underlag"}</td>
                     <td>
                       {DOKUMENT.map((d) => {
-                        const status = dok(m, d.typ)?.status ?? "saknas";
+                        const status = dokStatus(m, d.typ);
                         return <span key={d.typ} className={`pill pill--${status}`} title={d.namn} style={{ marginRight: 4 }}>{DOKUMENTSTATUS[status]}</span>;
                       })}
                     </td>
@@ -115,7 +125,7 @@ export default async function Jaktklubb() {
                     <td>{m.telefon && <a href={`tel:${m.telefon}`}>{m.telefon}</a>}<div className="admin__meta">{m.epost}</div></td>
                     <td>
                       {DOKUMENT.map((d) => {
-                        const status = dok(m, d.typ)?.status ?? "saknas";
+                        const status = dokStatus(m, d.typ);
                         return <span key={d.typ} className={`pill pill--${status}`} title={d.namn} style={{ marginRight: 4 }}>{DOKUMENTSTATUS[status]}</span>;
                       })}
                     </td>

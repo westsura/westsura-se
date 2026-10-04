@@ -2,6 +2,7 @@ import Link from "next/link";
 import { kravAdmin } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/supabase";
 import { VILT, KON, ALDER, resultatKort, fallt, type Skott } from "@/lib/avskjutning";
+import { forstaSkott, kottlage, halvar } from "@/lib/kott";
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +13,16 @@ export default async function Avskjutning({ searchParams }: { searchParams: Prom
   await kravAdmin("jaktadmin", "jaktledare");
   const adm = supabaseAdmin();
   const { sasong: valdId } = await searchParams;
-  const { data: sasonger } = await adm.from("jaktsasong").select("id, namn, aktiv").order("fran", { ascending: false });
-  const S = (sasonger ?? []) as { id: string; namn: string; aktiv: boolean }[];
+  const { data: sasonger } = await adm.from("jaktsasong").select("id, namn, aktiv, fran, till").order("fran", { ascending: false });
+  const S = (sasonger ?? []) as { id: string; namn: string; aktiv: boolean; fran: string; till: string }[];
   const sasong = S.find((s) => s.id === valdId) ?? S.find((s) => s.aktiv) ?? S[0];
 
   const { data } = sasong
     ? await adm.from("skott").select("*, tillfalle:tillfalle_id(titel), vakbokning:vakbokning_id(typ), jagare:jagare_id(namn)").eq("sasong_id", sasong.id).order("datum", { ascending: false }).order("tid", { ascending: false })
     : { data: [] };
   const skott = (data ?? []) as unknown as Rad[];
+  const forsta = forstaSkott(skott);
+  const kott = sasong ? await kottlage(sasong) : null;
 
   // Summering: fällt / bom / påskjutet per viltslag, i den ordning VILT anger.
   const summa: Record<string, { fallt: number; bom: number; eftersok: number }> = {};
@@ -66,6 +69,35 @@ export default async function Avskjutning({ searchParams }: { searchParams: Prom
         )}
       </div>
 
+      <h2 className="admin__h2" style={{ marginTop: 32 }}>Köttfördelning</h2>
+      <div className="admin__panel">
+        <h3 className="admin__h2" style={{ fontSize: 16 }}>Älg</h3>
+        {(!kott || kott.algjakter.length === 0) && <p className="empty">Inga genomförda älgjakter den här säsongen. Markera jaktdagar som älgjakt under Tillfällen så räknas de här.</p>}
+        {kott && kott.algjakter.length > 0 && (
+          <>
+            <p className="admin__meta" style={{ marginBottom: 12 }}>
+              {kott.algjakter.length} genomförda älgjakter — den som deltagit på minst {kott.kravAntal} får del av älgköttet. Deltagande = bekräftad anmälan. Siffrorna gäller hittills under säsongen.
+            </p>
+            <div className="tablewrap">
+              <table className="admin__table">
+                <thead><tr><th>Medlem</th><th className="num">Deltagit</th><th>Älgkött</th></tr></thead>
+                <tbody>
+                  {kott.deltagare.map((d) => (
+                    <tr key={d.id}>
+                      <td><Link href={`/admin/jaktklubb/${d.id}`}>{d.namn}</Link></td>
+                      <td className="num">{d.deltagit} av {kott.algjakter.length}</td>
+                      <td><span className={`pill pill--${d.berattigad ? "godkand" : "saknas"}`}>{d.berattigad ? "Får del" : `Behöver ${kott.kravAntal - d.deltagit} till`}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+        <h3 className="admin__h2" style={{ fontSize: 16, marginTop: 20 }}>Rådjur och vildsvin</h3>
+        <p className="admin__meta">Varje jägares första fällda rådjur eller vildsvin på hösten och på våren är märkt <b>Eget kött</b> i listan nedan. Övrigt kött går till lagets gemensamma middagar.</p>
+      </div>
+
       <h2 className="admin__h2" style={{ marginTop: 32 }}>Alla skott</h2>
       <p className="admin__meta" style={{ marginBottom: 12 }}>Ändra eller ta bort i jaktledarvyn för dagen, eller under Vak &amp; pyrsch för vakdygn.</p>
       <div className="admin__panel">
@@ -81,7 +113,10 @@ export default async function Avskjutning({ searchParams }: { searchParams: Prom
                     <td>{s.tillfalle ? <Link href={`/admin/tillfallen/${s.tillfalle_id}`}>{s.tillfalle.titel}</Link> : s.vakbokning ? <Link href="/admin/jaktklubb/vak">{s.vakbokning.typ === "vak" ? "Vak" : "Pyrsch"}</Link> : "—"}</td>
                     <td>{s.jagare?.namn ?? s.jagare_namn ?? "—"}</td>
                     <td><b>{VILT[s.vilt] ?? s.vilt}</b>{s.antal > 1 ? ` × ${s.antal}` : ""}<div className="admin__meta">{[s.kon !== "okant" && KON[s.kon], s.alder !== "okant" && ALDER[s.alder], s.vikt != null && `${s.vikt} kg`].filter(Boolean).join(" · ")}</div></td>
-                    <td><span className={`pill pill--${fallt(s) ? "godkand" : s.resultat === "bom" ? "avbokad" : "inskickad"}`}>{resultatKort[s.resultat] ?? s.resultat}</span></td>
+                    <td>
+                      <span className={`pill pill--${fallt(s) ? "godkand" : s.resultat === "bom" ? "avbokad" : "inskickad"}`}>{resultatKort[s.resultat] ?? s.resultat}</span>
+                      {forsta.has(s.id) && <div><span className="pill" title={`Jägarens första rådjur/vildsvin ${halvar(s.datum)}en`}>Eget kött · {halvar(s.datum)}</span></div>}
+                    </td>
                     <td><small>{s.anteckning}</small></td>
                     <td><small>{s.registrerad_av}</small></td>
                   </tr>

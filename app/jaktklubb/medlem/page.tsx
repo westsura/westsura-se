@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { kravMedlem, kursStatus, arMedlem } from "@/lib/jakt";
+import { kravMedlem, kursStatus, arMedlem, EKIPAGE_RABATT } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
 import { ANMALANSTATUS, MANAD, VECKODAG, langtDatum, sasongKort, sasongsdel } from "./delar";
 
@@ -46,6 +46,17 @@ export default async function Oversikt() {
         </div>
         <Link className="btn" href="/jaktklubb/medlem/boka">Boka en jaktdag</Link>
       </header>
+
+      {medlem.ekipage && (
+        <section className="jk-kort jk-kort--ljus jk-kort--bred">
+          <p className="jk-etikett">{medlem.ekipage === "eftersok" ? "Eftersöksekipage" : "Hundförare"}</p>
+          {medlem.ekipage_status === "godkand"
+            ? <p className="jk-lede mb-0">Ditt ekipage är godkänt. Du får {EKIPAGE_RABATT}&nbsp;% rabatt på boendet för dig och hunden — <Link className="jk-lank" href="/boende">boka boende</Link> medan du är inloggad så dras rabatten automatiskt. Vill du ändra uppgifterna om dina hundar gör du det <Link className="jk-lank" href="/jaktklubb/hundekipage">här</Link>.</p>
+            : medlem.ekipage_status === "avbojd"
+              ? <p className="jk-lede mb-0">Ditt ekipage är inte godkänt just nu. Ring oss om du har frågor.</p>
+              : <p className="jk-lede mb-0">Vi går igenom ditt ekipage och hör av oss.</p>}
+        </section>
+      )}
 
       {!!jaktledarDagar.length && (
         <section className="jk-kort jk-kort--ljus jk-kort--bred">

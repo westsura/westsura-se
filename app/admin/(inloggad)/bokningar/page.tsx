@@ -1,4 +1,4 @@
-import { kravAdmin, datum, kr } from "@/lib/admin";
+import { kravAdmin, harRoll, datum, kr } from "@/lib/admin";
 import { supabaseServer } from "@/lib/supabase";
 import BokningsKnappar from "./BokningsKnappar";
 import ManuellBokning from "./ManuellBokning";
@@ -8,7 +8,8 @@ import FakturaKnapp from "../FakturaKnapp";
 export const dynamic = "force-dynamic";
 
 export default async function Bokningar({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
-  await kravAdmin("vardskap");
+  const admin = await kravAdmin("vardskap");
+  const ekonomi = harRoll(admin, "ekonomi");
   const { status } = await searchParams;
   const db = await supabaseServer();
   let q = db.from("bokningar_admin").select("*").order("ankomst", { ascending: false });
@@ -46,7 +47,7 @@ export default async function Bokningar({ searchParams }: { searchParams: Promis
                   <td><span className={`pill pill--${b.status}`}>{b.status}</span><br /><small>{b.kalla}</small></td>
                   <td>
                     <BokningsKnappar id={b.id} status={b.status} />
-                    <div style={{ marginTop: 6 }}><FakturaKnapp bokningId={b.id} underlagId={b.underlag_id} status={b.fakturastatus} /></div>
+                    {ekonomi && <div style={{ marginTop: 6 }}><FakturaKnapp bokningId={b.id} underlagId={b.underlag_id} status={b.fakturastatus} /></div>}
                     {b.faktura && <small title={[b.faktura.foretag, b.faktura.orgnr, b.faktura.adress, b.faktura.referens, b.faktura.epost].filter(Boolean).join(" · ")}>Fakturauppgifter lämnade</small>}
                   </td>
                 </tr>

@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { kravMedlem, kursStatus, arMedlem } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
-import { VAKSTATUS, VAKTYP, vakPris, kr, type Omrade, type Utbud, type Vakbokning } from "@/lib/vak";
+import { VAKSTATUS, VAKTYP, VAKVILT, vakPris, kr, type Omrade, type Utbud, type Vakbokning } from "@/lib/vak";
 import { MANAD, VECKODAG } from "../delar";
 import VakForm from "./VakForm";
 import AvbokaVak from "./AvbokaVak";
+import AnmalVakjakt from "./AnmalVakjakt";
+import { giltigaIdag } from "@/lib/dokument";
 
 export const metadata: Metadata = { title: "Vak & pyrsch" };
 export const dynamic = "force-dynamic";
@@ -23,7 +25,7 @@ export default async function Vak() {
     adm.from("vakomrade").select("id, namn, typ").eq("aktiv", true).in("typ", ["torn", "vakplats", "pyrschomrade"]).order("ordning"),
     adm.from("vakutbud").select("*").eq("publicerad", true).gte("datum", idag).in("synlighet", gast ? ["alla"] : ["medlem", "alla"]).order("datum"),
     adm.from("vakbokning").select("*").eq("jagare_id", medlem.id).order("datum", { ascending: false }),
-    adm.from("medlemsdokument").select("id", { count: "exact", head: true }).eq("medlem_id", medlem.id).eq("status", "godkand"),
+    adm.from("medlemsdokument").select("id", { count: "exact", head: true }).eq("medlem_id", medlem.id).eq("status", "godkand").or(giltigaIdag()),
   ]);
 
   // Lediga platser på utlagda dygn räknas i databasen.
@@ -38,7 +40,7 @@ export default async function Vak() {
     ? await adm.from("medlemsniva").select("namn, vakdygn_ingar, vakdygn_pris").eq("id", medlem.niva_id).maybeSingle()
     : { data: null };
   const bokningar = (mina ?? []) as Vakbokning[];
-  const anvanda = bokningar.filter((b) => b.sasong_id === sasong?.id && (b.status === "onskad" || b.status === "bekraftad")).length;
+  const anvanda = bokningar.filter((b) => b.sasong_id === sasong?.id && !b.vilt && (b.status === "onskad" || b.status === "bekraftad")).length;
   const nastaPris = gast ? null : vakPris(niva, anvanda);
   const kvotText = gast ? null
     : !niva || niva.vakdygn_ingar == null ? "Vak och pyrsch ingår i ditt medlemskap."
@@ -54,7 +56,7 @@ export default async function Vak() {
       <div key={b.id} className={`jk-jaktrad jk-jaktrad--stilla${b.status === "avbokad" || b.status === "avbojd" ? " jk-jaktrad--blek" : ""}`}>
         <span className="jk-jaktrad__datum"><b>{d.getDate()}</b><span>{MANAD[d.getMonth()].slice(0, 3)}</span></span>
         <span className="jk-jaktrad__text">
-          <span className="jk-jaktrad__titel">{VAKTYP[b.typ]}{b.omrade_id ? ` · ${omradeNamn(b.omrade_id)}` : b.onskat_omrade_id ? ` · önskar ${omradeNamn(b.onskat_omrade_id)}` : ""}</span>
+          <span className="jk-jaktrad__titel">{b.vilt ? `Vakjakt på ${(VAKVILT[b.vilt] ?? b.vilt).toLowerCase()}` : VAKTYP[b.typ]}{b.omrade_id ? ` · ${omradeNamn(b.omrade_id)}` : b.onskat_omrade_id ? ` · önskar ${omradeNamn(b.onskat_omrade_id)}` : ""}</span>
           <span className="jk-jaktrad__tid">
             {VECKODAG[d.getDay()].replace(/^./, (c) => c.toUpperCase())} {d.getDate()} {MANAD[d.getMonth()]}{b.pris ? ` · ${kr(b.pris)}` : " · ingår"}
             {b.svar ? ` · ${b.svar}` : ""}
@@ -98,6 +100,8 @@ export default async function Vak() {
         kvotText={kvotText}
         dokumentKlara={godkanda === 3}
       />
+
+      {!gast && <AnmalVakjakt omraden={((omraden ?? []) as Omrade[]).filter((o) => o.typ !== "pyrschomrade")} dokumentKlara={godkanda === 3} />}
 
       <section className="jk-sektion">
         <div className="jk-sektion__topp">

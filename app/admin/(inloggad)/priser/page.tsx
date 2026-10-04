@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 /** Rumspriser: grundpris per rum, säsonger och prisregler (säsong, helg, enskilda datum). */
 export default async function Priser() {
-  await kravAdmin("vardskap");
+  await kravAdmin("ekonomi");
   const adm = supabaseAdmin();
   const [{ data: enheter }, { data: sasonger }, { data: regler }] = await Promise.all([
     adm.from("enhet").select("id, namn, grundpris, ingar_i, ar_hela_boendet").eq("aktiv", true).order("ordning"),

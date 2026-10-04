@@ -9,6 +9,7 @@ import VakKnappar from "./VakKnappar";
 import type { BokningMedJagare } from "./delar";
 import Skottlista from "@/components/jaktledare/Skottlista";
 import type { Skott } from "@/lib/avskjutning";
+import { giltigaIdag } from "@/lib/dokument";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export default async function VakAdmin() {
     adm.from("vakomrade").select("*").order("ordning"),
     adm.from("vakbokning").select("*, jagare:jagare_id(id, namn, epost, telefon, status, kurs_godkand)").gte("datum", treVeckorSedan).order("datum"),
     adm.from("vakutbud").select("*").gte("datum", idag).order("datum"),
-    adm.from("medlemsdokument").select("medlem_id").eq("status", "godkand"),
+    adm.from("medlemsdokument").select("medlem_id").eq("status", "godkand").or(giltigaIdag()),
   ]);
 
   const O = (omraden ?? []) as Omrade[];

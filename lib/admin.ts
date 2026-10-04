@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase";
 
-export type Roll = "superadmin" | "vardskap" | "kommunikation" | "jaktadmin" | "jaktledare" | "butik" | "tomter";
+import type { Roll } from "@/lib/roller";
+export type { Roll } from "@/lib/roller";
+export { OMRADEN, ROLLNAMN } from "@/lib/roller";
 export type Admin = { id: string; epost: string; namn: string | null; roller: Roll[] };
 
 /** Hämtar inloggad admin, eller skickar till inloggningen. */

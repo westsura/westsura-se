@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin, supabasePublik } from "@/lib/supabase";
-import { mejlBokning, mejlForfragan, mejlAnmalan, mejlMedlemsansokan, mejlJagarkonto, mejlVakOnskad, mejlVanValkommen } from "@/lib/epost";
+import { mejlBokning, mejlForfragan, mejlAnmalan, mejlMedlemsansokan, mejlJagarkonto, mejlVakOnskad, mejlVanValkommen, mejlEkipageRegistrerat } from "@/lib/epost";
 import { inloggningForNyttKonto } from "@/lib/konto";
+import { ekipageRabatt } from "@/lib/jakt";
 import { avanmalLank, giltigToken } from "@/lib/avanmal";
 
 export type Svar<T = undefined> = { ok: true; data: T } | { ok: false; fel: string };
@@ -34,10 +35,11 @@ export async function hamtaNattpriser(ankomst: string, avresa: string): Promise<
 }
 
 export async function hamtaPris(enheter: string[], ankomst: string, avresa: string, frukost: boolean, personer: number, kod: string, bricka = false) {
-  const db = supabasePublik();
-  const { data, error } = await db.rpc("prisforslag", { enheter, fran: ankomst, till: avresa, frukost, personer, kod: kod || null, bricka });
+  // Servicenyckeln: prisforslag tar emot ekipagerabatten och är stängd för webbläsaren.
+  const ekipage = await ekipageRabatt();
+  const { data, error } = await supabaseAdmin().rpc("prisforslag", { enheter, fran: ankomst, till: avresa, frukost, personer, kod: kod || null, bricka, ekipage });
   if (error) return { ok: false as const, fel: error.message };
-  return { ok: true as const, data: data as { enhet_id: string; natter: number; pris_per_natt: number; belopp: number; frukost_belopp: number; bricka_belopp: number; rabatt: number; summa: number }[] };
+  return { ok: true as const, ekipage, data: data as { enhet_id: string; natter: number; pris_per_natt: number; belopp: number; frukost_belopp: number; bricka_belopp: number; rabatt: number; summa: number }[] };
 }
 
 /* ---------- Bokning ---------- */
@@ -59,7 +61,7 @@ export async function skapaBokning(fd: FormData): Promise<Svar<{ nummer: number;
     p_namn: namn, p_epost: epost, p_telefon: telefon,
     p_personer: Number(s(fd.get("personer")) || 2), p_hundar: Number(s(fd.get("hundar")) || 0),
     p_frukost: s(fd.get("frukost")) === "1", p_kod: s(fd.get("kod")) || null, p_meddelande: s(fd.get("meddelande")) || null,
-    p_bricka: s(fd.get("bricka")) === "1",
+    p_bricka: s(fd.get("bricka")) === "1", p_ekipage: await ekipageRabatt(),
   });
   if (error) {
     const msg = /inte längre ledig/.test(error.message) ? "Någon hann före — en av enheterna är inte längre ledig för de valda datumen. Sök igen." : error.message;
@@ -153,6 +155,8 @@ export async function skapaMedlemsansokan(fd: FormData): Promise<Svar> {
   if (!namn || !epost.includes("@")) return { ok: false, fel: "Fyll i namn och en giltig e-postadress." };
   if (!telefon) return { ok: false, fel: "Fyll i ett telefonnummer så vi kan ringa dig." };
   if (jakterfarenhet.length < 20) return { ok: false, fel: "Berätta lite mer om din jakterfarenhet — några meningar räcker." };
+  if (s(fd.get("villkor")) !== "1") return { ok: false, fel: "Du behöver godkänna villkoren för jakt." };
+  const yrkesroll = s(fd.get("yrkesroll")), anstallningsform = s(fd.get("anstallningsform")), flexibla_tider = s(fd.get("flexibla_tider"));
 
   const db = supabaseAdmin();
   const { data: sasong, error: felSasong } = await db.from("jaktsasong").select("id").eq("aktiv", true).maybeSingle();
@@ -170,13 +174,76 @@ export async function skapaMedlemsansokan(fd: FormData): Promise<Svar> {
   const { error } = await db.from("jaktmedlem").insert({
     namn, epost, telefon, ort: ort || null, jakterfarenhet, hund: hund || null,
     meddelande: meddelande || null, onskad_niva_id: vald.id,
+    yrkesroll: yrkesroll || null, anstallningsform: anstallningsform || null, flexibla_tider: flexibla_tider || null,
+    villkor_godkanda: new Date().toISOString(),
   });
   if (error) {
     if (error.code === "23505") return { ok: false, fel: "Det finns redan en ansökan med den adressen – ring oss om du vill ändra något." };
     return { ok: false, fel: error.message };
   }
   try {
-    await mejlMedlemsansokan({ epost, namn, telefon, ort, jakterfarenhet, hund, meddelande, niva: vald.namn, flera: nivaer.length > 1 });
+    await mejlMedlemsansokan({ epost, namn, telefon, ort, jakterfarenhet, hund, meddelande, niva: vald.namn, flera: nivaer.length > 1, yrke: [yrkesroll, anstallningsform, flexibla_tider].filter(Boolean).join(" · ") });
+  } catch (e) { console.error("mejl misslyckades", e); }
+  return { ok: true, data: undefined };
+}
+
+/* ---------- Hundekipage ---------- */
+/**
+ * Registrering av hundförare eller eftersöksekipage. Uppgifterna läggs på personens
+ * jägarkonto (jaktmedlem) — finns adressen redan, till exempel som medlem, används den raden.
+ * Inloggning skapas först när herrgården godkänt ekipaget.
+ */
+export async function registreraEkipage(fd: FormData): Promise<Svar> {
+  const ekipage = s(fd.get("ekipage")) === "eftersok" ? "eftersok" : "hundforare";
+  const namn = s(fd.get("namn")), epost = s(fd.get("epost")).toLowerCase(), telefon = s(fd.get("telefon")), ort = s(fd.get("ort"));
+  const jagarexamen = s(fd.get("jagarexamen")) === "1";
+  if (!namn || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(epost)) return { ok: false, fel: "Fyll i namn och en giltig e-postadress." };
+  if (!telefon) return { ok: false, fel: "Fyll i ett telefonnummer så vi kan nå dig inför jakterna." };
+  if (ekipage === "eftersok" && !jagarexamen) return { ok: false, fel: "Eftersöksekipage behöver jägarexamen." };
+  if (s(fd.get("villkor")) !== "1") return { ok: false, fel: "Du behöver godkänna villkoren för jakt." };
+
+  const antal = Math.min(4, Math.max(1, Number(s(fd.get("antal_hundar")) || 1)));
+  const hundar = Array.from({ length: antal }, (_, i) => {
+    const fodd = Number(s(fd.get(`hund${i}_fodd`)));
+    return {
+      namn: s(fd.get(`hund${i}_namn`)), ras: s(fd.get(`hund${i}_ras`)) || null,
+      fodd: fodd >= 1990 && fodd <= new Date().getFullYear() ? fodd : null,
+      regnr: s(fd.get(`hund${i}_regnr`)) || null,
+      driver: fd.getAll(`hund${i}_driver`).map(String).filter(Boolean),
+      eftersok: s(fd.get(`hund${i}_eftersok`)) === "1",
+      meriter: s(fd.get(`hund${i}_meriter`)) || null,
+    };
+  }).filter((h) => h.namn);
+  if (!hundar.length) return { ok: false, fel: "Fyll i uppgifter om minst en hund." };
+
+  const db = supabaseAdmin();
+  const { data: finns, error: felFinns } = await db.from("jaktmedlem").select("id, ekipage_status").eq("epost", epost).maybeSingle();
+  if (felFinns) return { ok: false, fel: felFinns.message };
+  const meddelande = s(fd.get("meddelande"));
+  const falt = {
+    ekipage, jagarexamen, villkor_godkanda: new Date().toISOString(), senast_aktiv: new Date().toISOString(),
+    // Ett redan godkänt ekipage behåller sitt godkännande när uppgifterna uppdateras.
+    ekipage_status: finns?.ekipage_status === "godkand" ? "godkand" : "sokande",
+  };
+  let id = finns?.id as string | undefined;
+  if (id) {
+    const { error } = await db.from("jaktmedlem").update(falt).eq("id", id);
+    if (error) return { ok: false, fel: error.message };
+  } else {
+    const { data, error } = await db.from("jaktmedlem").insert({
+      ...falt, namn, epost, telefon, ort: ort || null, status: "gast", konto_skapat_via: "ekipage",
+      meddelande: meddelande || null,
+    }).select("id").single();
+    if (error || !data) return { ok: false, fel: error?.message ?? "Kunde inte spara ekipaget." };
+    id = data.id;
+  }
+  // Hundarna ersätts med det som skickades nu.
+  await db.from("hund").delete().eq("agare_id", id);
+  const { error: felHund } = await db.from("hund").insert(hundar.map((h) => ({ ...h, agare_id: id })));
+  if (felHund) return { ok: false, fel: felHund.message };
+
+  try {
+    await mejlEkipageRegistrerat({ epost, namn, telefon, ort, ekipage, jagarexamen, hundar, meddelande });
   } catch (e) { console.error("mejl misslyckades", e); }
   return { ok: true, data: undefined };
 }

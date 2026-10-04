@@ -67,6 +67,26 @@ export default function MedlemsansokanForm({ nivaer }: { nivaer: Niva[] }) {
         <textarea id="m-jakterfarenhet" name="jakterfarenhet" required minLength={20} className="ta--m"
           placeholder="Hur länge har du jagat, vilken jakt jagar du helst, har du jägarexamen och vapenlicens?" />
       </div>
+      <div className="field">
+        <label htmlFor="m-yrke">Yrke <span className="hint">valfritt</span></label>
+        <input type="text" id="m-yrke" name="yrkesroll" placeholder="T.ex. snickare, rörmokare, lärare" />
+      </div>
+      <div className="field">
+        <label htmlFor="m-anstallning">Anställningsform <span className="hint">valfritt</span></label>
+        <select id="m-anstallning" name="anstallningsform" defaultValue="">
+          <option value="">Välj</option>
+          <option>Anställd</option>
+          <option>Egen företagare</option>
+          <option>Pensionär</option>
+          <option>Studerande</option>
+          <option>Annat</option>
+        </select>
+      </div>
+      <div className="field field--full">
+        <label htmlFor="m-tider">Hur ser dina arbetstider ut? <span className="hint">valfritt</span></label>
+        <input type="text" id="m-tider" name="flexibla_tider" placeholder="T.ex. flexibla, skift, ledig vardagar" />
+        <p className="hint">Vi frågar för att kunna bygga ett blandat jaktlag — det är bra att veta vem som kan ställa upp en vardag, eller vem som kan hjälpa till när ett torn ska byggas.</p>
+      </div>
       <div className="field field--full">
         <label htmlFor="m-hund">Hund <span className="hint">valfritt</span></label>
         <input type="text" id="m-hund" name="hund" placeholder="Ras och vad hunden används till" />
@@ -76,12 +96,17 @@ export default function MedlemsansokanForm({ nivaer }: { nivaer: Niva[] }) {
         <textarea id="m-meddelande" name="meddelande" className="ta--s" placeholder="Varför just Westsura?" />
       </div>
 
+      <label className="checkfield field--full">
+        <input type="checkbox" name="villkor" value="1" required />
+        <span>Jag har läst och godkänner <a href="/jaktklubb/villkor" target="_blank" rel="noopener">villkoren för jakt</a>, med provår och årskostnad.</span>
+      </label>
+
       {fel && <div className="notice notice--fel field--full" role="alert">{fel}</div>}
       <div className="field--full cta-row">
         <button className="btn" type="submit" disabled={pending}>{pending ? "Skickar…" : "Skicka ansökan"}</button>
         <a className="btn btn--ghost" href={site.phoneHref}>Ring {site.phone}</a>
       </div>
-      <p className="field--full hint">Uppgifterna används bara för att pröva din ansökan och sparas inte längre än nödvändigt.</p>
+      <p className="field--full hint">Uppgifterna används för att pröva din ansökan och, om du blir medlem, för medlemskapet. De sparas inte längre än nödvändigt.</p>
     </form>
   );
 }

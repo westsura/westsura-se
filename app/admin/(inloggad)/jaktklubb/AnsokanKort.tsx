@@ -36,6 +36,7 @@ export default function AnsokanKort({ m, nivaer, kvar }: { m: Medlem; nivaer: Ni
 
       <p className="admin__meta" style={{ margin: "12px 0 4px" }}><b>Jakterfarenhet</b></p>
       <p style={{ fontSize: 15, margin: 0, whiteSpace: "pre-wrap" }}>{m.jakterfarenhet}</p>
+      {(m.yrkesroll || m.anstallningsform || m.flexibla_tider) && <><p className="admin__meta" style={{ margin: "12px 0 4px" }}><b>Yrke och arbetstider</b></p><p style={{ fontSize: 15, margin: 0 }}>{[m.yrkesroll, m.anstallningsform, m.flexibla_tider].filter(Boolean).join(" · ")}</p></>}
       {m.hund && <><p className="admin__meta" style={{ margin: "12px 0 4px" }}><b>Hund</b></p><p style={{ fontSize: 15, margin: 0 }}>{m.hund}</p></>}
       {m.meddelande && <><p className="admin__meta" style={{ margin: "12px 0 4px" }}><b>Meddelande</b></p><p style={{ fontSize: 15, margin: 0, whiteSpace: "pre-wrap" }}>{m.meddelande}</p></>}
 

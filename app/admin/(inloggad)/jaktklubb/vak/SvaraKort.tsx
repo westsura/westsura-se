@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { svaraVak } from "@/app/admin/actions";
-import { VAKTYP, OMRADETYP, kr, type Omrade } from "@/lib/vak";
+import { VAKTYP, VAKVILT, OMRADETYP, kr, type Omrade } from "@/lib/vak";
 import type { BokningMedJagare } from "./delar";
 
 /** En önskan att svara på: förslag på lediga områden, bekräfta eller avböj. */
@@ -26,7 +26,8 @@ export default function SvaraKort({ b, lediga, alla, onskatNamn }: { b: BokningM
     <section className="admin__panel" style={{ marginBottom: 16 }}>
       <div className="admin__head" style={{ marginBottom: 8 }}>
         <div>
-          <h3 className="admin__h2" style={{ margin: 0 }}>{b.datum} · {VAKTYP[b.typ]}</h3>
+          <h3 className="admin__h2" style={{ margin: 0 }}>{b.datum} · {b.vilt ? `Anmäld vakjakt på ${(VAKVILT[b.vilt] ?? b.vilt).toLowerCase()}` : VAKTYP[b.typ]}</h3>
+          {b.vilt && <p className="admin__meta">Eget datum — stäm av mot planerad jakt innan du bekräftar.</p>}
           <p className="admin__meta">
             {b.jagare ? <Link href={`/admin/jaktklubb/${b.jagare.id}`}>{b.jagare.namn}</Link> : "—"} · {gast ? "gästjägare" : "medlem"}
             {b.jagare?.telefon ? ` · ${b.jagare.telefon}` : ""} · {b.jagare?.epost}

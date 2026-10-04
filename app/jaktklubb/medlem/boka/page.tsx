@@ -3,6 +3,7 @@ import Link from "next/link";
 import { kravMedlem, kursStatus, arMedlem } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
 import Boka, { type Jaktdag } from "./Boka";
+import { giltigaIdag } from "@/lib/dokument";
 
 export const metadata: Metadata = { title: "Boka jakt" };
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export default async function BokaJakt() {
     adm.from("tillfalle").select("id, titel, beskrivning, datum, tid, samling, program, platser, pris, synlighet")
       .eq("typ", "jakt").in("synlighet", gast ? ["publik"] : ["medlem", "publik"]).eq("publicerad", true).gte("datum", idag).order("datum"),
     adm.from("anmalan").select("tillfalle_id, status").eq("epost", medlem.epost).neq("status", "avbokad"),
-    adm.from("medlemsdokument").select("id", { count: "exact", head: true }).eq("medlem_id", medlem.id).eq("status", "godkand"),
+    adm.from("medlemsdokument").select("id", { count: "exact", head: true }).eq("medlem_id", medlem.id).eq("status", "godkand").or(giltigaIdag()),
   ]);
 
   const jaktdagar: Jaktdag[] = await Promise.all((tillfallen ?? []).map(async (t) => {

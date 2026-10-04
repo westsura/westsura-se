@@ -8,7 +8,7 @@ type Faktura = { foretag?: string; orgnr?: string; adress?: string; referens?: s
 type F = { id: string; nummer: number; typ: string; onskat_datum: string | null; antal_gaster: string | null; hundar: boolean; namn: string; telefon: string | null; epost: string; meddelande: string | null; status: string; anteckningar: string | null; skapad: string; faktura?: Faktura };
 const STATUS = [["ny", "Ny"], ["pagar", "Pågår"], ["besvarad", "Besvarad"], ["bokad", "Bokad"], ["avslutad", "Avslutad"]];
 
-export default function ForfraganKort({ f, underlag }: { f: F; underlag?: { id: string; status: string } }) {
+export default function ForfraganKort({ f, underlag, ekonomi = false }: { f: F; underlag?: { id: string; status: string }; ekonomi?: boolean }) {
   const [status, setStatus] = useState(f.status);
   const [ant, setAnt] = useState(f.anteckningar ?? "");
   const [fel, setFel] = useState<string | null>(null);
@@ -40,7 +40,7 @@ export default function ForfraganKort({ f, underlag }: { f: F; underlag?: { id: 
           {STATUS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
         <input value={ant} onChange={(e) => setAnt(e.target.value)} onBlur={() => spara()} placeholder="Anteckning — ringt, offert skickad…" style={{ flex: 1 }} />
-        <FakturaKnapp forfraganId={f.id} underlagId={underlag?.id} status={underlag?.status} />
+        {ekonomi && <FakturaKnapp forfraganId={f.id} underlagId={underlag?.id} status={underlag?.status} />}
       </div>
     </article>
   );
