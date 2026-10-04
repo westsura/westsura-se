@@ -176,6 +176,27 @@ export async function mejlAdminValkommen(o: { epost: string; namn: string; omrad
   ]));
 }
 
+/* ---------- Kurser ---------- */
+
+/** Bokningsbekräftelse för en kurs, och besked till herrgården. */
+export async function mejlKursbokning(o: { epost: string; namn: string; telefon: string; kurs: string; datum: string; nummer: number; antal: number; rum: string; earlybird: boolean; prisPerPerson: number; summa: number; deltagare?: string; kost?: string; meddelande?: string }) {
+  const kr = (n: number) => n.toLocaleString("sv-SE") + " kr";
+  await skicka([o.epost], `Bokningsbekräftelse: ${o.kurs}`, html(`Välkommen på ${o.kurs.toLowerCase()}`, [
+    `Hej ${fritext(o.namn)}. Tack för din bokning — vi ser fram emot en helg med foto, natur och inspiration.`,
+    `<strong>${fritext(o.kurs)}</strong><br>${fritext(o.datum)}<br>${o.antal} ${o.antal === 1 ? "deltagare" : "deltagare"} · ${o.rum}${o.earlybird ? " · Early Bird" : ""}<br>${kr(o.prisPerPerson)} per person · <strong>totalt ${kr(o.summa)}</strong><br>Bokningsnummer ${o.nummer}`,
+    `Bokningen är bindande. Faktura skickas separat och betalas inom tio dagar. Får du förhinder kan du överlåta platsen till någon annan utan kostnad — meddela oss namn och kontaktuppgifter. Blir kursen inställd på grund av för få deltagare återbetalas hela beloppet.`,
+    `Vi skickar program och praktisk information närmare kursen. Frågor? Ring ${site.phone} eller svara på det här mejlet.`,
+  ]), site.email);
+  await skicka([site.email], `Kursbokning ${o.nummer}: ${o.kurs} — ${o.namn}`, html("Ny kursbokning", [
+    `${fritext(o.namn)} · ${fritext(o.epost)} · ${fritext(o.telefon)}`,
+    `<strong>${fritext(o.kurs)}</strong>, ${o.antal} pers · ${o.rum}${o.earlybird ? " · Early Bird" : ""} · ${kr(o.summa)}`,
+    o.deltagare ? `<strong>Övriga deltagare</strong><br>${fritext(o.deltagare)}` : "",
+    o.kost ? `<strong>Kost och allergier</strong><br>${fritext(o.kost)}` : "",
+    o.meddelande ? `<strong>Meddelande</strong><br>${fritext(o.meddelande)}` : "",
+    `Fakturaunderlaget ligger under Fakturering i admin. Deltagarlistan finns under Kurser.`,
+  ].filter(Boolean), ""), o.epost);
+}
+
 /* ---------- Hundekipage ---------- */
 
 const EKIPAGENAMN: Record<string, string> = { hundforare: "hundförare", eftersok: "eftersöksekipage" };

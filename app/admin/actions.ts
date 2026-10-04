@@ -754,6 +754,35 @@ export async function taBortJaktmedlem(id: string): Promise<{ ok: boolean; fel?:
   return { ok: true };
 }
 
+/* ---------- Kurser ---------- */
+/** Datum, platser och priser för en kurs. Tomt datumfält = datumet visas bara som text. */
+export async function sparaKurs(id: string, fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("vardskap", "ekonomi");
+  const tal = (k: string) => { const v = s(fd.get(k)); return v === "" ? null : Math.round(Number(v)); };
+  const rad = {
+    namn: s(fd.get("namn")), datum_text: s(fd.get("datum_text")),
+    datum_fran: s(fd.get("datum_fran")) || null, datum_till: s(fd.get("datum_till")) || null,
+    platser: tal("platser") ?? 0, pris_dubbel: tal("pris_dubbel"), pris_enkel: tal("pris_enkel"),
+    earlybird_dubbel: tal("earlybird_dubbel"), earlybird_enkel: tal("earlybird_enkel"),
+    earlybird_till: s(fd.get("earlybird_till")) || null, oppen: !!fd.get("oppen"),
+  };
+  if (!rad.namn || !rad.datum_text) return { ok: false, fel: "Namn och datumtext behövs." };
+  if (rad.pris_dubbel == null || rad.pris_enkel == null) return { ok: false, fel: "Ange ordinarie priser." };
+  const { error } = await supabaseAdmin().from("kurs").update(rad).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/kurser"); revalidatePath("/paket/naturfoto"); revalidatePath("/paket");
+  return { ok: true };
+}
+
+/** Avbokar en kursbokning så att platserna blir lediga. Fakturaunderlaget krediteras för hand. */
+export async function avbokaKursbokning(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("vardskap", "ekonomi");
+  const { error } = await supabaseAdmin().from("kursbokning").update({ status: "avbokad" }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/kurser"); revalidatePath("/paket/naturfoto");
+  return { ok: true };
+}
+
 /* ---------- Hundekipage ---------- */
 /** Godkänner ett ekipage: skapar inloggning om den saknas och skickar besked med rabatten. */
 export async function godkannEkipage(id: string): Promise<{ ok: boolean; fel?: string }> {

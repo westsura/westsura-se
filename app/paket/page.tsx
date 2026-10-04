@@ -1,17 +1,28 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Hero } from "@/components/Blocks";
 import PaketBokning, { type PaketEnhet } from "@/components/PaketBokning";
 import { img, site } from "@/lib/site";
 import { supabasePublik } from "@/lib/supabase";
 
 export const metadata: Metadata = {
-  title: "Paket — kanot, golf och mat över öppen eld",
+  title: "Paket — naturfoto, kanot, golf och mat över öppen eld",
   description:
-    "Färdiga paket på Westsura Herrgård: kanotpaddling på Strömsholms kanal med övernattning, golfpaket med Surahammars GK, och matlagning över öppen eld. Herrgårdsboende i Västmanland.",
+    "Färdiga paket på Westsura Herrgård: naturfotokurs med Anders Geidemark, kanotpaddling på Strömsholms kanal, golfpaket med Surahammars GK och matlagning över öppen eld. Herrgårdsboende i Västmanland.",
   alternates: { canonical: "/paket" },
 };
 
-const paket: { id: string; bild: string; alt: string; label: string; titel: string; pris: string; per: string; text: string[]; ingar: string[]; extra?: string }[] = [
+const paket: { id: string; bild: string; alt: string; label: string; titel: string; pris: string; per: string; text: string[]; ingar: string[]; extra?: string; lank?: string }[] = [
+  {
+    id: "naturfoto", bild: "/bilder/naturfoto-lappuggla-liten.jpg", alt: "Två lappugglor på en stubbe i kvällsljus", label: "Grundkurs i naturfoto · maj 2027", titel: "från fina bilder till fantastiska",
+    pris: "från 5 495 kr", per: "per person · Early Bird t.o.m. 31 oktober",
+    text: [
+      "En inspirerande helg med naturfotografen och författaren Anders Geidemark. Tre dagar med teori, fotoövningar i Westsuras omgivningar, bildvisningar och personlig bildgenomgång — inga förkunskaper krävs, och mobilen går lika bra som systemkameran.",
+    ],
+    ingar: ["Naturfotokurs med Anders Geidemark", "Två nätter på herrgården, fredag–söndag", "Alla måltider, fika och fikakorgar för fototurerna"],
+    extra: "Begränsat antal platser. Bindande bokning.",
+    lank: "/paket/naturfoto",
+  },
   {
     id: "kanot-dag", bild: img.paketKanotDag, alt: "Kanot på Strömsholms kanal", label: "Kanot & Herrgård", titel: "dagsäventyret", pris: "1 249 kr", per: "per person",
     text: [
@@ -57,12 +68,22 @@ export default async function Paket() {
   let enheter: PaketEnhet[] = [];
   try {
     const db = supabasePublik();
-    const [{ data: p }, { data: e }] = await Promise.all([
+    const [{ data: p }, { data: e }, { data: k }] = await Promise.all([
       db.from("paket").select("id, namn, pris, ingar_natt").eq("aktiv", true),
       db.from("enhet").select("id, namn, baddar, grundpris, ingar_i, ar_hela_boendet").eq("ar_hela_boendet", false).order("ordning"),
+      db.from("kurs").select("datum_text, pris_dubbel, earlybird_dubbel, earlybird_till").eq("id", "naturfoto").maybeSingle(),
     ]);
     prislista = (p ?? []) as typeof prislista;
     enheter = (e ?? []) as PaketEnhet[];
+    // Naturfotokursen: lägsta pris just nu, och Early Bird så länge den gäller.
+    const nf = paket.find((x) => x.id === "naturfoto");
+    if (nf && k) {
+      const eb = k.earlybird_till && k.earlybird_dubbel != null && new Date().toISOString().slice(0, 10) <= k.earlybird_till;
+      const datum = k.earlybird_till ? new Date(k.earlybird_till + "T12:00:00").toLocaleDateString("sv-SE", { day: "numeric", month: "long" }) : "";
+      nf.pris = "från " + (eb ? k.earlybird_dubbel : k.pris_dubbel).toLocaleString("sv-SE") + " kr";
+      nf.per = eb ? `per person · Early Bird t.o.m. ${datum}` : "per person";
+      nf.label = `Grundkurs i naturfoto · ${k.datum_text.replace(/,.*$/, "")}`;
+    }
   } catch (err) { console.error("Kunde inte hämta paket", err); }
   const kr = (n: number) => n.toLocaleString("sv-SE") + " kr";
 
@@ -89,7 +110,9 @@ export default async function Paket() {
                 <p className="label paket__ingar">I paketet ingår</p>
                 <ul className="ticks">{p.ingar.map((i) => <li key={i}>{i}</li>)}</ul>
                 {p.extra && <p className="muted">{p.extra}</p>}
-                {db && enheter.length
+                {p.lank
+                  ? <Link className="btn" href={p.lank}>Läs mer och boka</Link>
+                  : db && enheter.length
                   ? <PaketBokning paket={{ id: p.id, namn: db.namn, pris: db.pris, ingarNatt: db.ingar_natt }} enheter={enheter} />
                   : <a className="btn" href={site.phoneHref}>Ring och boka {site.phone}</a>}
               </div>

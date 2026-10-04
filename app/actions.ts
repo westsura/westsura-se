@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin, supabasePublik } from "@/lib/supabase";
-import { mejlBokning, mejlForfragan, mejlAnmalan, mejlMedlemsansokan, mejlJagarkonto, mejlVakOnskad, mejlVanValkommen, mejlEkipageRegistrerat } from "@/lib/epost";
+import { mejlBokning, mejlForfragan, mejlAnmalan, mejlMedlemsansokan, mejlJagarkonto, mejlVakOnskad, mejlVanValkommen, mejlEkipageRegistrerat, mejlKursbokning } from "@/lib/epost";
 import { inloggningForNyttKonto } from "@/lib/konto";
 import { ekipageRabatt } from "@/lib/jakt";
 import { avanmalLank, giltigToken } from "@/lib/avanmal";
@@ -185,6 +185,54 @@ export async function skapaMedlemsansokan(fd: FormData): Promise<Svar> {
     await mejlMedlemsansokan({ epost, namn, telefon, ort, jakterfarenhet, hund, meddelande, niva: vald.namn, flera: nivaer.length > 1, yrke: [yrkesroll, anstallningsform, flexibla_tider].filter(Boolean).join(" · ") });
   } catch (e) { console.error("mejl misslyckades", e); }
   return { ok: true, data: undefined };
+}
+
+/* ---------- Kurser (t.ex. naturfoto) ---------- */
+/**
+ * Bindande bokning av kursplatser. Pris (Early Bird eller ordinarie, delat dubbelrum eller enkelrum)
+ * och lediga platser avgörs i databasen; ett fakturaunderlag skapas direkt med kort förfallotid.
+ */
+export async function bokaKurs(fd: FormData): Promise<Svar<{ nummer: number; summa: number }>> {
+  const kurs = s(fd.get("kurs"));
+  const namn = s(fd.get("namn")), epost = s(fd.get("epost")).toLowerCase(), telefon = s(fd.get("telefon"));
+  const antal = Math.min(4, Math.max(1, Number(s(fd.get("antal")) || 1)));
+  const rumstyp = s(fd.get("rumstyp")) === "enkel" ? "enkel" : "dubbel";
+  if (!namn || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(epost)) return { ok: false, fel: "Fyll i namn och en giltig e-postadress." };
+  if (!telefon) return { ok: false, fel: "Fyll i ett telefonnummer." };
+  if (s(fd.get("villkor")) !== "1") return { ok: false, fel: "Du behöver godkänna bokningsvillkoren." };
+  const deltagare = s(fd.get("deltagare")), kost = s(fd.get("kost")), meddelande = s(fd.get("meddelande"));
+  if (antal > 1 && !deltagare) return { ok: false, fel: "Skriv namnen på de andra deltagarna." };
+  const faktura = fakturaFran(fd);
+
+  const db = supabaseAdmin();
+  const { data, error } = await db.rpc("boka_kurs", {
+    p_kurs: kurs, p_namn: namn, p_epost: epost, p_telefon: telefon, p_antal: antal, p_rumstyp: rumstyp,
+    p_deltagare: deltagare || null, p_kost: kost || null, p_meddelande: meddelande || null, p_faktura: faktura,
+  });
+  if (error) return { ok: false, fel: error.code === "P0001" ? error.message : "Det gick inte att boka just nu. Ring oss så hjälper vi dig." };
+  const b = (data as { bokning_id: string; nummer: number; pris_per_person: number; summa: number; earlybird: boolean }[])[0];
+  const { data: k } = await db.from("kurs").select("namn, datum_text").eq("id", kurs).single();
+  const rum = rumstyp === "enkel" ? "enkelrum" : "delat dubbelrum";
+
+  // Fakturaunderlag direkt — betalning sker i samband med bokningen. Ett fel här stoppar inte bokningen.
+  try {
+    const forfaller = new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10);
+    const { data: u, error: felU } = await db.from("fakturaunderlag").insert({
+      rubrik: `${k?.namn ?? "Kurs"}, ${k?.datum_text ?? ""}, kursbokning ${b.nummer}`,
+      kund_namn: namn, kund_epost: faktura?.epost || epost, kund_telefon: telefon,
+      kund_foretag: faktura?.foretag || null, kund_orgnr: faktura?.orgnr || null, kund_adress: faktura?.adress || s(fd.get("adress")) || null, kund_referens: faktura?.referens || null,
+      forfallodatum: forfaller, anteckning: deltagare ? `Deltagare: ${namn}, ${deltagare}` : null,
+    }).select("id").single();
+    if (felU || !u) throw new Error(felU?.message ?? "inget underlag");
+    await db.from("fakturarad").insert({ underlag_id: u.id, ordning: 0, beskrivning: `${k?.namn ?? "Kurs"}, ${rum}${b.earlybird ? ", Early Bird" : ""} — kurs, två nätter och alla måltider`, antal, enhet: "pers", a_pris: b.pris_per_person, moms: 25 });
+    await db.from("kursbokning").update({ underlag_id: u.id }).eq("id", b.bokning_id);
+  } catch (e) { console.error("kunde inte skapa fakturaunderlag för kursbokning", b.nummer, e); }
+
+  try {
+    await mejlKursbokning({ epost, namn, telefon, kurs: k?.namn ?? "Kurs", datum: k?.datum_text ?? "", nummer: b.nummer, antal, rum, earlybird: b.earlybird, prisPerPerson: b.pris_per_person, summa: b.summa, deltagare, kost, meddelande });
+  } catch (e) { console.error("mejl misslyckades", e); }
+  revalidatePath("/paket/naturfoto"); revalidatePath("/paket");
+  return { ok: true, data: { nummer: b.nummer, summa: b.summa } };
 }
 
 /* ---------- Hundekipage ---------- */

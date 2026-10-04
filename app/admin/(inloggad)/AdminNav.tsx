@@ -11,6 +11,7 @@ const menu: { href: string; label: string; roller: Roll[] }[] = [
   { href: "/admin/kalender", label: "Kalender", roller: ["vardskap"] },
   { href: "/admin/bokningar", label: "Bokningar", roller: ["vardskap"] },
   { href: "/admin/forfragningar", label: "Förfrågningar", roller: ["vardskap"] },
+  { href: "/admin/kurser", label: "Kurser", roller: ["vardskap", "ekonomi"] },
   { href: "/admin/priser", label: "Priser", roller: ["ekonomi"] },
   { href: "/admin/fakturering", label: "Fakturering", roller: ["ekonomi"] },
   { href: "/admin/tillfallen", label: "Tillfällen", roller: ["vardskap", "jaktadmin"] },

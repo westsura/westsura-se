@@ -4,7 +4,7 @@ export type Roll = "superadmin" | "vardskap" | "ekonomi" | "kommunikation" | "ja
 
 /** De områden en admin kan få tillgång till, i den ordning de visas på Användare. */
 export const OMRADEN: { roll: Roll; namn: string; ger: string }[] = [
-  { roll: "vardskap", namn: "Boende & bokningar", ger: "Kalender, bokningar, förfrågningar, tillfällen, Westsuras Vänner" },
+  { roll: "vardskap", namn: "Boende & bokningar", ger: "Kalender, bokningar, förfrågningar, kurser, tillfällen, Westsuras Vänner" },
   { roll: "ekonomi", namn: "Ekonomi", ger: "Priser och fakturering" },
   { roll: "jaktadmin", namn: "Jakt", ger: "Jaktklubben, vak & pyrsch, avskjutning, säkerhetskurs, tillfällen" },
   { roll: "kommunikation", namn: "Vänner & nyhetsbrev", ger: "Westsuras Vänner" },

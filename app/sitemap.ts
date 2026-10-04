@@ -17,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/jaktklubb/hundekipage", priority: 0.5, freq: "monthly" },
     { path: "/jaktklubb/villkor", priority: 0.2, freq: "yearly" },
     { path: "/paket", priority: 0.7, freq: "monthly" },
+    { path: "/paket/naturfoto", priority: 0.7, freq: "weekly" },
     { path: "/hostdag", priority: 0.6, freq: "weekly" },
     { path: "/om-oss", priority: 0.5, freq: "yearly" },
     { path: "/goda-grannar", priority: 0.5, freq: "monthly" },
