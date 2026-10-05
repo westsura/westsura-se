@@ -68,12 +68,12 @@ export default function KursBokning({ kurs }: { kurs: Kurs }) {
       <div className="field"><label htmlFor="k-namn">Namn</label><input id="k-namn" name="namn" required autoComplete="name" /></div>
       <div className="field"><label htmlFor="k-tel">Telefon</label><input id="k-tel" name="telefon" type="tel" required autoComplete="tel" /></div>
       <div className="field"><label htmlFor="k-epost">E-post</label><input id="k-epost" name="epost" type="email" required autoComplete="email" /></div>
-      <div className="field"><label htmlFor="k-adress">Postadress för fakturan <span className="hint">valfritt</span></label><input id="k-adress" name="adress" autoComplete="street-address" placeholder="Annars skickas den till din e-post" /></div>
+      <div className="field"><label htmlFor="k-adress">Postadress för fakturan</label><input id="k-adress" name="adress" autoComplete="street-address" placeholder="Valfritt — annars skickas den till din e-post" /></div>
       {antal > 1 && (
         <div className="field field--full"><label htmlFor="k-delt">Övriga deltagares namn</label><input id="k-delt" name="deltagare" required placeholder="Namn på de du bokar för" /></div>
       )}
-      <div className="field field--full"><label htmlFor="k-kost">Kost och allergier <span className="hint">valfritt</span></label><input id="k-kost" name="kost" placeholder="T.ex. vegetarian, glutenfritt" /></div>
-      <div className="field field--full"><label htmlFor="k-medd">Meddelande <span className="hint">valfritt</span></label><textarea id="k-medd" name="meddelande" className="ta--xs" placeholder="Vill du dela rum med någon särskild? Vilken kamera har du?" /></div>
+      <div className="field field--full"><label htmlFor="k-kost">Kost och allergier</label><input id="k-kost" name="kost" placeholder="Valfritt — t.ex. vegetarian, glutenfritt" /></div>
+      <div className="field field--full"><label htmlFor="k-medd">Meddelande</label><textarea id="k-medd" name="meddelande" className="ta--xs" placeholder="Valfritt — vill du dela rum med någon särskild? Vilken kamera har du?" /></div>
       <Fakturafalt prefix="kf" full />
 
       <div className="field--full sumrow sumrow--total" style={{ display: "flex", justifyContent: "space-between", fontWeight: 600 }}>

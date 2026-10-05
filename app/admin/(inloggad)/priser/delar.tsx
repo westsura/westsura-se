@@ -153,7 +153,7 @@ function RegelForm({ r, enheter, sasonger, onKlar }: { r?: Regel; enheter: Enhet
         </div>
         <p className="hint">Helg = fre och lör.</p>
       </div>
-      <div className="field"><label>Enskilt datum <span className="hint">valfritt, t.ex. midsommarafton</span></label><input name="datum" type="date" defaultValue={r?.datum ?? ""} /></div>
+      <div className="field"><label title="Valfritt, t.ex. midsommarafton">Enskilt datum</label><input name="datum" type="date" defaultValue={r?.datum ?? ""} /></div>
       <div className="field">
         <label>Pris</label>
         <select name="typ" value={typ} onChange={(e) => setTyp(e.target.value as "pris" | "procent")}>

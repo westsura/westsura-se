@@ -61,8 +61,8 @@ export default function SvaraKort({ b, lediga, alla, onskatNamn }: { b: BokningM
           <p className="hint">{b.pris ? "Fakturaunderlag skapas när du bekräftar." : "0 = ingår."}</p>
         </div>
         <div className="field field--full">
-          <label>Till jägaren <small>valfritt</small></label>
-          <input name="svar" placeholder="Var på plats senast 15.30, ring mig när du är i tornet…" />
+          <label>Till jägaren</label>
+          <input name="svar" placeholder="Valfritt — var på plats senast 15.30, ring mig när du är i tornet…" />
         </div>
         <div className="field--full cta-row">
           <button className="btn btn--sm" type="submit" disabled={pending || !lediga.length}>{pending ? "Sparar…" : "Bekräfta dygnet"}</button>

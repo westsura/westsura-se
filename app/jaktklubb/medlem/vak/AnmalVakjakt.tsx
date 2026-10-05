@@ -41,7 +41,7 @@ export default function AnmalVakjakt({ omraden, dokumentKlara }: { omraden: Omra
         </div>
         {omraden.length > 0 && (
           <div className="field">
-            <label htmlFor="av-omrade">Önskat torn eller plats <small>valfritt</small></label>
+            <label htmlFor="av-omrade">Önskat torn eller plats</label>
             <select id="av-omrade" name="omrade" defaultValue="">
               <option value="">Herrgården föreslår</option>
               {omraden.map((o) => <option key={o.id} value={o.id}>{o.namn} · {OMRADETYP[o.typ]}</option>)}
@@ -49,8 +49,8 @@ export default function AnmalVakjakt({ omraden, dokumentKlara }: { omraden: Omra
           </div>
         )}
         <div className="field">
-          <label htmlFor="av-medd">Tid och övrigt <small>valfritt</small></label>
-          <input id="av-medd" name="meddelande" placeholder="T.ex. kvällen, från 18" />
+          <label htmlFor="av-medd">Tid och övrigt</label>
+          <input id="av-medd" name="meddelande" placeholder="Valfritt — t.ex. kvällen, från 18" />
         </div>
         {kvitto && <p className="notice field--full">{kvitto}</p>}
         {fel && <p className="notice notice--fel field--full" role="alert">{fel}</p>}

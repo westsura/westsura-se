@@ -34,7 +34,7 @@ export default function UtbudForm({ utbud, omraden, bokade }: { utbud?: Utbud; o
       <div className="field"><label>Pris för gäst, kr</label><input name="pris" type="number" min={0} defaultValue={utbud?.pris ?? 0} disabled={!alla} /><p className="hint">{alla ? "Medlemmar betalar enligt sin nivå, inte det här priset." : "Bara vid dygn öppna för gäster."}</p></div>
       <div className="field"><label>Antal jägare</label><input name="platser" type="number" min={1} defaultValue={utbud?.platser ?? 1} /><p className="hint">Fler än en kräver lika många lediga områden.</p></div>
       <div className="field">
-        <label>Område <small>valfritt</small></label>
+        <label>Område</label>
         <select name="omrade_id" defaultValue={utbud?.omrade_id ?? ""}>
           <option value="">Tilldelas vid bekräftelse</option>
           {omraden.filter((o) => o.aktiv && forVak(o)).map((o) => <option key={o.id} value={o.id}>{o.namn}</option>)}

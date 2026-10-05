@@ -68,13 +68,13 @@ export default function MedlemsansokanForm({ nivaer }: { nivaer: Niva[] }) {
           placeholder="Hur länge har du jagat, vilken jakt jagar du helst, har du jägarexamen och vapenlicens?" />
       </div>
       <div className="field">
-        <label htmlFor="m-yrke">Yrke <span className="hint">valfritt</span></label>
-        <input type="text" id="m-yrke" name="yrkesroll" placeholder="T.ex. snickare, rörmokare, lärare" />
+        <label htmlFor="m-yrke">Yrke</label>
+        <input type="text" id="m-yrke" name="yrkesroll" placeholder="Valfritt — t.ex. snickare, rörmokare, lärare" />
       </div>
       <div className="field">
-        <label htmlFor="m-anstallning">Anställningsform <span className="hint">valfritt</span></label>
+        <label htmlFor="m-anstallning">Anställningsform</label>
         <select id="m-anstallning" name="anstallningsform" defaultValue="">
-          <option value="">Välj</option>
+          <option value="">Valfritt — välj</option>
           <option>Anställd</option>
           <option>Egen företagare</option>
           <option>Pensionär</option>
@@ -83,17 +83,17 @@ export default function MedlemsansokanForm({ nivaer }: { nivaer: Niva[] }) {
         </select>
       </div>
       <div className="field field--full">
-        <label htmlFor="m-tider">Hur ser dina arbetstider ut? <span className="hint">valfritt</span></label>
-        <input type="text" id="m-tider" name="flexibla_tider" placeholder="T.ex. flexibla, skift, ledig vardagar" />
+        <label htmlFor="m-tider">Hur ser dina arbetstider ut?</label>
+        <input type="text" id="m-tider" name="flexibla_tider" placeholder="Valfritt — t.ex. flexibla, skift, ledig vardagar" />
         <p className="hint">Vi frågar för att kunna bygga ett blandat jaktlag — det är bra att veta vem som kan ställa upp en vardag, eller vem som kan hjälpa till när ett torn ska byggas.</p>
       </div>
       <div className="field field--full">
-        <label htmlFor="m-hund">Hund <span className="hint">valfritt</span></label>
-        <input type="text" id="m-hund" name="hund" placeholder="Ras och vad hunden används till" />
+        <label htmlFor="m-hund">Hund</label>
+        <input type="text" id="m-hund" name="hund" placeholder="Valfritt — ras och vad hunden används till" />
       </div>
       <div className="field field--full">
-        <label htmlFor="m-meddelande">Något mer du vill berätta <span className="hint">valfritt</span></label>
-        <textarea id="m-meddelande" name="meddelande" className="ta--s" placeholder="Varför just Westsura?" />
+        <label htmlFor="m-meddelande">Något mer du vill berätta</label>
+        <textarea id="m-meddelande" name="meddelande" className="ta--s" placeholder="Valfritt — varför just Westsura?" />
       </div>
 
       <label className="checkfield field--full">

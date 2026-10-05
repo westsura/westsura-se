@@ -91,7 +91,7 @@ export default function VakForm({ gast, omraden, utbud, kvotText, dokumentKlara 
             )}
             {!gast && omraden.length > 0 && (
               <div className="field">
-                <label htmlFor="vak-omrade">Önskat område <small>valfritt</small></label>
+                <label htmlFor="vak-omrade">Önskat område</label>
                 <select id="vak-omrade" name="omrade" defaultValue="">
                   <option value="">Jaktledaren föreslår</option>
                   {omraden.map((o) => <option key={o.id} value={o.id}>{o.namn} · {OMRADETYP[o.typ]}</option>)}
@@ -99,8 +99,8 @@ export default function VakForm({ gast, omraden, utbud, kvotText, dokumentKlara 
               </div>
             )}
             <div className="field">
-              <label htmlFor="vak-medd">Meddelande <small>valfritt</small></label>
-              <textarea id="vak-medd" name="meddelande" className="ta--xs" placeholder="Vilt du helst vill jaga, tid på dygnet, hund…" />
+              <label htmlFor="vak-medd">Meddelande</label>
+              <textarea id="vak-medd" name="meddelande" className="ta--xs" placeholder="Valfritt — vilt du helst vill jaga, tid på dygnet, hund…" />
             </div>
 
             {kvitto && <p className="notice">{kvitto}</p>}

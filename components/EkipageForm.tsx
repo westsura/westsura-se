@@ -58,8 +58,8 @@ export default function EkipageForm() {
           <div className="form" style={{ margin: 0 }}>
             <div className="field"><label htmlFor={`h${i}-namn`}>Hundens namn</label><input id={`h${i}-namn`} name={`hund${i}_namn`} required /></div>
             <div className="field"><label htmlFor={`h${i}-ras`}>Ras</label><input id={`h${i}-ras`} name={`hund${i}_ras`} required /></div>
-            <div className="field"><label htmlFor={`h${i}-fodd`}>Födelseår <span className="hint">valfritt</span></label><input id={`h${i}-fodd`} name={`hund${i}_fodd`} inputMode="numeric" pattern="\d{4}" placeholder="t.ex. 2021" /></div>
-            <div className="field"><label htmlFor={`h${i}-regnr`}>Registreringsnummer <span className="hint">valfritt</span></label><input id={`h${i}-regnr`} name={`hund${i}_regnr`} placeholder="SKK-nummer" /></div>
+            <div className="field"><label htmlFor={`h${i}-fodd`}>Födelseår</label><input id={`h${i}-fodd`} name={`hund${i}_fodd`} inputMode="numeric" pattern="\d{4}" placeholder="Valfritt — t.ex. 2021" /></div>
+            <div className="field"><label htmlFor={`h${i}-regnr`}>Registreringsnummer</label><input id={`h${i}-regnr`} name={`hund${i}_regnr`} placeholder="Valfritt — SKK-nummer" /></div>
             <div className="field field--full">
               <span className="field-label">Vad används hunden till?</span>
               {DRIVER.map((d) => (
@@ -67,7 +67,7 @@ export default function EkipageForm() {
               ))}
               <label className="checkfield"><input type="checkbox" name={`hund${i}_eftersok`} value="1" defaultChecked={typ === "eftersok"} /><span>Eftersök på skadat vilt</span></label>
             </div>
-            <div className="field field--full"><label htmlFor={`h${i}-meriter`}>Prov och meriter <span className="hint">valfritt</span></label><input id={`h${i}-meriter`} name={`hund${i}_meriter`} placeholder="T.ex. jaktprov, viltspårprov, anlagsprov" /></div>
+            <div className="field field--full"><label htmlFor={`h${i}-meriter`}>Prov och meriter</label><input id={`h${i}-meriter`} name={`hund${i}_meriter`} placeholder="Valfritt — t.ex. jaktprov, viltspårprov, anlagsprov" /></div>
           </div>
         </fieldset>
       ))}
@@ -77,8 +77,8 @@ export default function EkipageForm() {
       </div>
 
       <div className="field field--full">
-        <label htmlFor="e-medd">Något mer vi bör veta <span className="hint">valfritt</span></label>
-        <textarea id="e-medd" name="meddelande" className="ta--s" placeholder="Erfarenhet, hur långt du har till Westsura, när du brukar kunna ställa upp…" />
+        <label htmlFor="e-medd">Något mer vi bör veta</label>
+        <textarea id="e-medd" name="meddelande" className="ta--s" placeholder="Valfritt — erfarenhet, hur långt du har till Westsura, när du brukar kunna ställa upp…" />
       </div>
 
       <label className="checkfield field--full">

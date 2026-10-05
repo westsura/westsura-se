@@ -218,6 +218,8 @@ p { margin:0 0 20px; max-width:66ch; }
   font-size:11px; font-weight:700; letter-spacing:var(--tracking-label);
   text-transform:uppercase; color:var(--ws-ink-40);
 }
+/* Förklaringar i en etikett (admin) får inte göra raden högre än grannfältets. */
+.field > label .hint, .field > label small { font-size:inherit; line-height:inherit; font-weight:400; letter-spacing:inherit; text-transform:none; }
 .field input:not([type="checkbox"]):not([type="radio"]), .field select {
   font-family:var(--font-sans); font-size:17px; color:var(--text-heading);
   padding:0 14px; border:1px solid var(--border-subtle); border-radius:0;

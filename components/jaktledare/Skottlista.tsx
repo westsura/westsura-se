@@ -133,7 +133,7 @@ function SkottForm({ skott, tillfalleId, vakbokningId, datum, satar, jagare, fas
         <select name="alder" defaultValue={skott?.alder ?? "okant"}>{Object.entries(ALDER).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
       </div>
       <div className="field"><label>Antal</label><input name="antal" type="number" min={1} defaultValue={skott?.antal ?? 1} /></div>
-      <div className="field"><label>Vikt, kg <small>valfritt</small></label><input name="vikt" inputMode="decimal" defaultValue={skott?.vikt ?? ""} /></div>
+      <div className="field"><label>Vikt, kg</label><input name="vikt" inputMode="decimal" defaultValue={skott?.vikt ?? ""} placeholder="Valfritt" /></div>
       <div className="field field--full"><label>Anteckning</label><input name="anteckning" defaultValue={skott?.anteckning ?? ""} placeholder="Eftersök med hund, funnet 40 m in i granplanteringen" /></div>
       <div className="field--full cta-row">
         <button className="btn btn--sm" type="submit" disabled={pending}>{pending ? "Sparar…" : skott ? "Spara" : "Registrera"}</button>
