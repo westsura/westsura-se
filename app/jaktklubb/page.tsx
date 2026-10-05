@@ -7,7 +7,7 @@ import { supabasePublik } from "@/lib/supabase";
 
 export const metadata: Metadata = {
   title: "Jaktklubb och jaktlag i Surahammar, Västmanland",
-  description: "Gå med i Westsura Herrgårds jaktklubb i Surahammar: drevjakt, vak och pyrsch på herrgårdens marker i Västmanland. Ett jaktlag med begränsat antal platser — ansök om medlemskap.",
+  description: "Gå med i Westsura Herrgårds jaktklubb i Surahammar: drevjakt, vak och pyrsch vid Westsura Herrgård i Västmanland. En jaktklubb med begränsat antal platser — ansök om medlemskap.",
   alternates: { canonical: "/jaktklubb" },
 };
 
@@ -48,7 +48,7 @@ export default async function Jaktklubb() {
           <Vapen size={190} className="emblem__vapen" />
           <p className="label emblem__label">Westsura Herrgårds jaktklubb</p>
           <h1 className="lower emblem__h1">bli en del av jakten på westsura</h1>
-          <p className="emblem__lede">Ett jaktlag med begränsat antal platser på herrgårdens egna marker i Surahammar, Västmanland — där kungen sköt sin björn 1687. Medlemskap söks, och beviljas av herrgården.</p>
+          <p className="emblem__lede">En jaktklubb med begränsat antal platser vid Westsura Herrgård i Surahammar, Västmanland — där kungen sköt sin björn 1687. Medlemskap söks, och beviljas av herrgården.</p>
           <div className="cta-row cta-row--center cta-row--space">
             <a className="btn" href="#ansokan">Ansök om medlemskap</a>
             <a className="btn btn--ghost" href="#medlem">Redan medlem — logga in</a>
@@ -63,8 +63,7 @@ export default async function Jaktklubb() {
             <div className="prose">
               <p className="label">Medlemskapet</p>
               <h2 className="lower">{flera ? `${RAKNEORD[nivaer.length] ?? nivaer.length} sätt att höra till` : "att vara medlem"}</h2>
-              <p>Klubben är sluten och platserna är få. Alla medlemmar jagar på samma marker, samlas i samma salong och följer samma regler.</p>
-              <p>Jakten bedrivs på Westsuras marker strax utanför Surahammar, tre mil från Västerås: drevjakt, och vak och pyrsch under dygn som släpps under säsongen. För dig som letar efter ett jaktlag i Västmanland med ordnade former, jaktledare och en herrgård att samlas i.</p>
+              <p>Klubben är sluten och platserna är få. Jakten bedrivs vid Westsura Herrgård strax utanför Surahammar, tre mil från Västerås: drevjakt, och vak och pyrsch under dygn som släpps under säsongen. För dig som letar efter ett jaktlag i Västmanland med ordnade former, jaktledare och en herrgård att samlas i.</p>
               <p>Vårt mål är ett blandat jaktlag med olika människor som fungerar väl tillsammans — där det är högt i tak och vi respekterar varandras önskemål.</p>
               <p>Årskostnaden täcker främst arrendet, men också åtlar och foder. Första året är ett provår, där vi känner efter från bägge håll att det fungerar. Blir du permanent medlem bekostar och bygger du ett jakttorn, som tillfaller marken och laget gemensamt.</p>
               <p>Säsongen följer jaktåret, 1 juli till 30 juni, och avgiften faktureras vid säsongsstart. Säkerhetskursen görs online i medlemsklubben och ska vara godkänd före första jaktdagen. Mat och övernattning i flyglarna bokas till efter behov, till medlemspris.</p>
