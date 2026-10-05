@@ -8,7 +8,11 @@ export const metadata: Metadata = {
   title: "Grundkurs i naturfoto med Anders Geidemark",
   description: "Naturfotokurs på Westsura Herrgård i Surahammar med naturfotografen Anders Geidemark: tre dagar med teori, fotoövningar och bildgenomgång. Två nätter, alla måltider och fika ingår.",
   alternates: { canonical: "/paket/naturfoto" },
-  openGraph: { images: ["/bilder/naturfoto-lappuggla.jpg"] },
+  openGraph: {
+    type: "website", locale: "sv_SE", siteName: "Westsura Herrgård", url: "/paket/naturfoto",
+    title: "Grundkurs i naturfoto med Anders Geidemark — Westsura Herrgård",
+    images: [{ url: "/bilder/naturfoto-lappuggla.jpg", width: 2000, height: 1331, alt: "Två lappugglor på en stubbe i kvällsljus" }],
+  },
 };
 
 export const revalidate = 60;

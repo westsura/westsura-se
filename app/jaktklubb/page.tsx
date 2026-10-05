@@ -9,6 +9,14 @@ export const metadata: Metadata = {
   title: "Jaktklubb och jaktlag i Surahammar, Västmanland",
   description: "Gå med i Westsura Herrgårds jaktklubb i Surahammar: drevjakt, vak och pyrsch vid Westsura Herrgård i Västmanland. En jaktklubb med begränsat antal platser — ansök om medlemskap.",
   alternates: { canonical: "/jaktklubb" },
+  // Länkförhandsvisning: jaktklubbens vapen i guld på grönt.
+  openGraph: {
+    type: "website", locale: "sv_SE", siteName: site.name, url: "/jaktklubb",
+    title: "Westsura Herrgårds jaktklubb",
+    description: "En jaktklubb med begränsat antal platser vid Westsura Herrgård i Surahammar, Västmanland. Ansök om medlemskap.",
+    images: [{ url: "/bilder/og-jaktklubb.png", width: 1200, height: 630, alt: "Westsura Herrgårds jaktklubb — vapnet i guld på grönt" }],
+  },
+  twitter: { card: "summary_large_image", images: ["/bilder/og-jaktklubb.png"] },
 };
 
 export const revalidate = 300;
