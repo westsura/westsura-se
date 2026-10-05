@@ -124,7 +124,7 @@ export async function skapaPaketbokning(fd: FormData): Promise<Svar<{ nummer: nu
     await mejlBokning({
       epost, namn, nummer: rad.nummer, ankomst, avresa: b?.avresa ?? ankomst,
       enheter: [`${pk?.namn ?? paket} · ${s(fd.get("personer")) || 2} personer`, ...((namnrader ?? []) as { namn: string }[]).map((r) => r.namn)],
-      summa: rad.summa, hundar: s(fd.get("hund")) === "1" ? 1 : 0, frukost: s(fd.get("frukost")) === "1", bricka: s(fd.get("bricka")) === "1",
+      summa: rad.summa, hundar: s(fd.get("hund")) === "1" ? 1 : 0, frukost: s(fd.get("frukost")) === "1", bricka: s(fd.get("bricka")) === "1", paket: true,
     });
   } catch (e) { console.error("mejl misslyckades", e); }
   revalidatePath("/admin/bokningar"); revalidatePath("/admin");

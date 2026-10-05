@@ -194,7 +194,7 @@ export default function PaketBokning({ paket, enheter }: Props) {
             <button className="btn" type="submit" disabled={pending}>{pending ? "Skickar…" : `Boka för ${pris ? kr(pris.summa) : ""}`}</button>
             <button type="button" className="linkbtn" onClick={() => setSteg("valj")}>Ändra</button>
           </div>
-          <p className="hint field--full">Bokningen blir preliminär direkt och bindande när ni fått vår bekräftelse. Fri avbokning fram till 7 dagar före ankomst. Frågor? {site.phone}.</p>
+          <p className="hint field--full">Bokningen blir preliminär direkt och bindande när ni fått vår bekräftelse. Frågor? {site.phone}.</p>
         </form>
       )}
     </div>

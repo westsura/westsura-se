@@ -31,13 +31,16 @@ async function skicka(till: string[], amne: string, body: string, svaraTill?: st
   return true;
 }
 
-export async function mejlBokning(o: { epost: string; namn: string; nummer: number; ankomst: string; avresa: string; enheter: string[]; summa: number; hundar: number; frukost: boolean; bricka?: boolean }) {
+export async function mejlBokning(o: { epost: string; namn: string; nummer: number; ankomst: string; avresa: string; enheter: string[]; summa: number; hundar: number; frukost: boolean; bricka?: boolean; paket?: boolean }) {
   const kr = o.summa.toLocaleString("sv-SE") + " kr";
   const rader = [
     `Tack ${o.namn}, vi har tagit emot din bokning med nummer <strong>${o.nummer}</strong>.`,
     `<strong>${o.ankomst} till ${o.avresa}</strong><br>${o.enheter.join("<br>")}${o.frukost ? "<br>Frukostkorg" : ""}${o.bricka ? "<br>Västmanländsk välkomstbricka" : ""}${o.hundar ? `<br>${o.hundar} hund${o.hundar > 1 ? "ar" : ""} — varmt välkomna` : ""}`,
     `Summa: <strong>${kr}</strong>. Betalning senast 7 dagar före ankomst, eller mot faktura enligt överenskommelse.`,
-    `Bokningen är preliminär tills du fått vår bekräftelse, som kommer inom en vardag. Fri avbokning fram till 7 dagar före ankomst.`,
+    // Paket innehåller partners (kanot, golf m.fl.) — boendets avbokningsregel gäller inte där.
+    o.paket
+      ? `Bokningen är preliminär tills du fått vår bekräftelse, som kommer inom en vardag.`
+      : `Bokningen är preliminär tills du fått vår bekräftelse, som kommer inom en vardag. Fri avbokning fram till 7 dagar före ankomst.`,
   ];
   await skicka([o.epost], `Din bokning ${o.nummer} på Westsura Herrgård`, html("Vi har tagit emot din bokning", rader));
   await skicka([site.email], `Ny bokning ${o.nummer}: ${o.namn}, ${o.ankomst}–${o.avresa}`,

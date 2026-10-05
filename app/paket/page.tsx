@@ -120,7 +120,7 @@ export default async function Paket() {
             );
           })}
           <div className="notice">
-            <strong>Bra att veta.</strong> Fri avbokning upp till 7 dagar före ankomst. Betalning senast 7 dagar före ankomst. Incheckning från kl. 15.00. Bokningen är säkrad när ni fått vår bekräftelse.
+            <strong>Bra att veta.</strong> Incheckning från kl. 15.00. Bokningen är säkrad när ni fått vår bekräftelse.
           </div>
         </div>
       </section>
