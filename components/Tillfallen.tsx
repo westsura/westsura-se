@@ -18,6 +18,13 @@ export type Tillfalle = {
 };
 
 const TYP: Record<Tillfalle["typ"], string> = { jakt: "Jakttillfälle", hundtraning: "Hundträning", jaktkurs: "Jaktkurs", evenemang: "Evenemang" };
+/** Vad som är bra att få veta i meddelandet, per typ av tillfälle. */
+const MEDDELANDE: Record<Tillfalle["typ"], string> = {
+  jakt: "Valfritt — erfarenhet, hund, önskemål…",
+  hundtraning: "Valfritt — hundens ras och ålder, vad ni vill träna…",
+  jaktkurs: "Valfritt — förkunskaper, önskemål…",
+  evenemang: "Valfritt — allergier, specialkost eller andra önskemål…",
+};
 const MAN = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
 function fmt(iso: string) {
   const d = new Date(iso + "T12:00:00");
@@ -91,7 +98,7 @@ export default function Tillfallen({ tillfallen, rubrik = "Kommande tillfällen"
               <div className="field"><label htmlFor="a-antal">Antal personer</label><input id="a-antal" name="antal" type="number" min={1} max={20} defaultValue={1} required /></div>
               <div className="field"><label htmlFor="a-epost">E-post</label><input id="a-epost" name="epost" type="email" required autoComplete="email" /></div>
               <div className="field"><label htmlFor="a-tel">Telefon</label><input id="a-tel" name="telefon" type="tel" autoComplete="tel" /></div>
-              <div className="field field--full"><label htmlFor="a-medd">Meddelande</label><textarea id="a-medd" name="meddelande" className="ta--s" placeholder="Hundens ras och ålder, erfarenhet, önskemål…" /></div>
+              <div className="field field--full"><label htmlFor="a-medd">Meddelande</label><textarea id="a-medd" name="meddelande" className="ta--s" placeholder={MEDDELANDE[valt.typ]} /></div>
               {fel && <div className="notice notice--fel field--full" role="alert">{fel}</div>}
               <div className="field--full cta-row">
                 <button className="btn" type="submit" disabled={pending}>{pending ? "Skickar…" : valt.kvar <= 0 ? "Ställ mig på väntelista" : "Skicka anmälan"}</button>

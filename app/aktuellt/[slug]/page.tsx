@@ -81,7 +81,7 @@ export default async function EvenemangSida({ params }: { params: Promise<{ slug
             ) : (
               <div className="card card--plain">
                 <p className="label">{passerat ? "Missa inte nästa" : "Välkommen"}</p>
-                <p className="mb-0">{passerat ? "Bli Westsuras Vän så får du inbjudan till nästa evenemang först." : "Ingen anmälan behövs — kom när det passar. Frågor? Ring "}{!passerat && <a href={site.phoneHref}>{site.phone}</a>}{!passerat && "."}</p>
+                <p className="mb-0">{passerat ? "Bli Westsuras Vän så får du inbjudan till nästa evenemang först." : "Ingen anmälan behövs — välkommen när det passar dig. Frågor? Ring "}{!passerat && <a href={site.phoneHref}>{site.phone}</a>}{!passerat && "."}</p>
               </div>
             )}
           </div>

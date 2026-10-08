@@ -40,6 +40,10 @@ export default async function Home() {
                 <p className="label">Aktuellt · {langtDatum(forsta.datum)}{forsta.tid ? ` · ${forsta.tid}` : ""}</p>
                 <h2 className="lower">{forsta.titel.toLowerCase()}</h2>
                 {forsta.ingress && <p>{forsta.ingress}</p>}
+                {/* Början av brödtexten — de två första styckena, kortade om de är långa. */}
+                {(forsta.beskrivning ?? "").split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean).slice(0, 2).map((p, i) => (
+                  <p key={i}>{p.length > 420 ? p.slice(0, p.lastIndexOf(" ", 400)) + " …" : p}</p>
+                ))}
                 <p className="mb-0"><Link className="link-more" href={`/aktuellt/${forsta.slug}`}>{forsta.anmalan ? "Läs mer och anmäl dig →" : "Läs mer →"}</Link></p>
               </div>
             ) : (
