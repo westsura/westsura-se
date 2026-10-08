@@ -14,6 +14,10 @@ import { sattLosenord, kollaLosenord, slumpaLosenord, authIdFor } from "@/lib/ko
 
 const s = (v: FormDataEntryValue | null) => (typeof v === "string" ? v.trim() : "");
 
+/** "Julmarknad 2026" → "julmarknad-2026". Används som adress för evenemang. */
+const slugga = (t: string) => t.toLowerCase().replace(/[åä]/g, "a").replace(/ö/g, "o").replace(/é/g, "e")
+  .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+
 /* ---------- Inloggning ---------- */
 /** E-post + lösenord. Adressen måste vara inbjuden till admin. */
 export async function loggaInAdmin(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
@@ -589,19 +593,47 @@ export async function taBortKursfraga(id: string) {
 
 /* ---------- Tillfällen ---------- */
 export async function sparaTillfalle(fd: FormData) {
+  await kravAdmin("vardskap", "jaktadmin");
   const db = await supabaseServer();
-  const rad = {
-    typ: s(fd.get("typ")), titel: s(fd.get("titel")), beskrivning: s(fd.get("beskrivning")) || null,
+  const typ = s(fd.get("typ"));
+  const rad: Record<string, unknown> = {
+    typ, titel: s(fd.get("titel")), beskrivning: s(fd.get("beskrivning")) || null,
     datum: s(fd.get("datum")), tid: s(fd.get("tid")) || null, platser: Number(s(fd.get("platser")) || 0),
     pris: s(fd.get("pris")) ? Number(s(fd.get("pris"))) : null, publicerad: !!fd.get("publicerad"),
     synlighet: s(fd.get("synlighet")) === "medlem" ? "medlem" : "publik",
     samling: s(fd.get("samling")) || null, program: s(fd.get("program")) || null,
-    algjakt: s(fd.get("typ")) === "jakt" && !!fd.get("algjakt"),
+    algjakt: typ === "jakt" && !!fd.get("algjakt"),
   };
   const id = s(fd.get("id"));
+
+  // Evenemang visas under Aktuellt: egen adress, ingress, bild och om anmälan tas emot.
+  let slug: string | null = null;
+  if (typ === "evenemang") {
+    slug = slugga(s(fd.get("slug")) || `${rad.titel} ${String(rad.datum).slice(0, 4)}`);
+    if (!slug) return { ok: false, fel: "Ge evenemanget en titel." };
+    const { data: krock } = await supabaseAdmin().from("tillfalle").select("id").eq("slug", slug).maybeSingle();
+    if (krock && krock.id !== id) return { ok: false, fel: `Adressen /aktuellt/${slug} används redan av ett annat evenemang. Ändra adressen.` };
+    rad.slug = slug;
+    rad.ingress = s(fd.get("ingress")) || null;
+    rad.bild_alt = s(fd.get("bild_alt")) || null;
+    rad.anmalan = !!fd.get("anmalan");
+    const fil = fd.get("bildfil");
+    if (fil instanceof File && fil.size > 0) {
+      if (!fil.type.startsWith("image/")) return { ok: false, fel: "Bilden måste vara en bildfil (jpg, png eller webp)." };
+      const sokvag = `${slug}-${Date.now()}.${fil.type === "image/png" ? "png" : fil.type === "image/webp" ? "webp" : "jpg"}`;
+      const lagring = supabaseAdmin().storage.from("aktuellt");
+      const { error: felBild } = await lagring.upload(sokvag, fil, { contentType: fil.type, upsert: false });
+      if (felBild) return { ok: false, fel: `Bilden kunde inte laddas upp: ${felBild.message}` };
+      rad.bild = lagring.getPublicUrl(sokvag).data.publicUrl;
+    } else if (fd.get("ta_bort_bild")) {
+      rad.bild = null;
+    }
+  }
+
   const { error } = id ? await db.from("tillfalle").update(rad).eq("id", id) : await db.from("tillfalle").insert(rad);
   if (error) return { ok: false, fel: error.message };
   revalidatePath("/admin/tillfallen"); revalidatePath("/jakt"); revalidatePath("/jaktklubb/medlem/boka");
+  revalidatePath("/"); if (slug) revalidatePath(`/aktuellt/${slug}`);
   return { ok: true };
 }
 export async function sattAnmalanStatus(id: string, status: string) {

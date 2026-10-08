@@ -6,10 +6,13 @@ import Signup from "@/components/Signup";
 import Galleri from "@/components/Galleri";
 import { Hero, Kung, DogBand, CtaRow, Ornament } from "@/components/Blocks";
 import { img } from "@/lib/site";
+import { kommandeEvenemang, langtDatum } from "@/lib/aktuellt";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
+export const revalidate = 300;
 
-export default function Home() {
+export default async function Home() {
+  const [forsta, ...fler] = await kommandeEvenemang();
   return (
     <>
       <Hero
@@ -30,18 +33,44 @@ export default function Home() {
       {/* AKTUELLT */}
       <section className="section" id="aktuellt">
         <div className="container">
+          {/* Evenemang läggs in under Tillfällen i admin. Närmaste visas stort, resten som kort. */}
           <div className="split split--space">
-            <div>
-              <p className="label">Aktuellt</p>
-              <h2 className="lower">westsura höstdag 2026</h2>
-              <p><strong>Lördag den 26 september kl. 10.00–16.00</strong> öppnar vi upp herrgården för en dag fylld av höststämning, god mat, hantverk och aktiviteter, i samband med konst-, mat- och hantverksrundan MERSMAK.</p>
-              <p>Café i herrgården, mat från grillen, lokala utställare och öppen keramikverkstad hos Bodaskeramik. Ta med familj och vänner.</p>
-              <p className="mb-0"><Link className="link-more" href="/hostdag">Läs mer om höstdagen →</Link></p>
-            </div>
+            {forsta ? (
+              <div>
+                <p className="label">Aktuellt · {langtDatum(forsta.datum)}{forsta.tid ? ` · ${forsta.tid}` : ""}</p>
+                <h2 className="lower">{forsta.titel.toLowerCase()}</h2>
+                {forsta.ingress && <p>{forsta.ingress}</p>}
+                <p className="mb-0"><Link className="link-more" href={`/aktuellt/${forsta.slug}`}>{forsta.anmalan ? "Läs mer och anmäl dig →" : "Läs mer →"}</Link></p>
+              </div>
+            ) : (
+              <div>
+                <p className="label">Aktuellt</p>
+                <h2 className="lower">marknader, temakvällar och höstdagar</h2>
+                <p>Under året öppnar vi herrgården för marknadsdagar, temakvällar och evenemang med lokala producenter och hantverkare. Nästa datum läggs upp här så snart det är satt.</p>
+                <p className="mb-0"><a className="link-more" href="#vanner">Bli Westsuras Vän och få inbjudan först →</a></p>
+              </div>
+            )}
             <div className="fig fig--43">
-              <Image src="/bilder/julmarknad-fasad.jpg" alt="Marknadsstånd med lokala varor vid herrgårdens gula fasad" fill sizes="(max-width: 860px) 100vw, 50vw" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={forsta?.bild ?? "/bilder/julmarknad-fasad.jpg"} alt={forsta?.bild_alt ?? "Marknadsstånd med lokala varor vid herrgårdens gula fasad"} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
             </div>
           </div>
+          {!!fler.length && (
+            <div className="grid grid-3" style={{ margin: "40px 0" }}>
+              {fler.map((e) => (
+                <Link key={e.id} className="cat" href={`/aktuellt/${e.slug}`}>
+                  <div className="cat__img fig">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={e.bild ?? "/bilder/julmarknad-1.jpg"} alt={e.bild_alt ?? e.titel} loading="lazy" />
+                  </div>
+                  <p className="label" style={{ marginTop: 14 }}>{langtDatum(e.datum)}</p>
+                  <h3>{e.titel}</h3>
+                  {e.ingress && <p>{e.ingress}</p>}
+                  <span className="link-more">{e.anmalan ? "Läs mer och anmäl dig →" : "Läs mer →"}</span>
+                </Link>
+              ))}
+            </div>
+          )}
           <Galleri teman={[
             { rubrik: "Marknadsdagar", bilder: [
               { src: "/bilder/julmarknad-1.jpg", alt: "Besökare på marknaden med herrgården i bakgrunden" },

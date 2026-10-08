@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     // på gratisplanen, och när den tog slut slutade bilderna visas.
     unoptimized: true,
   },
+  // Evenemangsbilder laddas upp via en server action. Admin förminskar dem i webbläsaren först,
+  // men en stor PNG kan ändå bli några megabyte.
+  experimental: { serverActions: { bodySizeLimit: "8mb" } },
   async headers() {
     if (process.env.INDEXERA === "1") return [];
     return [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }] }];
@@ -24,6 +27,9 @@ const nextConfig: NextConfig = {
       { source: "/golfpaket", destination: "/paket", permanent: true },
       // Jaktklubbens sida hette /jaktklubben fram till september 2026.
       { source: "/jaktklubben", destination: "/jaktklubb", permanent: true },
+      // Evenemang ligger under /aktuellt/<adress>; själva listan finns på startsidan.
+      { source: "/hostdag", destination: "/aktuellt/hostdag-2026", permanent: true },
+      { source: "/aktuellt", destination: "/#aktuellt", permanent: false },
       // Gamla adresser med stor bokstav (/Konferens) hanteras i middleware.ts —
       // här skulle de matcha även /konferens och ge en oändlig omdirigering.
       // WordPress egna sidor: författare, kategorier, taggar, flöden och inloggning.
