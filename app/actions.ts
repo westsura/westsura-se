@@ -301,17 +301,26 @@ export async function skapaAnmalan(fd: FormData): Promise<Svar<{ status: string 
   const tillfalle = s(fd.get("tillfalle")), namn = s(fd.get("namn")), epost = s(fd.get("epost"));
   if (!tillfalle || !namn || !epost.includes("@")) return { ok: false, fel: "Fyll i namn och en giltig e-postadress." };
   const db = supabaseAdmin();
-  const { data, error } = await db.rpc("skapa_anmalan", {
-    p_tillfalle: tillfalle, p_namn: namn, p_epost: epost, p_telefon: s(fd.get("telefon")) || null,
-    p_antal: Number(s(fd.get("antal")) || 1), p_meddelande: s(fd.get("meddelande")) || null,
-  });
-  if (error) return { ok: false, fel: error.message };
+  const sittningId = s(fd.get("sittning"));
+  const falt = {
+    p_namn: namn, p_epost: epost, p_telefon: s(fd.get("telefon")) || null,
+    p_antal: Math.max(1, Number(s(fd.get("antal")) || 1)), p_meddelande: s(fd.get("meddelande")) || null,
+  };
+  // Evenemang med sittningar: anmälan gäller en viss dag och tid, med egna platser.
+  const { data, error } = sittningId
+    ? await db.rpc("skapa_anmalan_sittning", { p_sittning: sittningId, ...falt })
+    : await db.rpc("skapa_anmalan", { p_tillfalle: tillfalle, ...falt });
+  if (error) return { ok: false, fel: error.code === "P0001" ? error.message : "Anmälan gick inte att skicka. Ring oss så hjälper vi dig." };
   const rad = (data as { anmalan_id: string; status: string }[])[0];
   // Anmälan är redan skapad — ett fel här får bara påverka mejlet.
-  const { data: t, error: felTillfalle } = await db.from("tillfalle").select("titel, datum, typ").eq("id", tillfalle).single();
+  const { data: t, error: felTillfalle } = await db.from("tillfalle").select("titel, datum, tid, pris, samling, typ, slug").eq("id", tillfalle).single();
   if (felTillfalle) console.error("kunde inte hämta tillfället till anmälningsmejlet", felTillfalle.message);
+  const { data: si } = sittningId ? await db.from("sittning").select("datum, tid, pris").eq("id", sittningId).maybeSingle() : { data: null };
   try {
-    await mejlAnmalan({ epost, namn, titel: t?.titel ?? "", datum: t?.datum ?? "", status: rad.status, antal: Number(s(fd.get("antal")) || 1) });
+    await mejlAnmalan({
+      epost, namn, titel: t?.titel ?? "", datum: si?.datum ?? t?.datum ?? "", tid: si ? si.tid : t?.tid, pris: si?.pris ?? t?.pris,
+      samling: t?.samling, typ: t?.typ, slug: t?.slug, status: rad.status, antal: falt.p_antal,
+    });
   } catch (e) { console.error("mejl misslyckades", e); }
 
   // Jakt kräver jaktkort, ID och säkerhetskurs — så alla som anmäler sig till jakt får ett jägarkonto.

@@ -6,7 +6,7 @@ import Signup from "@/components/Signup";
 import Galleri from "@/components/Galleri";
 import { Hero, Kung, DogBand, CtaRow, Ornament } from "@/components/Blocks";
 import { img } from "@/lib/site";
-import { kommandeEvenemang, langtDatum } from "@/lib/aktuellt";
+import { kommandeEvenemang, nar } from "@/lib/aktuellt";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 export const revalidate = 300;
@@ -37,7 +37,7 @@ export default async function Home() {
           <div className="split split--space">
             {forsta ? (
               <div>
-                <p className="label">Aktuellt · {langtDatum(forsta.datum)}{forsta.tid ? ` · ${forsta.tid}` : ""}</p>
+                <p className="label">Aktuellt · {nar(forsta)}</p>
                 <h2 className="lower">{forsta.titel.toLowerCase()}</h2>
                 {forsta.ingress && <p>{forsta.ingress}</p>}
                 {/* Början av brödtexten — de två första styckena, kortade om de är långa. */}
@@ -67,7 +67,7 @@ export default async function Home() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={e.bild ?? "/bilder/julmarknad-1.jpg"} alt={e.bild_alt ?? e.titel} loading="lazy" />
                   </div>
-                  <p className="label" style={{ marginTop: 14 }}>{langtDatum(e.datum)}</p>
+                  <p className="label" style={{ marginTop: 14 }}>{nar(e)}</p>
                   <h3>{e.titel}</h3>
                   {e.ingress && <p>{e.ingress}</p>}
                   <span className="link-more">{e.anmalan ? "Läs mer och anmäl dig →" : "Läs mer →"}</span>

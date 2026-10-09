@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Hero } from "@/components/Blocks";
 import Signup from "@/components/Signup";
 import Tillfallen from "@/components/Tillfallen";
-import { evenemang, langtDatum } from "@/lib/aktuellt";
+import Sittningar from "@/components/Sittningar";
+import { evenemang, nar } from "@/lib/aktuellt";
 import { site } from "@/lib/site";
 
 export const revalidate = 300;
@@ -15,9 +16,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const e = await evenemang(slug);
   if (!e) return { title: "Evenemanget hittades inte" };
-  const beskrivning = `${langtDatum(e.datum)}${e.tid ? ", " + e.tid : ""}. ${e.ingress ?? e.beskrivning?.split("\n")[0] ?? ""}`.slice(0, 160);
+  const beskrivning = `${nar(e)}. ${e.ingress ?? e.beskrivning?.split("\n")[0] ?? ""}`.slice(0, 160);
   return {
-    title: `${e.titel} — ${langtDatum(e.datum).toLowerCase()}`,
+    title: `${e.titel} — ${nar(e).replace(/ · .*$/, "").toLowerCase()}`,
     description: beskrivning,
     alternates: { canonical: `/aktuellt/${e.slug}` },
     openGraph: {
@@ -41,9 +42,10 @@ export default async function EvenemangSida({ params }: { params: Promise<{ slug
   const e = await evenemang(slug);
   if (!e) notFound();
 
-  const passerat = e.datum < new Date().toISOString().slice(0, 10);
+  const passerat = (e.datum_till ?? e.datum) < new Date().toISOString().slice(0, 10);
   const bild = e.bild ?? STANDARDBILD;
-  const t = tider(e.datum, e.tid);
+  const forstaS = e.sittningar[0];
+  const t = forstaS ? tider(forstaS.datum, forstaS.tid) : tider(e.datum, e.tid);
   const ld = {
     "@context": "https://schema.org", "@type": "Event", name: e.titel, description: e.ingress ?? undefined,
     startDate: t.start, endDate: t.slut, image: bild.startsWith("http") ? bild : site.url + bild,
@@ -60,7 +62,7 @@ export default async function EvenemangSida({ params }: { params: Promise<{ slug
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
       <Hero remote={bild.startsWith("http")} src={bild} alt={e.bild_alt ?? e.titel} sub
-        label={`${langtDatum(e.datum)}${e.tid ? " · " + e.tid : ""}`} title={e.titel.toLowerCase()} lede={e.ingress ?? undefined} />
+        label={nar(e)} title={e.titel.toLowerCase()} lede={e.ingress ?? undefined} />
 
       <section className="section section--tight">
         <div className="container split split--start">
@@ -76,7 +78,9 @@ export default async function EvenemangSida({ params }: { params: Promise<{ slug
             <p className="muted">{site.name} · Lisjövägen 50, Surahammar{e.pris === 0 ? " · Fri entré" : e.pris ? ` · ${e.pris.toLocaleString("sv-SE")} kr per person` : ""}</p>
           </div>
           <div>
-            {e.anmalan && !passerat ? (
+            {e.anmalan && !passerat && e.sittningar.length > 0 ? (
+              <Sittningar tillfalleId={e.id} titel={e.titel} pris={e.pris} sittningar={e.sittningar} />
+            ) : e.anmalan && !passerat ? (
               <Tillfallen rubrik="Anmälan" tillfallen={[{ id: e.id, typ: "evenemang", titel: e.titel, beskrivning: null, datum: e.datum, tid: e.tid, pris: e.pris, vanpris: null, platser: e.platser, kvar: e.kvar }]} />
             ) : (
               <div className="card card--plain">

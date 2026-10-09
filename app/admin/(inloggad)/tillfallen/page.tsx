@@ -3,6 +3,7 @@ import { kravAdmin } from "@/lib/admin";
 import { supabaseServer } from "@/lib/supabase";
 import TillfalleForm from "./TillfalleForm";
 import AnmalanRad from "./AnmalanRad";
+import SittningAdmin from "./SittningAdmin";
 import TaBortKnapp from "@/components/TaBortKnapp";
 import { taBortTillfalle } from "@/app/admin/actions";
 
@@ -12,10 +13,17 @@ const TYP: Record<string, string> = { jakt: "Jakt", hundtraning: "Hundträning",
 export default async function Tillfallen() {
   await kravAdmin("vardskap", "jaktadmin");
   const db = await supabaseServer();
-  const [{ data: tillfallen }, { data: anmalningar }] = await Promise.all([
+  const [{ data: tillfallen }, { data: anmalningar }, { data: sittningar }] = await Promise.all([
     db.from("tillfalle").select("*").order("datum"),
     db.from("anmalan").select("*").order("skapad"),
+    db.from("sittning").select("id, tillfalle_id, datum, tid, platser, pris").order("datum").order("tid"),
   ]);
+  const S = (sittningar ?? []) as { id: string; tillfalle_id: string; datum: string; tid: string | null; platser: number; pris: number | null }[];
+  const sittningNyckel = (id: string | null) => { const s = S.find((x) => x.id === id); return s ? s.datum + (s.tid ?? "") : ""; };
+  const sittningNamn = (id: string | null) => {
+    const s = S.find((x) => x.id === id);
+    return s ? `${new Date(s.datum + "T12:00:00").toLocaleDateString("sv-SE", { weekday: "short", day: "numeric", month: "short" })}${s.tid ? " " + s.tid : ""}` : null;
+  };
   return (
     <>
       <header className="admin__head"><div><p className="label">Tillfällen</p><h1 className="admin__h1">jakt, kurser, hundträning och evenemang</h1></div>
@@ -39,10 +47,15 @@ export default async function Tillfallen() {
                   fraga={`Ta bort "${t.titel}" ${t.datum}?${a.length ? ` De ${a.length} anmälningarna försvinner också — hör av er till de anmälda först.` : ""} Det går inte att ångra.`} />
               </div>
             </div>
+            {t.typ === "evenemang" && t.anmalan && (
+              <SittningAdmin tillfalleId={t.id} pris={t.pris} sittningar={S.filter((s) => s.tillfalle_id === t.id).map((s) => ({
+                ...s, tagna: a.filter((x) => x.sittning_id === s.id && (x.status === "anmald" || x.status === "bekraftad")).reduce((n, x) => n + x.antal, 0),
+              }))} />
+            )}
             {a.length > 0 && (
               <div className="tablewrap" style={{ marginTop: 12 }}>
                 <table className="admin__table"><thead><tr><th>Namn</th><th>Kontakt</th><th>Antal</th><th>Meddelande</th><th>Status</th></tr></thead>
-                  <tbody>{a.map((x) => <AnmalanRad key={x.id} a={x} />)}</tbody></table>
+                  <tbody>{[...a].sort((x, y) => sittningNyckel(x.sittning_id).localeCompare(sittningNyckel(y.sittning_id))).map((x) => <AnmalanRad key={x.id} a={x} sittning={sittningNamn(x.sittning_id)} />)}</tbody></table>
               </div>
             )}
           </article>

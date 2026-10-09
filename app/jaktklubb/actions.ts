@@ -133,7 +133,7 @@ export async function bokaJaktdag(tillfalleId: string): Promise<{ ok: boolean; f
   // Bara klubbens egna, publicerade jaktdagar framåt i tiden.
   const idag = new Date().toISOString().slice(0, 10);
   const { data: t, error: felT } = await adm.from("tillfalle")
-    .select("id, titel, datum, typ, synlighet, publicerad").eq("id", tillfalleId).maybeSingle();
+    .select("id, titel, datum, tid, samling, typ, synlighet, publicerad").eq("id", tillfalleId).maybeSingle();
   if (felT) return { ok: false, fel: felT.message };
   const tillaten = t && t.typ === "jakt" && t.publicerad && t.datum >= idag && (t.synlighet === "publik" || (t.synlighet === "medlem" && medlem.status === "godkand"));
   if (!tillaten) return { ok: false, fel: "Jaktdagen går inte att boka." };
@@ -152,7 +152,7 @@ export async function bokaJaktdag(tillfalleId: string): Promise<{ ok: boolean; f
   await adm.from("anmalan").update({ jagare_id: medlem.id }).eq("id", rad.anmalan_id);
 
   try {
-    await mejlAnmalan({ epost: medlem.epost, namn: medlem.namn, titel: t.titel, datum: t.datum, status: rad.status, antal: 1 });
+    await mejlAnmalan({ epost: medlem.epost, namn: medlem.namn, titel: t.titel, datum: t.datum, tid: t.tid, samling: t.samling, typ: t.typ, status: rad.status, antal: 1 });
   } catch (e) { console.error("mejl misslyckades", e); }
 
   revalidatePath("/jaktklubb/medlem"); revalidatePath("/jaktklubb/medlem/boka"); revalidatePath("/jaktklubb/medlem/bokningar");

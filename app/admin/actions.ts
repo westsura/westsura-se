@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import { kravAdmin } from "@/lib/admin";
 import { OMRADEN, ROLLNAMN, type Roll } from "@/lib/roller";
-import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokumentstatus, mejlDokumentKlar, mejlVakSvar, mejlAdminValkommen, mejlEkipageGodkant, mejlEkipageInbjudan } from "@/lib/epost";
+import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokumentstatus, mejlDokumentKlar, mejlVakSvar, mejlAdminValkommen, mejlEkipageGodkant, mejlEkipageInbjudan, mejlAnmalanStatus } from "@/lib/epost";
 import { EKIPAGE_RABATT } from "@/lib/jakt";
 import { giltigaIdag } from "@/lib/dokument";
 import { Resend } from "resend";
@@ -636,12 +636,54 @@ export async function sparaTillfalle(fd: FormData) {
   revalidatePath("/"); if (slug) revalidatePath(`/aktuellt/${slug}`);
   return { ok: true };
 }
-export async function sattAnmalanStatus(id: string, status: string) {
+/** Lägger till eller ändrar en sittning (datum, tid, platser, ev. avvikande pris) på ett evenemang. */
+export async function sparaSittning(tillfalleId: string, fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("vardskap", "jaktadmin");
+  const datum = s(fd.get("datum"));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return { ok: false, fel: "Välj datum." };
+  const prisText = s(fd.get("pris"));
+  const rad = { tillfalle_id: tillfalleId, datum, tid: s(fd.get("tid")) || null, platser: Math.max(0, Number(s(fd.get("platser")) || 0)), pris: prisText === "" ? null : Math.max(0, Math.round(Number(prisText))) };
+  const id = s(fd.get("id"));
+  const adm = supabaseAdmin();
+  const { error } = id ? await adm.from("sittning").update(rad).eq("id", id) : await adm.from("sittning").insert(rad);
+  if (error) return { ok: false, fel: error.message };
+  const { data: t } = await adm.from("tillfalle").select("slug").eq("id", tillfalleId).maybeSingle();
+  revalidatePath("/admin/tillfallen"); revalidatePath("/"); if (t?.slug) revalidatePath(`/aktuellt/${t.slug}`);
+  return { ok: true };
+}
+
+/** Tar bort en sittning. Går inte om det finns anmälningar — flytta eller avboka dem först. */
+export async function taBortSittning(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("vardskap", "jaktadmin");
+  const adm = supabaseAdmin();
+  const { count } = await adm.from("anmalan").select("id", { count: "exact", head: true }).eq("sittning_id", id).neq("status", "avbokad");
+  if (count) return { ok: false, fel: `Sittningen har ${count} anmälningar. Avboka dem först.` };
+  const { error } = await adm.from("sittning").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/tillfallen"); revalidatePath("/");
+  return { ok: true };
+}
+
+/** Ändrar en anmälans status. Bekräftad eller väntelista skickar ett mejl till gästen. */
+export async function sattAnmalanStatus(id: string, status: string): Promise<{ ok: boolean; fel?: string; mejlat?: boolean }> {
+  await kravAdmin("vardskap", "jaktadmin");
   const db = await supabaseServer();
+  const { data: fore } = await db.from("anmalan").select("status, namn, epost, antal, tillfalle:tillfalle_id(titel, datum, tid, pris, samling, typ, slug), sittning:sittning_id(datum, tid, pris)").eq("id", id).maybeSingle();
   const { error } = await db.from("anmalan").update({ status }).eq("id", id);
   if (error) return { ok: false, fel: error.message };
+  let mejlat = false;
+  if (fore && fore.status !== status && (status === "bekraftad" || status === "vantelista")) {
+    const t = fore.tillfalle as unknown as { titel: string; datum: string; tid: string | null; pris: number | null; samling: string | null; typ: string; slug: string | null } | null;
+    const si = fore.sittning as unknown as { datum: string; tid: string | null; pris: number | null } | null;
+    if (t) {
+      try {
+        await mejlAnmalanStatus({ epost: fore.epost, namn: fore.namn, antal: fore.antal, ...t, ...(si ? { datum: si.datum, tid: si.tid, pris: si.pris ?? t.pris } : {}), status });
+        mejlat = true;
+      } catch (e) { console.error("statusmejl misslyckades", e); }
+    }
+  }
   revalidatePath("/admin/tillfallen");
-  return { ok: true };
+  return { ok: true, mejlat };
 }
 
 /* ---------- Jaktklubben ---------- */

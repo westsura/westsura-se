@@ -282,13 +282,64 @@ export async function mejlVakSvar(o: { epost: string; namn: string; datum: strin
   ].filter(Boolean), "Med vänliga hälsningar, Westsura Herrgård"));
 }
 
-export async function mejlAnmalan(o: { epost: string; namn: string; titel: string; datum: string; status: string; antal: number }) {
+/** Det som behövs om ett tillfälle för att beskriva det i ett mejl. */
+export type AnmalanMejl = {
+  epost: string; namn: string; antal: number;
+  titel: string; datum: string; tid?: string | null; pris?: number | null; samling?: string | null; typ?: string | null; slug?: string | null;
+};
+
+const MANAD = ["januari", "februari", "mars", "april", "maj", "juni", "juli", "augusti", "september", "oktober", "november", "december"];
+const VECKODAG = ["söndag", "måndag", "tisdag", "onsdag", "torsdag", "fredag", "lördag"];
+/** "2026-10-31" → "lördag 31 oktober 2026" */
+const mejldatum = (iso: string) => {
+  const d = new Date(iso + "T12:00:00");
+  return isNaN(d.getTime()) ? iso : `${VECKODAG[d.getDay()]} ${d.getDate()} ${MANAD[d.getMonth()]} ${d.getFullYear()}`;
+};
+
+/** Ruta med tillfällets detaljer: namn, datum och tid, plats, antal, pris och länk. */
+function tillfalleRuta(o: AnmalanMejl) {
+  const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
+  const lank = o.slug ? `${bas}/aktuellt/${o.slug}` : o.typ && o.typ !== "evenemang" ? `${bas}/jakt` : null;
+  const pris = o.pris == null ? "" : o.pris === 0 ? "Fri entré"
+    : `${o.pris.toLocaleString("sv-SE")} kr per person${o.antal > 1 ? ` · totalt ${(o.pris * o.antal).toLocaleString("sv-SE")} kr` : ""}`;
+  return [
+    `<strong>${fritext(o.titel)}</strong>`,
+    `${mejldatum(o.datum).replace(/^./, (c) => c.toUpperCase())}${o.tid ? `, ${fritext(o.tid)}` : ""}`,
+    o.samling ? fritext(o.samling) : `${site.name}, ${site.address.street}, ${site.address.city}`,
+    `${o.antal} ${o.antal === 1 ? "person" : "personer"}${pris ? ` · ${pris}` : ""}`,
+    lank ? `<a href="${lank}" style="color:#7d6530">Läs mer om ${o.typ === "evenemang" ? "evenemanget" : "dagen"} →</a>` : "",
+  ].filter(Boolean).join("<br>");
+}
+
+/** Kvitto direkt när någon anmäler sig — med väntelista om det är fullt. Kopia till herrgården. */
+export async function mejlAnmalan(o: AnmalanMejl & { status: string }) {
   const vantelista = o.status === "vantelista";
-  await skicka([o.epost], vantelista ? `Du står på väntelista: ${o.titel}` : `Din anmälan: ${o.titel}`, html(
+  await skicka([o.epost], vantelista ? `Du står på väntelistan: ${o.titel}` : `Vi har tagit emot din anmälan: ${o.titel}`, html(
     vantelista ? "Du står på väntelistan" : "Vi har tagit emot din anmälan",
     [
-      `Hej ${o.namn}. ${vantelista ? "Tillfället är fullbokat, men du står på väntelistan och vi hör av oss om en plats blir ledig." : "Vi har tagit emot din anmälan och bekräftar platsen inom en vardag."}`,
-      `<strong>${o.titel}</strong><br>${o.datum}${o.antal > 1 ? ` · ${o.antal} personer` : ""}`,
-    ]));
-  await skicka([site.email], `${vantelista ? "Väntelista" : "Anmälan"}: ${o.titel} — ${o.namn}`, html("Ny anmälan", [`${o.namn} · ${o.epost}`, `${o.titel}, ${o.datum}, ${o.antal} pers`, `Status: ${o.status}`], ""), o.epost);
+      `Hej ${fritext(o.namn)}. ${vantelista
+        ? "Det är fullbokat just nu, men du står på väntelistan. Blir en plats ledig hör vi av oss direkt."
+        : "Tack för din anmälan! Vi går igenom den och skickar en bekräftelse inom en vardag."}`,
+      tillfalleRuta(o),
+      `Frågor eller ändringar? Svara på det här mejlet eller ring ${site.phone}.`,
+    ]), site.email);
+  await skicka([site.email], `${vantelista ? "Väntelista" : "Anmälan"}: ${o.titel} — ${o.namn}`, html("Ny anmälan", [
+    `${fritext(o.namn)} · ${fritext(o.epost)}`, tillfalleRuta(o), `Status: ${vantelista ? "väntelista" : "anmäld — bekräfta under Tillfällen i admin, så får gästen ett mejl"}`,
+  ], ""), o.epost);
+}
+
+/** Skickas när herrgården ändrar status i admin: bekräftad plats eller flyttad till väntelistan. */
+export async function mejlAnmalanStatus(o: AnmalanMejl & { status: "bekraftad" | "vantelista" }) {
+  const bekraftad = o.status === "bekraftad";
+  await skicka([o.epost], bekraftad ? `Bekräftat: ${o.titel}` : `Du står på väntelistan: ${o.titel}`, html(
+    bekraftad ? "Din plats är bekräftad" : "Du står på väntelistan",
+    [
+      `Hej ${fritext(o.namn)}. ${bekraftad
+        ? `Din plats är bekräftad — varmt välkommen!`
+        : "Just nu är alla platser tagna, så vi har satt dig på väntelistan. Blir en plats ledig hör vi av oss direkt — du behöver inte göra något."}`,
+      tillfalleRuta(o),
+      bekraftad
+        ? `Får du förhinder? Hör av dig så snart du kan, så kan någon på väntelistan få platsen. Svara på det här mejlet eller ring ${site.phone}.`
+        : `Frågor? Svara på det här mejlet eller ring ${site.phone}.`,
+    ]), site.email);
 }
