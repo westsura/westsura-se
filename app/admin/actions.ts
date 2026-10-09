@@ -617,6 +617,8 @@ export async function sparaTillfalle(fd: FormData) {
     rad.ingress = s(fd.get("ingress")) || null;
     rad.bild_alt = s(fd.get("bild_alt")) || null;
     rad.anmalan = !!fd.get("anmalan");
+    rad.barnpris = s(fd.get("barnpris")) === "" ? null : Math.max(0, Math.round(Number(s(fd.get("barnpris")))));
+    rad.barn_alder = Math.min(18, Math.max(1, Number(s(fd.get("barn_alder")) || 12)));
     const fil = fd.get("bildfil");
     if (fil instanceof File && fil.size > 0) {
       if (!fil.type.startsWith("image/")) return { ok: false, fel: "Bilden måste vara en bildfil (jpg, png eller webp)." };
@@ -668,12 +670,13 @@ export async function taBortSittning(id: string): Promise<{ ok: boolean; fel?: s
 export async function sattAnmalanStatus(id: string, status: string): Promise<{ ok: boolean; fel?: string; mejlat?: boolean }> {
   await kravAdmin("vardskap", "jaktadmin");
   const db = await supabaseServer();
-  const { data: fore } = await db.from("anmalan").select("status, namn, epost, antal, tillfalle:tillfalle_id(titel, datum, tid, pris, samling, typ, slug), sittning:sittning_id(datum, tid, pris)").eq("id", id).maybeSingle();
+  const { data: fore } = await db.from("anmalan").select("status, namn, epost, antal, antal_barn, tillfalle:tillfalle_id(titel, datum, tid, pris, barnpris, barn_alder, samling, typ, slug), sittning:sittning_id(datum, tid, pris)").eq("id", id).maybeSingle();
   const { error } = await db.from("anmalan").update({ status }).eq("id", id);
   if (error) return { ok: false, fel: error.message };
   let mejlat = false;
   if (fore && fore.status !== status && (status === "bekraftad" || status === "vantelista")) {
-    const t = fore.tillfalle as unknown as { titel: string; datum: string; tid: string | null; pris: number | null; samling: string | null; typ: string; slug: string | null } | null;
+    const tf = fore.tillfalle as unknown as { titel: string; datum: string; tid: string | null; pris: number | null; barnpris: number | null; barn_alder: number; samling: string | null; typ: string; slug: string | null } | null;
+    const t = tf ? { titel: tf.titel, datum: tf.datum, tid: tf.tid, pris: tf.pris, samling: tf.samling, typ: tf.typ, slug: tf.slug, barn: fore.antal_barn, barnpris: tf.barnpris, barnAlder: tf.barn_alder } : null;
     const si = fore.sittning as unknown as { datum: string; tid: string | null; pris: number | null } | null;
     if (t) {
       try {

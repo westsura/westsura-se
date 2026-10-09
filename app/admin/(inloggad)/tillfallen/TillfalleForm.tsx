@@ -7,6 +7,7 @@ type T = {
   id: string; typ: string; titel: string; beskrivning: string | null; datum: string; tid: string | null; platser: number; pris: number | null;
   publicerad: boolean; synlighet?: string; samling?: string | null; program?: string | null; algjakt?: boolean;
   slug?: string | null; ingress?: string | null; bild?: string | null; bild_alt?: string | null; anmalan?: boolean;
+  barnpris?: number | null; barn_alder?: number;
 };
 
 /** Förminskar en bild i webbläsaren till högst 2000 px och JPEG, så att uppladdningen går snabbt. */
@@ -75,6 +76,12 @@ export default function TillfalleForm({ tillfalle }: { tillfalle?: T }) {
 
       <div className="field"><label>{ev ? "Platser (om anmälan)" : "Platser"}</label><input type="number" name="platser" defaultValue={tillfalle?.platser ?? (ev ? 100 : 6)} min={0} required /></div>
       <div className="field"><label>Pris (kr)</label><input type="number" name="pris" defaultValue={tillfalle?.pris ?? ""} min={0} placeholder={ev ? "0 = fri entré, tomt = visas inte" : ""} /></div>
+      {ev && (
+        <>
+          <div className="field"><label>Barnpris (kr)</label><input type="number" name="barnpris" defaultValue={tillfalle?.barnpris ?? ""} min={0} placeholder="Tomt = inget barnpris" /></div>
+          <div className="field"><label>Barn upp till (år)</label><input type="number" name="barn_alder" defaultValue={tillfalle?.barn_alder ?? 12} min={1} max={18} /></div>
+        </>
+      )}
       {!ev && (
         <>
           <div className="field"><label>Synlighet</label>

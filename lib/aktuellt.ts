@@ -6,10 +6,11 @@ export type Evenemang = {
   id: string; slug: string; titel: string; ingress: string | null; beskrivning: string | null; program: string | null;
   datum: string; datum_till: string | null; tid: string | null; pris: number | null; platser: number; kvar: number;
   bild: string | null; bild_alt: string | null; anmalan: boolean;
+  barnpris: number | null; barn_alder: number;
   sittningar: Sittning[];
 };
 
-const FALT = "id, slug, titel, ingress, beskrivning, program, datum, datum_till, tid, pris, platser, bild, bild_alt, anmalan";
+const FALT = "id, slug, titel, ingress, beskrivning, program, datum, datum_till, tid, pris, barnpris, barn_alder, platser, bild, bild_alt, anmalan";
 type Rad = Omit<Evenemang, "kvar" | "sittningar">;
 
 async function komplettera(rader: Rad[]): Promise<Evenemang[]> {

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { skapaAnmalan } from "@/app/actions";
 import { site } from "@/lib/site";
 import { platsstatus } from "@/lib/sittning";
+import AntalFalt from "@/components/AntalFalt";
 
 export type Tillfalle = {
   id: string;
@@ -34,8 +35,9 @@ function fmt(iso: string) {
 const kr = (n: number | null) => (n == null ? "" : n === 0 ? "Fri entré" : n.toLocaleString("sv-SE") + " kr");
 
 /** Lista över utlysta tillfällen med anmälan direkt till databasen. */
-export default function Tillfallen({ tillfallen, rubrik = "Kommande tillfällen" }: { tillfallen: Tillfalle[]; rubrik?: string }) {
-  const [valt, setValt] = useState<Tillfalle | null>(null);
+export default function Tillfallen({ tillfallen, rubrik = "Kommande tillfällen", barn }: { tillfallen: Tillfalle[]; rubrik?: string; barn?: { pris: number; alder: number } | null }) {
+  // Ett enda tillfälle (t.ex. på en evenemangssida) är förvalt, så att anmälan syns direkt.
+  const [valt, setValt] = useState<Tillfalle | null>(tillfallen.length === 1 ? tillfallen[0] : null);
   const [resultat, setResultat] = useState<{ status: string; titel: string } | null>(null);
   const [fel, setFel] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -96,7 +98,7 @@ export default function Tillfallen({ tillfallen, rubrik = "Kommande tillfällen"
             <p className="small">Fyll i uppgifterna så bekräftar vi platsen inom en vardag. Anmälan är bindande först när ni fått vår bekräftelse.</p>
             <form className="form" onSubmit={anmal}>
               <div className="field"><label htmlFor="a-namn">Namn</label><input id="a-namn" name="namn" required autoComplete="name" /></div>
-              <div className="field"><label htmlFor="a-antal">Antal personer</label><input id="a-antal" name="antal" type="number" min={1} max={20} defaultValue={1} required /></div>
+              <AntalFalt pris={valt.pris} barnpris={barn?.pris} barnAlder={barn?.alder} standard={valt.typ === "evenemang" ? 2 : 1} />
               <div className="field"><label htmlFor="a-epost">E-post</label><input id="a-epost" name="epost" type="email" required autoComplete="email" /></div>
               <div className="field"><label htmlFor="a-tel">Telefon</label><input id="a-tel" name="telefon" type="tel" autoComplete="tel" /></div>
               <div className="field field--full"><label htmlFor="a-medd">Meddelande</label><textarea id="a-medd" name="meddelande" className="ta--s" placeholder={MEDDELANDE[valt.typ]} /></div>

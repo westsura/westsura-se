@@ -312,14 +312,18 @@ export async function skapaAnmalan(fd: FormData): Promise<Svar<{ status: string 
     : await db.rpc("skapa_anmalan", { p_tillfalle: tillfalle, ...falt });
   if (error) return { ok: false, fel: error.code === "P0001" ? error.message : "Anmälan gick inte att skicka. Ring oss så hjälper vi dig." };
   const rad = (data as { anmalan_id: string; status: string }[])[0];
+  // Barn räknas in i antal (platserna) men sparas också för sig, för barnpriset.
+  const barn = Math.min(falt.p_antal, Math.max(0, Number(s(fd.get("antal_barn")) || 0)));
+  if (barn) await db.from("anmalan").update({ antal_barn: barn }).eq("id", rad.anmalan_id);
   // Anmälan är redan skapad — ett fel här får bara påverka mejlet.
-  const { data: t, error: felTillfalle } = await db.from("tillfalle").select("titel, datum, tid, pris, samling, typ, slug").eq("id", tillfalle).single();
+  const { data: t, error: felTillfalle } = await db.from("tillfalle").select("titel, datum, tid, pris, barnpris, barn_alder, samling, typ, slug").eq("id", tillfalle).single();
   if (felTillfalle) console.error("kunde inte hämta tillfället till anmälningsmejlet", felTillfalle.message);
   const { data: si } = sittningId ? await db.from("sittning").select("datum, tid, pris").eq("id", sittningId).maybeSingle() : { data: null };
   try {
     await mejlAnmalan({
       epost, namn, titel: t?.titel ?? "", datum: si?.datum ?? t?.datum ?? "", tid: si ? si.tid : t?.tid, pris: si?.pris ?? t?.pris,
       samling: t?.samling, typ: t?.typ, slug: t?.slug, status: rad.status, antal: falt.p_antal,
+      barn, barnpris: t?.barnpris, barnAlder: t?.barn_alder,
     });
   } catch (e) { console.error("mejl misslyckades", e); }
 

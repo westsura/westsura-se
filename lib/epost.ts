@@ -286,6 +286,8 @@ export async function mejlVakSvar(o: { epost: string; namn: string; datum: strin
 export type AnmalanMejl = {
   epost: string; namn: string; antal: number;
   titel: string; datum: string; tid?: string | null; pris?: number | null; samling?: string | null; typ?: string | null; slug?: string | null;
+  /** Hur många av `antal` som är barn, och deras pris. */
+  barn?: number; barnpris?: number | null; barnAlder?: number | null;
 };
 
 const MANAD = ["januari", "februari", "mars", "april", "maj", "juni", "juli", "augusti", "september", "oktober", "november", "december"];
@@ -300,13 +302,21 @@ const mejldatum = (iso: string) => {
 function tillfalleRuta(o: AnmalanMejl) {
   const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
   const lank = o.slug ? `${bas}/aktuellt/${o.slug}` : o.typ && o.typ !== "evenemang" ? `${bas}/jakt` : null;
-  const pris = o.pris == null ? "" : o.pris === 0 ? "Fri entré"
-    : `${o.pris.toLocaleString("sv-SE")} kr per person${o.antal > 1 ? ` · totalt ${(o.pris * o.antal).toLocaleString("sv-SE")} kr` : ""}`;
+  const k = (n: number) => n.toLocaleString("sv-SE") + " kr";
+  const barn = o.barnpris != null ? Math.min(o.barn ?? 0, o.antal) : 0;
+  const vuxna = o.antal - barn;
+  const personer = barn
+    ? `${vuxna} ${vuxna === 1 ? "vuxen" : "vuxna"} och ${barn} ${barn === 1 ? "barn" : "barn"}`
+    : `${o.antal} ${o.antal === 1 ? "person" : "personer"}`;
+  const pris = o.pris == null ? "" : o.pris === 0 && !barn ? "Fri entré"
+    : barn
+      ? `${vuxna ? `${vuxna} × ${k(o.pris)} + ` : ""}${barn} × ${k(o.barnpris!)} (barn upp till ${o.barnAlder ?? 12} år) · totalt ${k(vuxna * o.pris + barn * o.barnpris!)}`
+      : `${k(o.pris)} per person${o.antal > 1 ? ` · totalt ${k(o.pris * o.antal)}` : ""}`;
   return [
     `<strong>${fritext(o.titel)}</strong>`,
     `${mejldatum(o.datum).replace(/^./, (c) => c.toUpperCase())}${o.tid ? `, ${fritext(o.tid)}` : ""}`,
     o.samling ? fritext(o.samling) : `${site.name}, ${site.address.street}, ${site.address.city}`,
-    `${o.antal} ${o.antal === 1 ? "person" : "personer"}${pris ? ` · ${pris}` : ""}`,
+    `${personer}${pris ? ` · ${pris}` : ""}`,
     lank ? `<a href="${lank}" style="color:#7d6530">Läs mer om ${o.typ === "evenemang" ? "evenemanget" : "dagen"} →</a>` : "",
   ].filter(Boolean).join("<br>");
 }

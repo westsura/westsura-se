@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { sattAnmalanStatus } from "@/app/admin/actions";
 
-type A = { id: string; namn: string; epost: string; telefon: string | null; antal: number; meddelande: string | null; status: string };
+type A = { id: string; namn: string; epost: string; telefon: string | null; antal: number; antal_barn?: number; meddelande: string | null; status: string };
 
 export default function AnmalanRad({ a, sittning }: { a: A; sittning?: string | null }) {
   const [fel, setFel] = useState<string | null>(null);
@@ -13,7 +13,7 @@ export default function AnmalanRad({ a, sittning }: { a: A; sittning?: string | 
     <tr className={`st-${a.status}`}>
       <td><b>{a.namn}</b>{sittning && <div className="admin__meta">{sittning}</div>}</td>
       <td><small>{a.epost}{a.telefon ? " · " + a.telefon : ""}</small></td>
-      <td className="num">{a.antal}</td>
+      <td className="num">{a.antal}{a.antal_barn ? <div className="admin__meta">varav {a.antal_barn} barn</div> : null}</td>
       <td><small>{a.meddelande}</small></td>
       <td>
         <select value={a.status} disabled={pending} title="Bekräftad och Väntelista skickar ett mejl till gästen" onChange={(e) => {

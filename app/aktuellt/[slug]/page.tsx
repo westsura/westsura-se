@@ -75,13 +75,13 @@ export default async function EvenemangSida({ params }: { params: Promise<{ slug
                 <ul>{program.map((r, i) => <li key={i}>{r}</li>)}</ul>
               </>
             )}
-            <p className="muted">{site.name} · Lisjövägen 50, Surahammar{e.pris === 0 ? " · Fri entré" : e.pris ? ` · ${e.pris.toLocaleString("sv-SE")} kr per person` : ""}</p>
+            <p className="muted">{site.name} · Lisjövägen 50, Surahammar{e.pris === 0 ? " · Fri entré" : e.pris ? ` · ${e.pris.toLocaleString("sv-SE")} kr per person` : ""}{e.barnpris != null ? `, barn upp till ${e.barn_alder} år ${e.barnpris.toLocaleString("sv-SE")} kr` : ""}</p>
           </div>
           <div>
             {e.anmalan && !passerat && e.sittningar.length > 0 ? (
-              <Sittningar tillfalleId={e.id} titel={e.titel} pris={e.pris} sittningar={e.sittningar} />
+              <Sittningar tillfalleId={e.id} titel={e.titel} pris={e.pris} barnpris={e.barnpris} barnAlder={e.barn_alder} sittningar={e.sittningar} />
             ) : e.anmalan && !passerat ? (
-              <Tillfallen rubrik="Anmälan" tillfallen={[{ id: e.id, typ: "evenemang", titel: e.titel, beskrivning: null, datum: e.datum, tid: e.tid, pris: e.pris, vanpris: null, platser: e.platser, kvar: e.kvar }]} />
+              <Tillfallen rubrik="Anmälan" barn={e.barnpris != null ? { pris: e.barnpris, alder: e.barn_alder } : null}tillfallen={[{ id: e.id, typ: "evenemang", titel: e.titel, beskrivning: null, datum: e.datum, tid: e.tid, pris: e.pris, vanpris: null, platser: e.platser, kvar: e.kvar }]} />
             ) : (
               <div className="card card--plain">
                 <p className="label">{passerat ? "Missa inte nästa" : "Välkommen"}</p>
