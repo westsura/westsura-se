@@ -25,6 +25,10 @@ const nextConfig: NextConfig = {
       { source: "/kanot-kvallsturen", destination: "/paket", permanent: true },
       { source: "/franglodtillgourmet", destination: "/paket", permanent: true },
       { source: "/golfpaket", destination: "/paket", permanent: true },
+      // Gamla WordPress-sidor som Google rapporterade som 404 (okt 2026).
+      { source: "/golfpaket-surahammars-golfklubb", destination: "/paket#golf", permanent: true },
+      { source: "/fran-glod-till-gourmet", destination: "/paket#glod", permanent: true },
+      { source: "/afternoon-tea-mors-dag", destination: "/#aktuellt", permanent: true },
       // Jaktklubbens sida hette /jaktklubben fram till september 2026.
       { source: "/jaktklubben", destination: "/jaktklubb", permanent: true },
       // Evenemang ligger under /aktuellt/<adress>; själva listan finns på startsidan.
