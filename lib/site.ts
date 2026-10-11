@@ -4,6 +4,8 @@ export const site = {
   phone: "0220-312 30",
   phoneHref: "tel:+4622031230",
   email: "boka@westsura.se",
+  /** Swish för förskottsbetalning av evenemang. */
+  swish: "123 155 90 12",
   address: { street: "Lisjövägen 50", zip: "735 91", city: "Surahammar", region: "Västmanland" },
   company: "Westsura Jakt & Konferens AB",
   orgNr: "559197-2905",

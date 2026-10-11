@@ -29,12 +29,19 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-/** "10.00–16.00" → start- och sluttid för Google. */
+/** Svensk tidszon för ett datum: +02:00 sommartid, +01:00 vintertid. */
+function zon(datum: string) {
+  const namn = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Stockholm", timeZoneName: "shortOffset" })
+    .formatToParts(new Date(datum + "T12:00:00Z")).find((p) => p.type === "timeZoneName")?.value ?? "GMT+1";
+  return namn.includes("+2") ? "+02:00" : "+01:00";
+}
+
+/** "10.00–16.00" → start- och sluttid för Google. Utan sluttid blir slutet samma dag. */
 function tider(datum: string, tid: string | null) {
   const m = tid?.match(/(\d{1,2})[.:](\d{2})(?:\s*[–-]\s*(\d{1,2})[.:](\d{2}))?/);
-  if (!m) return { start: datum };
-  const p = (h: string, mi: string) => `${datum}T${h.padStart(2, "0")}:${mi}:00+02:00`;
-  return { start: p(m[1], m[2]), slut: m[3] ? p(m[3], m[4]) : undefined };
+  if (!m) return { start: datum, slut: datum };
+  const p = (h: string, mi: string) => `${datum}T${h.padStart(2, "0")}:${mi}:00${zon(datum)}`;
+  return { start: p(m[1], m[2]), slut: m[3] ? p(m[3], m[4]) : datum };
 }
 
 export default async function EvenemangSida({ params }: { params: Promise<{ slug: string }> }) {
@@ -44,16 +51,30 @@ export default async function EvenemangSida({ params }: { params: Promise<{ slug
 
   const passerat = (e.datum_till ?? e.datum) < new Date().toISOString().slice(0, 10);
   const bild = e.bild ?? STANDARDBILD;
-  const forstaS = e.sittningar[0];
-  const t = forstaS ? tider(forstaS.datum, forstaS.tid) : tider(e.datum, e.tid);
+  // Strukturerad data för Google: start vid första sittningen, slut vid sista.
+  const forstaS = e.sittningar[0], sistaS = e.sittningar[e.sittningar.length - 1];
+  const start = forstaS ? tider(forstaS.datum, forstaS.tid).start : tider(e.datum, e.tid).start;
+  const slut = sistaS ? tider(sistaS.datum, sistaS.tid).slut : tider(e.datum_till ?? e.datum, e.tid).slut;
+  const ledigt = !e.anmalan || (e.sittningar.length ? e.sittningar.some((s) => s.kvar > 0) : e.kvar > 0);
+  const erbjudande = (namn: string, pris: number) => ({
+    "@type": "Offer", name: namn, price: pris, priceCurrency: "SEK", url: `${site.url}/aktuellt/${e.slug}`,
+    availability: ledigt ? "https://schema.org/InStock" : "https://schema.org/SoldOut",
+    validFrom: (e.skapad ?? new Date().toISOString()).slice(0, 10),
+  });
   const ld = {
     "@context": "https://schema.org", "@type": "Event", name: e.titel, description: e.ingress ?? undefined,
-    startDate: t.start, endDate: t.slut, image: bild.startsWith("http") ? bild : site.url + bild,
+    startDate: start, endDate: slut, image: bild.startsWith("http") ? bild : site.url + bild,
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode", eventStatus: "https://schema.org/EventScheduled",
     location: { "@type": "Place", name: site.name, address: { "@type": "PostalAddress", streetAddress: "Lisjövägen 50", postalCode: "735 91", addressLocality: "Surahammar", addressCountry: "SE" } },
     organizer: { "@type": "Organization", name: site.name, url: site.url },
-    isAccessibleForFree: !e.pris,
-    ...(e.pris ? { offers: { "@type": "Offer", price: e.pris, priceCurrency: "SEK", url: `${site.url}/aktuellt/${e.slug}` } } : {}),
+    performer: { "@type": "Organization", name: site.name, url: site.url },
+    isAccessibleForFree: !e.pris && !e.barnpris,
+    ...(e.pris || e.barnpris ? {
+      offers: [
+        ...(e.pris ? [erbjudande("Vuxen", e.pris)] : []),
+        ...(e.barnpris != null ? [erbjudande(`Barn upp till ${e.barn_alder} år`, e.barnpris)] : []),
+      ],
+    } : {}),
   };
   const stycken = (e.beskrivning ?? "").split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
   const program = (e.program ?? "").split("\n").map((x) => x.trim()).filter(Boolean);

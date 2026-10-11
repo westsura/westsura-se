@@ -88,14 +88,16 @@ export default function Tillfallen({ tillfallen, rubrik = "Kommande tillfällen"
         {resultat ? (
           <div className="notice notice--lg" role="status">
             <strong>{resultat.status === "vantelista" ? "Du står på väntelistan." : "Tack för din anmälan."}</strong>{" "}
-            {resultat.status === "vantelista" ? "Vi hör av oss om en plats blir ledig." : "Vi bekräftar platsen inom en vardag."} En bekräftelse har skickats till din e-post.
+            {resultat.status === "vantelista" ? "Vi hör av oss om en plats blir ledig." : valt?.typ === "evenemang" && valt.pris ? `Dina platser är reserverade. Betala med Swish till ${site.swish} och skriv ditt namn och antal platser i meddelandet — bokningen är klar när betalningen har kommit in.` : "Vi bekräftar platsen inom en vardag."} En bekräftelse har skickats till din e-post.
             {valt?.typ === "jakt" && <> Jakten kräver jaktkort, ID-handling och vår säkerhetskurs online — du har fått ett jägarkonto där du laddar upp och gör kursen. <a href="/jaktklubb/login">Logga in på jägarkontot →</a></>}
           </div>
         ) : valt ? (
           <div className="card card--accent">
             <p className="label">{valt.kvar <= 0 ? "Väntelista" : "Anmälan"}</p>
             <h3>{valt.titel} · {fmt(valt.datum).d} {fmt(valt.datum).m}</h3>
-            <p className="small">Fyll i uppgifterna så bekräftar vi platsen inom en vardag. Anmälan är bindande först när ni fått vår bekräftelse.</p>
+            <p className="small">{valt.typ === "evenemang" && valt.pris
+              ? `Betalning sker i förskott med Swish till ${site.swish} — bokningen är klar när betalningen har kommit in. Instruktioner kommer i bekräftelsemejlet.`
+              : "Fyll i uppgifterna så bekräftar vi platsen inom en vardag. Anmälan är bindande först när ni fått vår bekräftelse."}</p>
             <form className="form" onSubmit={anmal}>
               <div className="field"><label htmlFor="a-namn">Namn</label><input id="a-namn" name="namn" required autoComplete="name" /></div>
               <AntalFalt pris={valt.pris} barnpris={barn?.pris} barnAlder={barn?.alder} standard={valt.typ === "evenemang" ? 2 : 1} />

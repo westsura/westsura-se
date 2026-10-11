@@ -298,6 +298,26 @@ const mejldatum = (iso: string) => {
   return isNaN(d.getTime()) ? iso : `${VECKODAG[d.getDay()]} ${d.getDate()} ${MANAD[d.getMonth()]} ${d.getFullYear()}`;
 };
 
+/** Totalbelopp för en anmälan (vuxna + barn), eller 0 om inget pris. */
+function totalbelopp(o: AnmalanMejl) {
+  if (!o.pris && !o.barnpris) return 0;
+  const barn = o.barnpris != null ? Math.min(o.barn ?? 0, o.antal) : 0;
+  return (o.antal - barn) * (o.pris ?? 0) + barn * (o.barnpris ?? 0);
+}
+
+/** Evenemang med pris förskottsbetalas med Swish — platsen bekräftas när betalningen kommit in. */
+const swishBetalning = (o: AnmalanMejl) => o.typ === "evenemang" && totalbelopp(o) > 0;
+
+function swishRuta(o: AnmalanMejl) {
+  const belopp = totalbelopp(o).toLocaleString("sv-SE") + " kr";
+  return `<span style="display:block;background:#f3ebd0;border-left:3px solid #b68e40;padding:14px 16px">
+    <strong>Betala med Swish för att bekräfta din plats</strong><br>
+    Swisha <strong>${belopp}</strong> till <strong>${site.swish}</strong> (Westsura Herrgård).<br>
+    Skriv <strong>ditt namn och antal platser</strong> i meddelandet, till exempel: <em>${fritext(o.namn)}, ${o.antal} ${o.antal === 1 ? "plats" : "platser"}</em>.<br>
+    Platsen är bokad först när betalningen har kommit in. Därefter får du en bekräftelse från oss.
+  </span>`;
+}
+
 /** Ruta med tillfällets detaljer: namn, datum och tid, plats, antal, pris och länk. */
 function tillfalleRuta(o: AnmalanMejl) {
   const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
@@ -324,17 +344,24 @@ function tillfalleRuta(o: AnmalanMejl) {
 /** Kvitto direkt när någon anmäler sig — med väntelista om det är fullt. Kopia till herrgården. */
 export async function mejlAnmalan(o: AnmalanMejl & { status: string }) {
   const vantelista = o.status === "vantelista";
+  const swish = !vantelista && swishBetalning(o);
   await skicka([o.epost], vantelista ? `Du står på väntelistan: ${o.titel}` : `Vi har tagit emot din anmälan: ${o.titel}`, html(
     vantelista ? "Du står på väntelistan" : "Vi har tagit emot din anmälan",
     [
       `Hej ${fritext(o.namn)}. ${vantelista
-        ? "Det är fullbokat just nu, men du står på väntelistan. Blir en plats ledig hör vi av oss direkt."
-        : "Tack för din anmälan! Vi går igenom den och skickar en bekräftelse inom en vardag."}`,
+        ? "Det är fullbokat just nu, men du står på väntelistan. Blir en plats ledig hör vi av oss direkt — betala inget förrän du fått besked."
+        : swish
+          ? "Tack för din anmälan! Dina platser är reserverade, och bokningen blir klar när du har betalat i förskott med Swish."
+          : "Tack för din anmälan! Vi går igenom den och skickar en bekräftelse inom en vardag."}`,
       tillfalleRuta(o),
+      swish ? swishRuta(o) : "",
       `Frågor eller ändringar? Svara på det här mejlet eller ring ${site.phone}.`,
-    ]), site.email);
+    ].filter(Boolean)), site.email);
   await skicka([site.email], `${vantelista ? "Väntelista" : "Anmälan"}: ${o.titel} — ${o.namn}`, html("Ny anmälan", [
-    `${fritext(o.namn)} · ${fritext(o.epost)}`, tillfalleRuta(o), `Status: ${vantelista ? "väntelista" : "anmäld — bekräfta under Tillfällen i admin, så får gästen ett mejl"}`,
+    `${fritext(o.namn)} · ${fritext(o.epost)}`, tillfalleRuta(o),
+    `Status: ${vantelista ? "väntelista" : swish
+      ? `anmäld — väntar på Swish ${totalbelopp(o).toLocaleString("sv-SE")} kr märkt "${fritext(o.namn)}, ${o.antal} platser". Bekräfta under Tillfällen i admin när betalningen kommit in.`
+      : "anmäld — bekräfta under Tillfällen i admin, så får gästen ett mejl"}`,
   ], ""), o.epost);
 }
 
@@ -345,8 +372,8 @@ export async function mejlAnmalanStatus(o: AnmalanMejl & { status: "bekraftad" |
     bekraftad ? "Din plats är bekräftad" : "Du står på väntelistan",
     [
       `Hej ${fritext(o.namn)}. ${bekraftad
-        ? `Din plats är bekräftad — varmt välkommen!`
-        : "Just nu är alla platser tagna, så vi har satt dig på väntelistan. Blir en plats ledig hör vi av oss direkt — du behöver inte göra något."}`,
+        ? swishBetalning(o) ? "Tack för din betalning — din bokning är bekräftad. Varmt välkommen!" : "Din plats är bekräftad — varmt välkommen!"
+        : "Just nu är alla platser tagna, så vi har satt dig på väntelistan. Blir en plats ledig hör vi av oss direkt — du behöver inte göra något, och betala inget förrän du fått besked."}`,
       tillfalleRuta(o),
       bekraftad
         ? `Får du förhinder? Hör av dig så snart du kan, så kan någon på väntelistan få platsen. Svara på det här mejlet eller ring ${site.phone}.`

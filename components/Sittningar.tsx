@@ -21,6 +21,8 @@ export default function Sittningar({ tillfalleId, titel, pris, barnpris, barnAld
   const [pending, start] = useTransition();
   const dagar = [...new Set(kommande.map((s) => s.datum))];
   const prisNu = valt ? valt.pris ?? pris : pris;
+  /** Evenemang med pris förskottsbetalas med Swish. */
+  const betalas = !!prisNu || !!barnpris;
 
   if (!kommande.length) return <p className="empty">Alla sittningar har varit. Ring {site.phone} om du har frågor.</p>;
   if (resultat) return <div className="notice notice--lg" role="status">{resultat}</div>;
@@ -29,7 +31,10 @@ export default function Sittningar({ tillfalleId, titel, pris, barnpris, barnAld
     <div className="card card--accent" id="anmalan">
       <p className="label">Anmälan</p>
       <h3>{titel}</h3>
-      <p className="small">Välj tid och fyll i dina uppgifter, så bekräftar vi platsen inom en vardag.{prisNu != null ? ` Pris: ${kr(prisNu)}${prisNu ? " per person" : ""}${barnpris != null ? `, barn upp till ${barnAlder ?? 12} år ${kr(barnpris)}` : ""}.` : ""}</p>
+      <p className="small">
+        Välj tid och fyll i dina uppgifter.{prisNu != null ? ` Pris: ${kr(prisNu)}${prisNu ? " per person" : ""}${barnpris != null ? `, barn upp till ${barnAlder ?? 12} år ${kr(barnpris)}` : ""}.` : ""}
+        {betalas ? ` Betalning sker i förskott med Swish till ${site.swish} — bokningen är klar när betalningen har kommit in. Instruktioner kommer i bekräftelsemejlet.` : " Vi bekräftar platsen inom en vardag."}
+      </p>
 
       <p className="field-label" style={{ margin: "18px 0 10px" }}>1 · Välj sittning</p>
       {dagar.map((d) => (
@@ -65,7 +70,9 @@ export default function Sittningar({ tillfalleId, titel, pris, barnpris, barnAld
           if (!r.ok) { setFel(r.fel); return; }
           setResultat(r.data.status === "vantelista"
             ? `Du står på väntelistan för ${dagRubrik(valt.datum).toLowerCase()}${valt.tid ? " kl. " + valt.tid : ""}. Vi hör av oss om en plats blir ledig — en bekräftelse har skickats till din e-post.`
-            : `Tack för din anmälan till ${dagRubrik(valt.datum).toLowerCase()}${valt.tid ? " kl. " + valt.tid : ""}! Vi bekräftar platsen inom en vardag. En kopia har skickats till din e-post.`);
+            : betalas
+              ? `Tack för din anmälan till ${dagRubrik(valt.datum).toLowerCase()}${valt.tid ? " kl. " + valt.tid : ""}! Dina platser är reserverade. Betala med Swish till ${site.swish} och skriv ditt namn och antal platser i meddelandet — bokningen är klar när betalningen har kommit in. Allt står i mejlet vi just skickat.`
+              : `Tack för din anmälan till ${dagRubrik(valt.datum).toLowerCase()}${valt.tid ? " kl. " + valt.tid : ""}! Vi bekräftar platsen inom en vardag. En kopia har skickats till din e-post.`);
         });
       }}>
         <div className="field"><label htmlFor="s-namn">Namn</label><input id="s-namn" name="namn" required autoComplete="name" /></div>

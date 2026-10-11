@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import { kravAdmin } from "@/lib/admin";
 import { OMRADEN, ROLLNAMN, type Roll } from "@/lib/roller";
-import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokumentstatus, mejlDokumentKlar, mejlVakSvar, mejlAdminValkommen, mejlEkipageGodkant, mejlEkipageInbjudan, mejlAnmalanStatus } from "@/lib/epost";
+import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokumentstatus, mejlDokumentKlar, mejlVakSvar, mejlAdminValkommen, mejlEkipageGodkant, mejlEkipageInbjudan, mejlAnmalanStatus, mejlAnmalan } from "@/lib/epost";
 import { EKIPAGE_RABATT } from "@/lib/jakt";
 import { giltigaIdag } from "@/lib/dokument";
 import { Resend } from "resend";
@@ -617,8 +617,9 @@ export async function sparaTillfalle(fd: FormData) {
     rad.ingress = s(fd.get("ingress")) || null;
     rad.bild_alt = s(fd.get("bild_alt")) || null;
     rad.anmalan = !!fd.get("anmalan");
-    rad.barnpris = s(fd.get("barnpris")) === "" ? null : Math.max(0, Math.round(Number(s(fd.get("barnpris")))));
-    rad.barn_alder = Math.min(18, Math.max(1, Number(s(fd.get("barn_alder")) || 12)));
+    // Bara om fälten finns i formuläret — ett äldre formulär i en öppen flik ska inte nollställa barnpriset.
+    if (fd.has("barnpris")) rad.barnpris = s(fd.get("barnpris")) === "" ? null : Math.max(0, Math.round(Number(s(fd.get("barnpris")))));
+    if (fd.has("barn_alder")) rad.barn_alder = Math.min(18, Math.max(1, Number(s(fd.get("barn_alder")) || 12)));
     const fil = fd.get("bildfil");
     if (fil instanceof File && fil.size > 0) {
       if (!fil.type.startsWith("image/")) return { ok: false, fel: "Bilden måste vara en bildfil (jpg, png eller webp)." };
@@ -674,13 +675,17 @@ export async function sattAnmalanStatus(id: string, status: string): Promise<{ o
   const { error } = await db.from("anmalan").update({ status }).eq("id", id);
   if (error) return { ok: false, fel: error.message };
   let mejlat = false;
-  if (fore && fore.status !== status && (status === "bekraftad" || status === "vantelista")) {
+  // Från väntelistan till anmäld = en plats har blivit ledig: gästen får anmälningsmejlet med Swish-uppgifterna.
+  const franVantelista = fore?.status === "vantelista" && status === "anmald";
+  if (fore && fore.status !== status && (status === "bekraftad" || status === "vantelista" || franVantelista)) {
     const tf = fore.tillfalle as unknown as { titel: string; datum: string; tid: string | null; pris: number | null; barnpris: number | null; barn_alder: number; samling: string | null; typ: string; slug: string | null } | null;
     const t = tf ? { titel: tf.titel, datum: tf.datum, tid: tf.tid, pris: tf.pris, samling: tf.samling, typ: tf.typ, slug: tf.slug, barn: fore.antal_barn, barnpris: tf.barnpris, barnAlder: tf.barn_alder } : null;
     const si = fore.sittning as unknown as { datum: string; tid: string | null; pris: number | null } | null;
     if (t) {
       try {
-        await mejlAnmalanStatus({ epost: fore.epost, namn: fore.namn, antal: fore.antal, ...t, ...(si ? { datum: si.datum, tid: si.tid, pris: si.pris ?? t.pris } : {}), status });
+        const uppgifter = { epost: fore.epost, namn: fore.namn, antal: fore.antal, ...t, ...(si ? { datum: si.datum, tid: si.tid, pris: si.pris ?? t.pris } : {}) };
+        if (franVantelista) await mejlAnmalan({ ...uppgifter, status: "anmald" });
+        else await mejlAnmalanStatus({ ...uppgifter, status: status as "bekraftad" | "vantelista" });
         mejlat = true;
       } catch (e) { console.error("statusmejl misslyckades", e); }
     }
