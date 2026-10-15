@@ -128,10 +128,10 @@ export default async function Oversikt() {
           <p className="jk-etikett">Allt för din jaktdag</p>
         </div>
         <div className="jk-tre">
-          <Link className="card" href="/jaktklubb/medlem/dokument">
+          <Link className="card" href="/jaktklubb/medlem/karta">
             <p className="label">Marker &amp; pass</p>
             <h3>Lär känna markerna</h3>
-            <p className="small mb-0">Kartor och passinformation inför nästa jakt.</p>
+            <p className="small mb-0">Karta med torn, pass och åtlar — och var du själv är.</p>
           </Link>
           <Link className="card" href="/jaktklubb/medlem/dokument">
             <p className="label">Regler &amp; dokument</p>

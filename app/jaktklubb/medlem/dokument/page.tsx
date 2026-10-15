@@ -14,13 +14,18 @@ export default async function MarkerOchDokument() {
         <div>
           <p className="jk-etikett">Marker &amp; dokument</p>
           <h1 className="jk-h1">Inför skogen.</h1>
-          <p className="jk-lede">Kartor, passbeskrivningar och klubbens regler.</p>
+          <p className="jk-lede">Kartan, passbeskrivningar och klubbens regler.</p>
         </div>
       </header>
 
       <section className="jk-kort jk-kort--ljus jk-kort--bred">
+        <p className="jk-etikett">Kartan</p>
+        <p className="jk-lede mb-0">Torn, pass, åtlar och samlingsplatser finns på <Link className="jk-lank" href="/jaktklubb/medlem/karta">jaktklubbens karta →</Link> Där kan du också se var du själv är när du är ute i skogen.</p>
+      </section>
+
+      <section className="jk-kort jk-kort--ljus jk-kort--bred">
         <p className="jk-etikett">Läggs upp inför säsongen</p>
-        <p className="jk-lede">Kartor över markerna, passbeskrivningar och klubbens säkerhetsregler läggs upp här inför säsongen. Du får ett mejl när de finns på plats.</p>
+        <p className="jk-lede">Passbeskrivningar och klubbens säkerhetsregler läggs upp här inför säsongen. Du får ett mejl när de finns på plats.</p>
         <p className="jk-lede mb-0">Behöver du något innan dess är det bara att ringa — <a href={site.phoneHref}>{site.phone}</a>.</p>
       </section>
 

@@ -155,7 +155,6 @@ export async function skapaMedlemsansokan(fd: FormData): Promise<Svar> {
   if (!namn || !epost.includes("@")) return { ok: false, fel: "Fyll i namn och en giltig e-postadress." };
   if (!telefon) return { ok: false, fel: "Fyll i ett telefonnummer så vi kan ringa dig." };
   if (jakterfarenhet.length < 20) return { ok: false, fel: "Berätta lite mer om din jakterfarenhet — några meningar räcker." };
-  if (s(fd.get("villkor")) !== "1") return { ok: false, fel: "Du behöver godkänna villkoren för jakt." };
   const yrkesroll = s(fd.get("yrkesroll")), anstallningsform = s(fd.get("anstallningsform")), flexibla_tider = s(fd.get("flexibla_tider"));
 
   const db = supabaseAdmin();
@@ -175,7 +174,6 @@ export async function skapaMedlemsansokan(fd: FormData): Promise<Svar> {
     namn, epost, telefon, ort: ort || null, jakterfarenhet, hund: hund || null,
     meddelande: meddelande || null, onskad_niva_id: vald.id,
     yrkesroll: yrkesroll || null, anstallningsform: anstallningsform || null, flexibla_tider: flexibla_tider || null,
-    villkor_godkanda: new Date().toISOString(),
   });
   if (error) {
     if (error.code === "23505") return { ok: false, fel: "Det finns redan en ansökan med den adressen – ring oss om du vill ändra något." };

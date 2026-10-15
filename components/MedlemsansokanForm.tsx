@@ -96,10 +96,7 @@ export default function MedlemsansokanForm({ nivaer }: { nivaer: Niva[] }) {
         <textarea id="m-meddelande" name="meddelande" className="ta--s" placeholder="Valfritt — varför just Westsura?" />
       </div>
 
-      <label className="checkfield field--full">
-        <input type="checkbox" name="villkor" value="1" required />
-        <span>Jag har läst och godkänner <a href="/jaktklubb/villkor" target="_blank" rel="noopener">villkoren för jakt</a>, med provår och årskostnad.</span>
-      </label>
+      <p className="field--full hint">Ansökan är inte bindande — den är början på ett samtal. Vill du veta mer om provår, årskostnad och hur jakten går till kan du läsa <a href="/jaktklubb/villkor" target="_blank" rel="noopener">villkoren för jakt</a>.</p>
 
       {fel && <div className="notice notice--fel field--full" role="alert">{fel}</div>}
       <div className="field--full cta-row">
