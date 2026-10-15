@@ -127,8 +127,8 @@ export default async function VakAdmin() {
       )}
       <UtbudForm omraden={O} bokade={0} />
 
-      <h2 className="admin__h2" style={{ marginTop: 40 }}>Platser</h2>
-      <p className="admin__meta" style={{ marginBottom: 12 }}>Torn, vakplatser och pyrschområden för vak och pyrsch — samt pass och samlingsplatser för drevjakterna. Koordinater i SWEREF 99 TM (som på Lantmäteriets kartor) läggs in från GPS och används av kartan.</p>
+      <h2 className="admin__h2" style={{ marginTop: 40 }} id="platser">Platser på kartan</h2>
+      <p className="admin__meta" style={{ marginBottom: 12 }}>Torn, vakplatser, pyrschområden, pass, åtlar, samlingsplatser och parkering. Allt med en position visas på jaktklubbens karta för medlemmar, gästjägare och hundekipage. Stå på platsen med mobilen och tryck <b>Använd min position</b>, eller klistra in en koordinat — både vanliga GPS-grader (59.7633, 16.0871) och SWEREF 99 TM fungerar.</p>
       <div className="admin__panel">
         {!O.length && <p className="empty">Inga områden ännu.</p>}
         {O.map((o) => <OmradeForm key={o.id} omrade={o} />)}

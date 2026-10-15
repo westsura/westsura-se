@@ -6,6 +6,7 @@ export const FLIKAR: { href: string; label: string; kort: string; medlem?: boole
   { href: "/jaktklubb/medlem/boka", label: "Boka jakt", kort: "Boka jakt" },
   { href: "/jaktklubb/medlem/vak", label: "Vak & pyrsch", kort: "" },
   { href: "/jaktklubb/medlem/bokningar", label: "Mina bokningar", kort: "Bokningar" },
+  { href: "/jaktklubb/medlem/karta", label: "Karta", kort: "Karta" },
   { href: "/jaktklubb/medlem/dokument", label: "Marker & dokument", kort: "", medlem: true },
   { href: "/jaktklubb/medlem/sakerhetskurs", label: "Säkerhetskurs", kort: "" },
   { href: "/jaktklubb/medlem/medlemskap", label: "Mitt medlemskap", kort: "Profil", gastLabel: "Mitt jägarkonto" },
