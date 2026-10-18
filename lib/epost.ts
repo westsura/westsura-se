@@ -317,7 +317,18 @@ export type AnmalanMejl = {
   titel: string; datum: string; tid?: string | null; pris?: number | null; samling?: string | null; typ?: string | null; slug?: string | null;
   /** Hur många av `antal` som är barn, och deras pris. */
   barn?: number; barnpris?: number | null; barnAlder?: number | null;
+  /** Gästplats på jaktklubbens jakt: bekräftas när handlingarna är granskade, faktura efter jaktdagen. */
+  gast?: boolean;
 };
+
+const gastRuta = (o: AnmalanMejl) => `<span style="display:block;background:#f3ebd0;border-left:3px solid #b68e40;padding:14px 16px">
+    <strong>Så blir din gästplats klar</strong><br>
+    1. Logga in på ditt jägarkonto och ladda upp jaktkort och ID-handling (och älgskyttemärke om du har).<br>
+    2. Gör vår säkerhetskurs online — den tar en kvart.<br>
+    3. Vi granskar handlingarna och bekräftar platsen med ett mejl.<br>
+    ${o.pris ? `Gästplatsen kostar <strong>${o.pris.toLocaleString("sv-SE")} kr</strong> och faktureras efter jaktdagen.<br>` : ""}
+    <a href="${process.env.NEXT_PUBLIC_SITE_URL || site.url}/jaktklubb/login" style="color:#7d6530">Logga in på jägarkontot →</a>
+  </span>`;
 
 const MANAD = ["januari", "februari", "mars", "april", "maj", "juni", "juli", "augusti", "september", "oktober", "november", "december"];
 const VECKODAG = ["söndag", "måndag", "tisdag", "onsdag", "torsdag", "fredag", "lördag"];
@@ -381,14 +392,19 @@ export async function mejlAnmalan(o: AnmalanMejl & { status: string }) {
         ? "Det är fullbokat just nu, men du står på väntelistan. Blir en plats ledig hör vi av oss direkt — betala inget förrän du fått besked."
         : swish
           ? "Tack för din anmälan! Dina platser är reserverade, och bokningen blir klar när du har betalat i förskott med Swish."
-          : "Tack för din anmälan! Vi går igenom den och skickar en bekräftelse inom en vardag."}`,
+          : o.gast
+            ? "Tack för din anmälan till en gästplats på jaktklubbens jakt! Platsen är reserverad åt dig, och vi bekräftar den när vi har granskat dina handlingar."
+            : "Tack för din anmälan! Vi går igenom den och skickar en bekräftelse inom en vardag."}`,
       tillfalleRuta(o),
       swish ? swishRuta(o) : "",
+      o.gast && !vantelista ? gastRuta(o) : "",
       `Frågor eller ändringar? Svara på det här mejlet eller ring ${site.phone}.`,
     ].filter(Boolean)), site.email);
-  await skicka([site.email], `${vantelista ? "Väntelista" : "Anmälan"}: ${o.titel} — ${o.namn}`, html("Ny anmälan", [
+  await skicka([site.email], `${vantelista ? "Väntelista" : o.gast ? "Gästplats" : "Anmälan"}: ${o.titel} — ${o.namn}`, html(o.gast ? "Ny anmälan till gästplats" : "Ny anmälan", [
     `${fritext(o.namn)} · ${fritext(o.epost)}`, tillfalleRuta(o),
-    `Status: ${vantelista ? "väntelista" : swish
+    `Status: ${vantelista ? "väntelista" : o.gast
+      ? "anmäld till gästplats — granska jaktkort och ID under Jaktklubben i admin, och bekräfta sedan under Tillfällen. Vid bekräftelsen skapas fakturaunderlaget."
+      : swish
       ? `anmäld — väntar på Swish ${totalbelopp(o).toLocaleString("sv-SE")} kr märkt "${fritext(o.namn)}, ${o.antal} platser". Bekräfta under Tillfällen i admin när betalningen kommit in.`
       : "anmäld — bekräfta under Tillfällen i admin, så får gästen ett mejl"}`,
   ], ""), o.epost);
@@ -401,7 +417,9 @@ export async function mejlAnmalanStatus(o: AnmalanMejl & { status: "bekraftad" |
     bekraftad ? "Din plats är bekräftad" : "Du står på väntelistan",
     [
       `Hej ${fritext(o.namn)}. ${bekraftad
-        ? swishBetalning(o) ? "Tack för din betalning — din bokning är bekräftad. Varmt välkommen!" : "Din plats är bekräftad — varmt välkommen!"
+        ? swishBetalning(o) ? "Tack för din betalning — din bokning är bekräftad. Varmt välkommen!"
+          : o.gast ? `Dina handlingar är granskade och din gästplats är bekräftad — varmt välkommen!${o.pris ? ` Fakturan på ${o.pris.toLocaleString("sv-SE")} kr skickas efter jaktdagen.` : ""}`
+          : "Din plats är bekräftad — varmt välkommen!"
         : "Just nu är alla platser tagna, så vi har satt dig på väntelistan. Blir en plats ledig hör vi av oss direkt — du behöver inte göra något, och betala inget förrän du fått besked."}`,
       tillfalleRuta(o),
       bekraftad

@@ -604,6 +604,13 @@ export async function sparaTillfalle(fd: FormData) {
     samling: s(fd.get("samling")) || null, program: s(fd.get("program")) || null,
     algjakt: typ === "jakt" && !!fd.get("algjakt"),
   };
+  // Gästplatser finns bara på jaktklubbens egna jakter. Publika jakter nollställs.
+  if (typ !== "jakt" || rad.synlighet !== "medlem") { rad.gastplatser = 0; }
+  else if (fd.has("gastplatser")) {
+    rad.gastplatser = Math.min(50, Math.max(0, Math.round(Number(s(fd.get("gastplatser")) || 0))));
+    rad.gastpris = s(fd.get("gastpris")) === "" ? null : Math.max(0, Math.round(Number(s(fd.get("gastpris")))));
+    if ((rad.gastplatser as number) > 0 && rad.gastpris == null) return { ok: false, fel: "Ange pris per gästplats." };
+  }
   const id = s(fd.get("id"));
 
   // Evenemang visas under Aktuellt: egen adress, ingress, bild och om anmälan tas emot.
@@ -671,15 +678,33 @@ export async function taBortSittning(id: string): Promise<{ ok: boolean; fel?: s
 export async function sattAnmalanStatus(id: string, status: string): Promise<{ ok: boolean; fel?: string; mejlat?: boolean }> {
   await kravAdmin("vardskap", "jaktadmin");
   const db = await supabaseServer();
-  const { data: fore } = await db.from("anmalan").select("status, namn, epost, antal, antal_barn, tillfalle:tillfalle_id(titel, datum, tid, pris, barnpris, barn_alder, samling, typ, slug), sittning:sittning_id(datum, tid, pris)").eq("id", id).maybeSingle();
+  const { data: fore } = await db.from("anmalan").select("status, namn, epost, telefon, antal, antal_barn, gast, underlag_id, tillfalle:tillfalle_id(titel, datum, tid, pris, gastpris, barnpris, barn_alder, samling, typ, slug), sittning:sittning_id(datum, tid, pris)").eq("id", id).maybeSingle();
   const { error } = await db.from("anmalan").update({ status }).eq("id", id);
   if (error) return { ok: false, fel: error.message };
   let mejlat = false;
+
+  // Gästplats på jaktklubbens jakt: vid bekräftelsen skapas ett fakturaunderlag, som faktureras efter jaktdagen.
+  const gastTf = fore?.tillfalle as unknown as { titel: string; datum: string; gastpris: number | null } | null;
+  if (fore?.gast && status === "bekraftad" && !fore.underlag_id && gastTf?.gastpris) {
+    const adm = supabaseAdmin();
+    const { data: sasong } = await adm.from("jaktsasong").select("moms").eq("aktiv", true).maybeSingle();
+    const { data: u, error: felU } = await adm.from("fakturaunderlag").insert({
+      rubrik: `Gästplats jakt ${gastTf.datum}, ${fore.namn}`,
+      ...kundFalt(fore.namn, fore.epost, fore.telefon, null),
+      anteckning: `Gästplats på ${gastTf.titel} ${gastTf.datum}. Faktureras efter jaktdagen.`,
+    }).select("id").single();
+    if (felU || !u) console.error("kunde inte skapa underlag för gästplats", felU?.message);
+    else {
+      await adm.from("fakturarad").insert({ underlag_id: u.id, ordning: 0, beskrivning: `Gästplats, ${gastTf.titel} ${gastTf.datum}`, antal: 1, enhet: "st", a_pris: gastTf.gastpris, moms: sasong?.moms || 25 });
+      await adm.from("anmalan").update({ underlag_id: u.id }).eq("id", id);
+      revalidatePath("/admin/fakturering");
+    }
+  }
   // Från väntelistan till anmäld = en plats har blivit ledig: gästen får anmälningsmejlet med Swish-uppgifterna.
   const franVantelista = fore?.status === "vantelista" && status === "anmald";
   if (fore && fore.status !== status && (status === "bekraftad" || status === "vantelista" || franVantelista)) {
-    const tf = fore.tillfalle as unknown as { titel: string; datum: string; tid: string | null; pris: number | null; barnpris: number | null; barn_alder: number; samling: string | null; typ: string; slug: string | null } | null;
-    const t = tf ? { titel: tf.titel, datum: tf.datum, tid: tf.tid, pris: tf.pris, samling: tf.samling, typ: tf.typ, slug: tf.slug, barn: fore.antal_barn, barnpris: tf.barnpris, barnAlder: tf.barn_alder } : null;
+    const tf = fore.tillfalle as unknown as { titel: string; datum: string; tid: string | null; pris: number | null; gastpris: number | null; barnpris: number | null; barn_alder: number; samling: string | null; typ: string; slug: string | null } | null;
+    const t = tf ? { gast: !!fore.gast, titel: tf.titel, datum: tf.datum, tid: tf.tid, pris: fore.gast ? tf.gastpris : tf.pris, samling: tf.samling, typ: tf.typ, slug: tf.slug, barn: fore.antal_barn, barnpris: tf.barnpris, barnAlder: tf.barn_alder } : null;
     const si = fore.sittning as unknown as { datum: string; tid: string | null; pris: number | null } | null;
     if (t) {
       try {

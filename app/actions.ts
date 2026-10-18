@@ -304,29 +304,33 @@ export async function skapaAnmalan(fd: FormData): Promise<Svar<{ status: string 
     p_namn: namn, p_epost: epost, p_telefon: s(fd.get("telefon")) || null,
     p_antal: Math.max(1, Number(s(fd.get("antal")) || 1)), p_meddelande: s(fd.get("meddelande")) || null,
   };
+  const { data: t, error: felTillfalle } = await db.from("tillfalle").select("titel, datum, tid, pris, gastpris, synlighet, barnpris, barn_alder, samling, typ, slug").eq("id", tillfalle).single();
+  if (felTillfalle || !t) return { ok: false, fel: "Tillfället hittades inte. Ring oss så hjälper vi dig." };
+  // Jaktklubbens egen jakt: utifrån går det bara att anmäla sig till en av gästplatserna.
+  const gast = t.typ === "jakt" && t.synlighet === "medlem";
   // Evenemang med sittningar: anmälan gäller en viss dag och tid, med egna platser.
-  const { data, error } = sittningId
-    ? await db.rpc("skapa_anmalan_sittning", { p_sittning: sittningId, ...falt })
-    : await db.rpc("skapa_anmalan", { p_tillfalle: tillfalle, ...falt });
+  const { data, error } = gast
+    ? await db.rpc("skapa_gastanmalan", { p_tillfalle: tillfalle, p_namn: falt.p_namn, p_epost: falt.p_epost, p_telefon: falt.p_telefon, p_meddelande: falt.p_meddelande })
+    : sittningId
+      ? await db.rpc("skapa_anmalan_sittning", { p_sittning: sittningId, ...falt })
+      : await db.rpc("skapa_anmalan", { p_tillfalle: tillfalle, ...falt });
   if (error) return { ok: false, fel: error.code === "P0001" ? error.message : "Anmälan gick inte att skicka. Ring oss så hjälper vi dig." };
   const rad = (data as { anmalan_id: string; status: string }[])[0];
   // Barn räknas in i antal (platserna) men sparas också för sig, för barnpriset.
-  const barn = Math.min(falt.p_antal, Math.max(0, Number(s(fd.get("antal_barn")) || 0)));
+  const barn = gast ? 0 : Math.min(falt.p_antal, Math.max(0, Number(s(fd.get("antal_barn")) || 0)));
   if (barn) await db.from("anmalan").update({ antal_barn: barn }).eq("id", rad.anmalan_id);
   // Anmälan är redan skapad — ett fel här får bara påverka mejlet.
-  const { data: t, error: felTillfalle } = await db.from("tillfalle").select("titel, datum, tid, pris, barnpris, barn_alder, samling, typ, slug").eq("id", tillfalle).single();
-  if (felTillfalle) console.error("kunde inte hämta tillfället till anmälningsmejlet", felTillfalle.message);
-  const { data: si } = sittningId ? await db.from("sittning").select("datum, tid, pris").eq("id", sittningId).maybeSingle() : { data: null };
+  const { data: si } = sittningId && !gast ? await db.from("sittning").select("datum, tid, pris").eq("id", sittningId).maybeSingle() : { data: null };
   try {
     await mejlAnmalan({
-      epost, namn, titel: t?.titel ?? "", datum: si?.datum ?? t?.datum ?? "", tid: si ? si.tid : t?.tid, pris: si?.pris ?? t?.pris,
-      samling: t?.samling, typ: t?.typ, slug: t?.slug, status: rad.status, antal: falt.p_antal,
-      barn, barnpris: t?.barnpris, barnAlder: t?.barn_alder,
+      epost, namn, titel: t.titel, datum: si?.datum ?? t.datum, tid: si ? si.tid : t.tid, pris: gast ? t.gastpris : si?.pris ?? t.pris,
+      samling: t.samling, typ: t.typ, slug: t.slug, status: rad.status, antal: gast ? 1 : falt.p_antal,
+      barn, barnpris: t.barnpris, barnAlder: t.barn_alder, gast,
     });
   } catch (e) { console.error("mejl misslyckades", e); }
 
   // Jakt kräver jaktkort, ID och säkerhetskurs — så alla som anmäler sig till jakt får ett jägarkonto.
-  if (t?.typ === "jakt") {
+  if (t.typ === "jakt") {
     const { data: konto, error: felKonto } = await db.rpc("jagarkonto_for", { p_namn: namn, p_epost: epost, p_telefon: s(fd.get("telefon")) || null });
     if (felKonto) console.error("kunde inte skapa jägarkonto", felKonto.message);
     const k = (konto as { id: string; status: string; ny: boolean }[] | null)?.[0];
@@ -334,10 +338,11 @@ export async function skapaAnmalan(fd: FormData): Promise<Svar<{ status: string 
       await db.from("anmalan").update({ jagare_id: k.id }).eq("id", rad.anmalan_id);
       if (k.ny) {
         const losenord = await inloggningForNyttKonto(k.id, epost);
-        try { await mejlJagarkonto({ epost, namn, titel: t?.titel ?? "", datum: t?.datum ?? "", losenord }); } catch (e) { console.error("mejl misslyckades", e); }
+        try { await mejlJagarkonto({ epost, namn, titel: t.titel, datum: t.datum, losenord }); } catch (e) { console.error("mejl misslyckades", e); }
       }
     }
   }
+  revalidatePath("/jakt"); revalidatePath("/admin/tillfallen");
   return { ok: true, data: { status: rad.status } };
 }
 

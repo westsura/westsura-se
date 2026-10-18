@@ -7,7 +7,7 @@ type T = {
   id: string; typ: string; titel: string; beskrivning: string | null; datum: string; tid: string | null; platser: number; pris: number | null;
   publicerad: boolean; synlighet?: string; samling?: string | null; program?: string | null; algjakt?: boolean;
   slug?: string | null; ingress?: string | null; bild?: string | null; bild_alt?: string | null; anmalan?: boolean;
-  barnpris?: number | null; barn_alder?: number;
+  barnpris?: number | null; barn_alder?: number; gastplatser?: number; gastpris?: number | null;
 };
 
 /** Förminskar en bild i webbläsaren till högst 2000 px och JPEG, så att uppladdningen går snabbt. */
@@ -24,12 +24,15 @@ async function forminska(fil: File): Promise<Blob> {
 export default function TillfalleForm({ tillfalle }: { tillfalle?: T }) {
   const [open, setOpen] = useState(false);
   const [typ, setTyp] = useState(tillfalle?.typ ?? "jakt");
+  const [synlighet, setSynlighet] = useState(tillfalle?.synlighet ?? "publik");
   const [bild, setBild] = useState<Blob | null>(null);
   const [forhand, setForhand] = useState<string | null>(tillfalle?.bild ?? null);
   const [taBort, setTaBort] = useState(false);
   const [fel, setFel] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const ev = typ === "evenemang";
+  /** Jaktklubbens egen jakt — kan ha gästplatser till försäljning. */
+  const gastJakt = typ === "jakt" && synlighet === "medlem";
 
   if (!open) return <button className="btn btn--ghost btn--sm" onClick={() => setOpen(true)} style={{ marginBottom: tillfalle ? 0 : 20 }}>{tillfalle ? "Ändra" : "+ Nytt tillfälle eller evenemang"}</button>;
   return (
@@ -74,8 +77,21 @@ export default function TillfalleForm({ tillfalle }: { tillfalle?: T }) {
         </>
       )}
 
-      <div className="field"><label>{ev ? "Platser (om anmälan)" : "Platser"}</label><input type="number" name="platser" defaultValue={tillfalle?.platser ?? (ev ? 100 : 6)} min={0} required /></div>
-      <div className="field"><label>Pris (kr)</label><input type="number" name="pris" defaultValue={tillfalle?.pris ?? ""} min={0} placeholder={ev ? "0 = fri entré, tomt = visas inte" : ""} /></div>
+      {!ev && (
+        <div className="field"><label>Synlighet</label>
+          <select name="synlighet" value={synlighet} onChange={(e) => setSynlighet(e.target.value)}><option value="publik">Publik — syns på sajten</option><option value="medlem">Bara medlemmar — jaktklubben</option></select></div>
+      )}
+      <div className="field"><label>{ev ? "Platser (om anmälan)" : gastJakt ? "Platser för medlemmar" : "Platser"}</label><input type="number" name="platser" defaultValue={tillfalle?.platser ?? (ev ? 100 : 6)} min={0} required /></div>
+      {gastJakt
+        ? <input type="hidden" name="pris" value={tillfalle?.pris ?? ""} />
+        : <div className="field"><label>Pris (kr)</label><input type="number" name="pris" defaultValue={tillfalle?.pris ?? ""} min={0} placeholder={ev ? "0 = fri entré, tomt = visas inte" : ""} /></div>}
+      {gastJakt && (
+        <>
+          <div className="field"><label>Gästplatser till försäljning</label><input type="number" name="gastplatser" defaultValue={tillfalle?.gastplatser ?? 0} min={0} max={50} /></div>
+          <div className="field"><label>Pris per gästplats (kr)</label><input type="number" name="gastpris" defaultValue={tillfalle?.gastpris ?? ""} min={0} placeholder="t.ex. 2500" /></div>
+          <p className="hint field--full">Medlemmarna jagar som vanligt utan kostnad. Gästplatserna visas på westsura.se/jakt med priset ovan och räknas för sig — gäster tar aldrig medlemmarnas platser. Gästerna laddar upp jaktkort och ID på sitt jägarkonto, du bekräftar under anmälningarna nedan, och vid bekräftelsen skapas ett fakturaunderlag som faktureras efter jaktdagen. 0 = inga gästplatser.</p>
+        </>
+      )}
       {ev && (
         <>
           <div className="field"><label>Barnpris (kr)</label><input type="number" name="barnpris" defaultValue={tillfalle?.barnpris ?? ""} min={0} placeholder="Tomt = inget barnpris" /></div>
@@ -84,8 +100,6 @@ export default function TillfalleForm({ tillfalle }: { tillfalle?: T }) {
       )}
       {!ev && (
         <>
-          <div className="field"><label>Synlighet</label>
-            <select name="synlighet" defaultValue={tillfalle?.synlighet ?? "publik"}><option value="publik">Publik — syns på sajten</option><option value="medlem">Bara medlemmar — jaktklubben</option></select></div>
           <div className="field"><label>Samling</label><input name="samling" defaultValue={tillfalle?.samling ?? ""} placeholder="Samling vid herrgården" /></div>
         </>
       )}

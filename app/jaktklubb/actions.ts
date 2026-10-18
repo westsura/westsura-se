@@ -199,26 +199,29 @@ export async function laddaUppDokument(fd: FormData): Promise<{ ok: boolean; fel
 /* ---------- Boka jaktdag ---------- */
 
 /** Anmäler medlemmen till en av klubbens jaktdagar. Kölista när det är fullt. */
-export async function bokaJaktdag(tillfalleId: string): Promise<{ ok: boolean; fel?: string; status?: string }> {
+export async function bokaJaktdag(tillfalleId: string): Promise<{ ok: boolean; fel?: string; status?: string; gastplats?: boolean }> {
   const medlem = await kravMedlem();
   if (arHundforare(medlem)) return { ok: false, fel: "Hundförarkontot används för att anmäla intresse som hundförare, inte för att boka jakt." };
   const adm = supabaseAdmin();
+  const idag = new Date().toISOString().slice(0, 10);
+  const { data: t, error: felT } = await adm.from("tillfalle")
+    .select("id, titel, datum, tid, samling, typ, synlighet, publicerad, gastplatser, gastpris").eq("id", tillfalleId).maybeSingle();
+  if (felT) return { ok: false, fel: felT.message };
+  // Gästjägare på jaktklubbens egen jakt = en av gästplatserna. Den bekräftas av herrgården
+  // när handlingarna är granskade, så anmälan får göras innan de är godkända.
+  const gastplats = !!t && medlem.status !== "godkand" && t.synlighet === "medlem" && (t.gastplatser ?? 0) > 0;
 
-  // Gästjägare behöver godkända handlingar för att boka. Medlemmar får anmäla sig ändå —
+  // Gästjägare behöver godkända handlingar för att boka öppna jakter. Medlemmar får anmäla sig ändå —
   // handlingarna ska bara vara klara innan de kommer på jakten (jaktledaren ser vem som saknar).
-  if (medlem.status !== "godkand") {
+  if (medlem.status !== "godkand" && !gastplats) {
     const { count, error: felDok } = await adm.from("medlemsdokument")
       .select("id", { count: "exact", head: true }).eq("medlem_id", medlem.id).eq("status", "godkand").or(giltigaIdag());
     if (felDok) return { ok: false, fel: felDok.message };
     if (count !== 3) return { ok: false, fel: "Ladda upp och få dina dokument godkända innan du bokar." };
   }
 
-  // Bara klubbens egna, publicerade jaktdagar framåt i tiden.
-  const idag = new Date().toISOString().slice(0, 10);
-  const { data: t, error: felT } = await adm.from("tillfalle")
-    .select("id, titel, datum, tid, samling, typ, synlighet, publicerad").eq("id", tillfalleId).maybeSingle();
-  if (felT) return { ok: false, fel: felT.message };
-  const tillaten = t && t.typ === "jakt" && t.publicerad && t.datum >= idag && (t.synlighet === "publik" || (t.synlighet === "medlem" && medlem.status === "godkand"));
+  // Bara publicerade jaktdagar framåt i tiden.
+  const tillaten = t && t.typ === "jakt" && t.publicerad && t.datum >= idag && (t.synlighet === "publik" || (t.synlighet === "medlem" && (medlem.status === "godkand" || gastplats)));
   if (!tillaten) return { ok: false, fel: "Jaktdagen går inte att boka." };
 
   const { data: finns, error: felFinns } = await adm.from("anmalan")
@@ -226,21 +229,23 @@ export async function bokaJaktdag(tillfalleId: string): Promise<{ ok: boolean; f
   if (felFinns) return { ok: false, fel: felFinns.message };
   if (finns) return { ok: false, fel: "Du är redan anmäld till den här jaktdagen." };
 
-  const { data, error } = await adm.rpc("skapa_anmalan", {
-    p_tillfalle: tillfalleId, p_namn: medlem.namn, p_epost: medlem.epost,
-    p_telefon: medlem.telefon, p_antal: 1, p_meddelande: null,
-  });
+  const { data, error } = gastplats
+    ? await adm.rpc("skapa_gastanmalan", { p_tillfalle: tillfalleId, p_namn: medlem.namn, p_epost: medlem.epost, p_telefon: medlem.telefon, p_meddelande: null })
+    : await adm.rpc("skapa_anmalan", {
+        p_tillfalle: tillfalleId, p_namn: medlem.namn, p_epost: medlem.epost,
+        p_telefon: medlem.telefon, p_antal: 1, p_meddelande: null,
+      });
   if (error) return { ok: false, fel: error.message };
   const rad = (data as { anmalan_id: string; status: string }[])[0];
   await adm.from("anmalan").update({ jagare_id: medlem.id }).eq("id", rad.anmalan_id);
 
   try {
-    await mejlAnmalan({ epost: medlem.epost, namn: medlem.namn, titel: t.titel, datum: t.datum, tid: t.tid, samling: t.samling, typ: t.typ, status: rad.status, antal: 1 });
+    await mejlAnmalan({ epost: medlem.epost, namn: medlem.namn, titel: t.titel, datum: t.datum, tid: t.tid, samling: t.samling, typ: t.typ, status: rad.status, antal: 1, gast: gastplats, pris: gastplats ? t.gastpris : null });
   } catch (e) { console.error("mejl misslyckades", e); }
 
   revalidatePath("/jaktklubb/medlem"); revalidatePath("/jaktklubb/medlem/boka"); revalidatePath("/jaktklubb/medlem/bokningar");
-  revalidatePath("/admin/tillfallen");
-  return { ok: true, status: rad.status };
+  revalidatePath("/admin/tillfallen"); revalidatePath("/jakt");
+  return { ok: true, status: rad.status, gastplats };
 }
 
 /* ---------- Vak & pyrsch ---------- */

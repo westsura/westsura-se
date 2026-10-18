@@ -17,17 +17,22 @@ export default async function BokaJakt() {
 
   // Medlemmar ser klubbens egna jaktdagar och de öppna; gästjägare bara de öppna.
   const [{ data: tillfallen }, { data: mina }, { count: godkanda }] = await Promise.all([
-    adm.from("tillfalle").select("id, titel, beskrivning, datum, tid, samling, program, platser, pris, synlighet")
-      .eq("typ", "jakt").in("synlighet", gast ? ["publik"] : ["medlem", "publik"]).eq("publicerad", true).gte("datum", idag).order("datum"),
+    adm.from("tillfalle").select("id, titel, beskrivning, datum, tid, samling, program, platser, pris, synlighet, gastplatser, gastpris")
+      .eq("typ", "jakt").in("synlighet", ["medlem", "publik"]).eq("publicerad", true).gte("datum", idag).order("datum"),
     adm.from("anmalan").select("tillfalle_id, status").eq("epost", medlem.epost).neq("status", "avbokad"),
     adm.from("medlemsdokument").select("id", { count: "exact", head: true }).eq("medlem_id", medlem.id).eq("status", "godkand").or(giltigaIdag()),
   ]);
 
-  const jaktdagar: Jaktdag[] = await Promise.all((tillfallen ?? []).map(async (t) => {
-    const { data: kvar } = await adm.rpc("platser_kvar", { t: t.id });
+  // Gästjägare ser klubbens egna jakter bara när det finns gästplatser — då med gästplatsernas antal och pris.
+  const synliga = (tillfallen ?? []).filter((t) => !gast || t.synlighet === "publik" || (t.gastplatser ?? 0) > 0);
+  const jaktdagar: Jaktdag[] = await Promise.all(synliga.map(async ({ gastplatser, gastpris, ...t }) => {
+    const gastplats = gast && t.synlighet === "medlem";
+    const { data: kvar } = await adm.rpc(gastplats ? "gastplatser_kvar" : "platser_kvar", { t: t.id });
+    const platser = gastplats ? gastplatser : t.platser;
     return {
       ...t,
-      kvar: typeof kvar === "number" ? kvar : t.platser,
+      platser, pris: gastplats ? gastpris : t.pris, gastplats,
+      kvar: typeof kvar === "number" ? kvar : platser,
       minStatus: (mina ?? []).find((a) => a.tillfalle_id === t.id)?.status ?? null,
     } as Jaktdag;
   }));

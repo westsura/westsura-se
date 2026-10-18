@@ -6,6 +6,7 @@ import AnmalanRad from "./AnmalanRad";
 import SittningAdmin from "./SittningAdmin";
 import TaBortKnapp from "@/components/TaBortKnapp";
 import { taBortTillfalle } from "@/app/admin/actions";
+import { giltigaIdag } from "@/lib/dokument";
 
 export const dynamic = "force-dynamic";
 const TYP: Record<string, string> = { jakt: "Jakt", hundtraning: "Hundträning", jaktkurs: "Jaktkurs", evenemang: "Evenemang" };
@@ -24,6 +25,22 @@ export default async function Tillfallen() {
     const med = r.filter((x) => x.status === "godkand").length, intresse = r.filter((x) => x.status === "intresse").length;
     return med || intresse ? ` · hundförare: ${med} med${intresse ? `, ${intresse} att svara på` : ""}` : "";
   };
+  // Gäster på gästplatser: hur långt de kommit med handlingar och säkerhetskurs, så att du kan bekräfta.
+  const gastIds = [...new Set(((anmalningar ?? []) as { gast: boolean; jagare_id: string | null }[]).filter((x) => x.gast && x.jagare_id).map((x) => x.jagare_id!))];
+  const [{ data: gastDok }, { data: gastKonto }] = gastIds.length
+    ? await Promise.all([
+        supabaseAdmin().from("medlemsdokument").select("medlem_id").in("medlem_id", gastIds).eq("status", "godkand").or(giltigaIdag()),
+        supabaseAdmin().from("jaktmedlem").select("id, kurs_godkand").in("id", gastIds),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const gastInfo = (jagareId: string | null) => {
+    if (!jagareId) return { dok: 0, kurs: false, id: null };
+    return {
+      id: jagareId,
+      dok: ((gastDok ?? []) as { medlem_id: string }[]).filter((d) => d.medlem_id === jagareId).length,
+      kurs: !!((gastKonto ?? []) as { id: string; kurs_godkand: string | null }[]).find((k) => k.id === jagareId)?.kurs_godkand,
+    };
+  };
   const S = (sittningar ?? []) as { id: string; tillfalle_id: string; datum: string; tid: string | null; platser: number; pris: number | null }[];
   const sittningNyckel = (id: string | null) => { const s = S.find((x) => x.id === id); return s ? s.datum + (s.tid ?? "") : ""; };
   const sittningNamn = (id: string | null) => {
@@ -37,13 +54,16 @@ export default async function Tillfallen() {
       <TillfalleForm />
       {tillfallen?.map((t) => {
         const a = anmalningar?.filter((x) => x.tillfalle_id === t.id) ?? [];
-        const tagna = a.filter((x) => x.status === "anmald" || x.status === "bekraftad").reduce((s, x) => s + x.antal, 0);
+        const aktiv = (x: { status: string }) => x.status === "anmald" || x.status === "bekraftad";
+        const tagna = a.filter((x) => aktiv(x) && !x.gast).reduce((s, x) => s + x.antal, 0);
+        const gaster = a.filter((x) => aktiv(x) && x.gast).reduce((s, x) => s + x.antal, 0);
+        const gastText = t.typ === "jakt" && t.synlighet === "medlem" && t.gastplatser > 0 ? ` · gästplatser: ${gaster} av ${t.gastplatser} à ${t.gastpris ?? 0} kr` : "";
         return (
           <article key={t.id} className="admin__panel" style={{ marginBottom: 14 }}>
             <div className="ff__head">
               <div>
                 <span className="pill">{TYP[t.typ]}</span> <b style={{ marginLeft: 8 }}>{t.titel}</b>{!t.publicerad && <span className="pill pill--block" style={{ marginLeft: 8 }}>ej publicerad</span>}
-                <div className="admin__meta">{t.datum}{t.tid ? " · " + t.tid : ""}{t.typ !== "evenemang" || t.anmalan ? ` · ${tagna} av ${t.platser} platser` : " · ingen anmälan"} · {t.pris != null ? (t.pris === 0 ? "fri entré" : t.pris + " kr") : "—"}{t.typ === "evenemang" && !t.slug ? " · saknar adress — spara en gång till" : ""}{t.typ === "jakt" ? hf(t.id) : ""}</div>
+                <div className="admin__meta">{t.datum}{t.tid ? " · " + t.tid : ""}{t.typ !== "evenemang" || t.anmalan ? ` · ${tagna} av ${t.platser} ${t.synlighet === "medlem" && t.typ !== "evenemang" ? "medlemsplatser" : "platser"}` : " · ingen anmälan"}{gastText}{t.synlighet === "medlem" && t.typ !== "evenemang" ? "" : ` · ${t.pris != null ? (t.pris === 0 ? "fri entré" : t.pris + " kr") : "—"}`}{t.typ === "evenemang" && !t.slug ? " · saknar adress — spara en gång till" : ""}{t.typ === "jakt" ? hf(t.id) : ""}</div>
               </div>
               <div className="admin__actions">
                 {t.typ === "jakt" && <Link className="btn btn--sm" href={`/admin/tillfallen/${t.id}`}>Jaktledarvy</Link>}
@@ -61,7 +81,7 @@ export default async function Tillfallen() {
             {a.length > 0 && (
               <div className="tablewrap" style={{ marginTop: 12 }}>
                 <table className="admin__table"><thead><tr><th>Namn</th><th>Kontakt</th><th>Antal</th><th>Meddelande</th><th>Status</th></tr></thead>
-                  <tbody>{[...a].sort((x, y) => sittningNyckel(x.sittning_id).localeCompare(sittningNyckel(y.sittning_id))).map((x) => <AnmalanRad key={x.id} a={x} sittning={sittningNamn(x.sittning_id)} />)}</tbody></table>
+                  <tbody>{[...a].sort((x, y) => sittningNyckel(x.sittning_id).localeCompare(sittningNyckel(y.sittning_id))).map((x) => <AnmalanRad key={x.id} a={x} sittning={sittningNamn(x.sittning_id)} gast={x.gast ? gastInfo(x.jagare_id) : null} />)}</tbody></table>
               </div>
             )}
           </article>

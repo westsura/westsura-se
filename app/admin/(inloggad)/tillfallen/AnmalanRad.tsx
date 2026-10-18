@@ -5,18 +5,28 @@ import { sattAnmalanStatus } from "@/app/admin/actions";
 
 type A = { id: string; namn: string; epost: string; telefon: string | null; antal: number; antal_barn?: number; meddelande: string | null; status: string };
 
-export default function AnmalanRad({ a, sittning }: { a: A; sittning?: string | null }) {
+type Gast = { id: string | null; dok: number; kurs: boolean };
+
+export default function AnmalanRad({ a, sittning, gast }: { a: A; sittning?: string | null; gast?: Gast | null }) {
   const [fel, setFel] = useState<string | null>(null);
   const [medd, setMedd] = useState<string | null>(null);
   const [pending, start] = useTransition();
   return (
     <tr className={`st-${a.status}`}>
-      <td><b>{a.namn}</b>{sittning && <div className="admin__meta">{sittning}</div>}</td>
+      <td><b>{a.namn}</b>{sittning && <div className="admin__meta">{sittning}</div>}
+        {gast && (
+          <div className="admin__meta">
+            <span className="pill">Gästplats</span>{" "}
+            {gast.dok}/3 handlingar godkända · kurs {gast.kurs ? "klar" : "ej klar"}
+            {gast.id && <> · <a href={`/admin/jaktklubb/${gast.id}`}>granska</a></>}
+          </div>
+        )}
+      </td>
       <td><small>{a.epost}{a.telefon ? " · " + a.telefon : ""}</small></td>
       <td className="num">{a.antal}{a.antal_barn ? <div className="admin__meta">varav {a.antal_barn} barn</div> : null}</td>
       <td><small>{a.meddelande}</small></td>
       <td>
-        <select value={a.status} disabled={pending} title="Bekräftad och Väntelista skickar ett mejl till gästen" onChange={(e) => {
+        <select value={a.status} disabled={pending} title={gast ? "Bekräftad skickar ett mejl och skapar fakturaunderlaget för gästplatsen" : "Bekräftad och Väntelista skickar ett mejl till gästen"} onChange={(e) => {
           const v = e.target.value; setFel(null); setMedd(null);
           start(async () => { const r = await sattAnmalanStatus(a.id, v); if (!r.ok) setFel(r.fel ?? "Kunde inte ändra status."); else if (r.mejlat) setMedd(`Mejl skickat till ${a.epost}`); });
         }}>
