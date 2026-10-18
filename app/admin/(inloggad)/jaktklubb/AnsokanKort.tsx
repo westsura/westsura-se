@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { godkannMedlem, vantelistaMedlem, avbojMedlem, sparaMedlemsanteckning } from "@/app/admin/actions";
+import { godkannMedlem, vantelistaMedlem, avbojMedlem, taBortJaktmedlem, sparaMedlemsanteckning } from "@/app/admin/actions";
 import { MEDLEMSSTATUS, datumtid, type Medlem, type Niva } from "./delar";
 
 /** En ansökan med allt den sökande skrivit, plus besluten. */
@@ -54,7 +54,11 @@ export default function AnsokanKort({ m, nivaer, kvar }: { m: Medlem; nivaer: Ni
         <button className="btn btn--sm" type="button" disabled={pending || !valdNiva} onClick={() => kor(() => godkannMedlem(m.id, valdNiva))}>{pending ? "Godkänner…" : "Godkänn"}</button>
         {m.status !== "vantelista" && <button className="btn btn--sm btn--ghost" type="button" disabled={pending} onClick={() => kor(() => vantelistaMedlem(m.id))}>Väntelista</button>}
         <button className="btn btn--sm btn--ghost" type="button" disabled={pending}
-          onClick={() => { if (confirm(`Avböj ${m.namn}? Eventuella uppladdade dokument raderas.`)) kor(() => avbojMedlem(m.id)); }}>Avböj</button>
+          title="Avböj ansökan — den sökande får ett mejl om beslutet"
+          onClick={() => { if (confirm(`Avböj ${m.namn}? Den sökande får ett mejl om att ansökan inte beviljats. Eventuella uppladdade dokument raderas.`)) kor(() => avbojMedlem(m.id)); }}>Avböj</button>
+        <button className="btn btn--sm btn--ghost" type="button" disabled={pending}
+          title="Ta bort ansökan, t.ex. när den sökande själv har ångrat sig — inget mejl skickas"
+          onClick={() => { if (confirm(`Ta bort ansökan från ${m.namn}?\n\nAnvänd detta när den sökande själv har ångrat sig. Inget mejl skickas, och ansökan, konto och eventuella dokument raderas. Det går inte att ångra.`)) kor(() => taBortJaktmedlem(m.id)); }}>Ta bort</button>
       </div>
     </article>
   );
