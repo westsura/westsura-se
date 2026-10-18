@@ -55,8 +55,8 @@ export default function AnmalVakjakt({ omraden, dokumentKlara }: { omraden: Omra
         {kvitto && <p className="notice field--full">{kvitto}</p>}
         {fel && <p className="notice notice--fel field--full" role="alert">{fel}</p>}
         <div className="field--full cta-row">
-          <button className="btn" type="submit" disabled={pending || !dokumentKlara}>{pending ? "Skickar…" : "Anmäl vakjakt"}</button>
-          {!dokumentKlara && <span className="jk-hjalp">Dina dokument behöver vara godkända först.</span>}
+          <button className="btn" type="submit" disabled={pending}>{pending ? "Skickar…" : "Anmäl vakjakt"}</button>
+          {!dokumentKlara && <span className="jk-hjalp">Kom ihåg att jaktkort, ID och älgskyttemärke ska vara godkända innan du går ut.</span>}
         </div>
       </form>
     </section>

@@ -1,17 +1,27 @@
 /** Delas av server och klient — får inte importera något som kräver next/headers. */
 
-/** `medlem: false` = syns även för gästjägare. */
-export const FLIKAR: { href: string; label: string; kort: string; medlem?: boolean; gastLabel?: string }[] = [
-  { href: "/jaktklubb/medlem", label: "Översikt", kort: "Hem" },
-  { href: "/jaktklubb/medlem/boka", label: "Boka jakt", kort: "Boka jakt" },
-  { href: "/jaktklubb/medlem/vak", label: "Vak & pyrsch", kort: "" },
-  { href: "/jaktklubb/medlem/bokningar", label: "Mina bokningar", kort: "Bokningar" },
-  { href: "/jaktklubb/medlem/karta", label: "Karta", kort: "Karta" },
-  { href: "/jaktklubb/medlem/dokument", label: "Marker & dokument", kort: "", medlem: true },
-  { href: "/jaktklubb/medlem/sakerhetskurs", label: "Säkerhetskurs", kort: "" },
-  { href: "/jaktklubb/medlem/medlemskap", label: "Mitt medlemskap", kort: "Profil", gastLabel: "Mitt jägarkonto" },
+/**
+ * Vem kontot tillhör: medlem i jaktlaget, gästjägare, eller hundförare (konto bara för hundekipage).
+ * En medlem eller gästjägare kan dessutom ha ett godkänt ekipage — då tillkommer hundförarflikarna.
+ */
+export type Profil = "medlem" | "gast" | "hund";
+
+type Flik = { href: string; label: string; kort: string; for: Profil[] | "ekipage"; etikett?: Partial<Record<Profil, string>>; kortFor?: Partial<Record<Profil, string>> };
+export const FLIKAR: Flik[] = [
+  { href: "/jaktklubb/medlem", label: "Översikt", kort: "Hem", for: ["medlem", "gast", "hund"] },
+  { href: "/jaktklubb/medlem/boka", label: "Boka jakt", kort: "Boka jakt", for: ["medlem", "gast"] },
+  { href: "/jaktklubb/medlem/vak", label: "Vak & pyrsch", kort: "", for: ["medlem", "gast"] },
+  { href: "/jaktklubb/medlem/bokningar", label: "Mina bokningar", kort: "Bokningar", for: ["medlem", "gast"] },
+  { href: "/jaktklubb/medlem/hundforare", label: "Jaktdagar för hundförare", kort: "", kortFor: { hund: "Jaktdagar" }, for: "ekipage" },
+  { href: "/jaktklubb/medlem/hundar", label: "Mina hundar", kort: "", kortFor: { hund: "Hundar" }, for: "ekipage" },
+  { href: "/jaktklubb/medlem/karta", label: "Karta", kort: "Karta", for: ["medlem", "gast", "hund"] },
+  { href: "/jaktklubb/medlem/dokument", label: "Marker & dokument", kort: "", for: ["medlem"] },
+  { href: "/jaktklubb/medlem/sakerhetskurs", label: "Säkerhetskurs", kort: "", for: ["medlem", "gast"] },
+  { href: "/jaktklubb/medlem/medlemskap", label: "Mitt medlemskap", kort: "Profil", for: ["medlem", "gast", "hund"], etikett: { gast: "Mitt jägarkonto", hund: "Mitt konto" } },
 ];
-export const flikarFor = (arMedlem: boolean) => FLIKAR.filter((f) => arMedlem || !f.medlem).map((f) => ({ ...f, label: !arMedlem && f.gastLabel ? f.gastLabel : f.label }));
+export const flikarFor = (profil: Profil, ekipage: boolean) => FLIKAR
+  .filter((f) => (f.for === "ekipage" ? ekipage : f.for.includes(profil)))
+  .map((f) => ({ href: f.href, label: f.etikett?.[profil] ?? f.label, kort: f.kortFor?.[profil] ?? f.kort }));
 
 export const DOKUMENT: { typ: string; namn: string; hjalp: string }[] = [
   { typ: "jaktkort", namn: "Statligt jaktkort", hjalp: "Kopia på giltigt inlöst jaktkort för säsongen." },

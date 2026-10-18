@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { bokaJaktdag } from "@/app/jaktklubb/actions";
 import { MANAD, VECKODAG } from "../delar";
+import { platsstatus } from "@/lib/sittning";
 
 export type Jaktdag = {
   id: string; titel: string; beskrivning: string | null; datum: string; tid: string | null;
@@ -20,9 +21,11 @@ const manadsnamn = (n: string) => `${MANAD[Number(n.slice(5, 7)) - 1]} ${n.slice
 function status(j: Jaktdag) {
   if (j.minStatus === "vantelista") return "Du står på kölistan";
   if (j.minStatus) return "Du är bokad";
-  if (j.kvar <= 0) return "Fullbokad · kölista";
-  return `${j.kvar} platser kvar`;
+  return platsText(j);
 }
+
+/** Antal visas aldrig — bara "Få platser kvar" när det börjar ta slut. */
+const platsText = (j: Jaktdag) => (j.kvar <= 0 ? "Fullbokad · kölista" : platsstatus(j.kvar, j.platser).text);
 
 export default function Boka({ jaktdagar, dokumentKlara, kursKlar = true, gast = false }: { jaktdagar: Jaktdag[]; dokumentKlara: boolean; kursKlar?: boolean; gast?: boolean }) {
   const manader = useMemo(() => [...new Set(jaktdagar.map((j) => manadsnyckel(j.datum)))].sort(), [jaktdagar]);
@@ -100,7 +103,7 @@ export default function Boka({ jaktdagar, dokumentKlara, kursKlar = true, gast =
               </>
             )}
             <div className="jk-avdelare" />
-            <p className="jk-etikett" style={{ margin: 0 }}>{vald.kvar > 0 ? `${vald.kvar} platser kvar` : "Fullbokad · kölista"}</p>
+            <p className="jk-etikett" style={{ margin: 0 }}>{platsText(vald)}</p>
             <p className="jk-hjalp">
               {vald.synlighet === "publik" && (gast || vald.pris) ? (vald.pris ? `${kr(vald.pris)} per person — faktureras efter jaktdagen.` : "Öppen jaktdag.") : "Ingår enligt ditt medlemskap."}
               <br />Din plats bekräftas i nästa steg.
@@ -112,13 +115,15 @@ export default function Boka({ jaktdagar, dokumentKlara, kursKlar = true, gast =
             {vald.minStatus ? (
               <Link className="btn btn--ghost btn--block" href="/jaktklubb/medlem/bokningar">Visa min bokning</Link>
             ) : (
-              <button className="btn btn--block" type="button" disabled={pending || !dokumentKlara} onClick={boka}>
+              <button className="btn btn--block" type="button" disabled={pending || (gast && !dokumentKlara)} onClick={boka}>
                 {pending ? "Bokar…" : "Fortsätt till bokning"}
               </button>
             )}
             {!dokumentKlara && !vald.minStatus && (
               <p className="jk-hjalp">
-                Ladda upp och få dina dokument godkända innan du bokar — <Link className="jk-lank" href="/jaktklubb/medlem/medlemskap">Mitt medlemskap</Link>.
+                {gast
+                  ? <>Ladda upp och få dina dokument godkända innan du bokar — <Link className="jk-lank" href="/jaktklubb/medlem/medlemskap">Mitt jägarkonto</Link>.</>
+                  : <>Du kan anmäla dig nu. Kom ihåg att jaktkort, ID och älgskyttemärke ska vara uppladdade och godkända innan du kommer på jakten — <Link className="jk-lank" href="/jaktklubb/medlem/medlemskap">Mitt medlemskap</Link>.</>}
               </p>
             )}
           </aside>

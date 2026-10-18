@@ -4,14 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Vapen } from "@/components/Blocks";
-import { flikarFor } from "./delar";
+import { flikarFor, type Profil } from "./delar";
+
+const ETIKETT: Record<Profil, string> = { medlem: "Medlemsklubben", gast: "Jägarkonto", hund: "Hundförare" };
 
 /** Sidhuvud, navigationsrad och den fästa bottennavigationen på mobil. */
-export default function MedlemsNav({ sasong, arMedlem = true }: { sasong: string; arMedlem?: boolean }) {
+export default function MedlemsNav({ sasong, profil = "medlem", ekipage = false }: { sasong: string; profil?: Profil; ekipage?: boolean }) {
   const p = usePathname();
   const [meny, setMeny] = useState(false);
   const aktiv = (href: string) => (href === "/jaktklubb/medlem" ? p === href : p.startsWith(href));
-  const FLIKAR = flikarFor(arMedlem);
+  const FLIKAR = flikarFor(profil, ekipage);
+  const arMedlem = profil === "medlem";
 
   return (
     <>
@@ -24,8 +27,8 @@ export default function MedlemsNav({ sasong, arMedlem = true }: { sasong: string
           </span>
         </Link>
         <span className="jk-head__luft" />
-        <span className="jk-head__etikett">{arMedlem ? "Medlemsklubben" : "Jägarkonto"}</span>
-        {sasong && <span className="jk-head__sasong">Säsong {sasong}</span>}
+        <span className="jk-head__etikett">{ETIKETT[profil]}</span>
+        {sasong && arMedlem && <span className="jk-head__sasong">Säsong {sasong}</span>}
         <Link className="jk-head__profil" href="/jaktklubb/medlem/medlemskap">Min profil&nbsp; →</Link>
         <button type="button" className="jk-head__meny" aria-expanded={meny} onClick={() => setMeny(!meny)}>
           {meny ? "Stäng" : "Meny"}

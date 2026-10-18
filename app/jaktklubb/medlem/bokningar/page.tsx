@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { kravMedlem } from "@/lib/jakt";
+import { kravMedlem, kravJagare } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
 import { ANMALANSTATUS, MANAD, VECKODAG } from "../delar";
 import Avboka from "./Avboka";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 type Rad = { id: string; status: string; tillfalle: { titel: string; datum: string; tid: string | null; samling: string | null } | null };
 
 export default async function MinaBokningar() {
-  const medlem = await kravMedlem();
+  const medlem = await kravJagare();
   const idag = new Date().toISOString().slice(0, 10);
 
   const { data } = await supabaseAdmin().from("anmalan")

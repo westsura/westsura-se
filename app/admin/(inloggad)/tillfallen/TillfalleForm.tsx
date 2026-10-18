@@ -98,7 +98,7 @@ export default function TillfalleForm({ tillfalle }: { tillfalle?: T }) {
           <input name="slug" defaultValue={tillfalle?.slug ?? ""} placeholder="Valfritt — skapas av titel och år, t.ex. julmarknad-2026" />
           <p className="hint">Sidan hamnar på westsura.se/aktuellt/{tillfalle?.slug || "…"}</p></div>
       )}
-      <div className="field"><label className="checkfield checkfield--bare"><input type="checkbox" name="publicerad" defaultChecked={tillfalle?.publicerad ?? true} /><span>Publicerad på sajten</span></label></div>
+      <div className="field"><label className="checkfield checkfield--bare"><input type="checkbox" name="publicerad" defaultChecked={tillfalle?.publicerad ?? true} /><span>Publicerad — syns för dem som valts under Synlighet (ej ikryssad = utkast som ingen ser)</span></label></div>
       {ev
         ? <div className="field"><label className="checkfield checkfield--bare"><input type="checkbox" name="anmalan" defaultChecked={tillfalle?.anmalan ?? false} /><span>Ta emot anmälan (platser räknas ner)</span></label></div>
         : typ === "jakt" && <div className="field"><label className="checkfield checkfield--bare"><input type="checkbox" name="algjakt" defaultChecked={tillfalle?.algjakt ?? false} /><span>Älgjakt — räknas för fördelningen av älgkött</span></label></div>}

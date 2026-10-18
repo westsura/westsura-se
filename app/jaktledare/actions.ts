@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { kravJaktledare } from "@/lib/jakt";
 import { kravAdmin } from "@/lib/admin";
 import { VILT, RESULTAT, KON, ALDER } from "@/lib/avskjutning";
+import { mejlHundforareBeslut } from "@/lib/epost";
 
 const s = (v: FormDataEntryValue | null) => (typeof v === "string" ? v.trim() : "");
 type Svar = { ok: boolean; fel?: string };
@@ -26,6 +27,27 @@ export async function sattJaktledare(tillfalleId: string, medlemId: string): Pro
   const { error } = await supabaseAdmin().from("tillfalle").update({ jaktledare_id: medlemId || null }).eq("id", tillfalleId);
   if (error) return { ok: false, fel: error.message };
   uppdatera(tillfalleId);
+  return { ok: true };
+}
+
+/* ---------- Hundförare ---------- */
+/** Godkänner eller avböjer en hundförares intresse för jaktdagen, och mejlar besked. */
+export async function svaraHundforare(tillfalleId: string, id: string, beslut: "godkand" | "avbojd"): Promise<Svar> {
+  try { await kravJaktledare(tillfalleId); } catch (e) { return { ok: false, fel: (e as Error).message }; }
+  const adm = supabaseAdmin();
+  const { data: fore } = await adm.from("hundforare_anmalan")
+    .select("status, jagare:jagare_id(namn, epost), tillfalle:tillfalle_id(titel, datum, tid, samling)")
+    .eq("id", id).eq("tillfalle_id", tillfalleId).maybeSingle();
+  if (!fore) return { ok: false, fel: "Anmälan hittades inte." };
+  const { error } = await adm.from("hundforare_anmalan").update({ status: beslut, uppdaterad: new Date().toISOString() }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  const j = fore.jagare as unknown as { namn: string; epost: string } | null;
+  const t = fore.tillfalle as unknown as { titel: string; datum: string; tid: string | null; samling: string | null } | null;
+  if (j && t && fore.status !== beslut) {
+    try { await mejlHundforareBeslut({ epost: j.epost, namn: j.namn, titel: t.titel, datum: t.datum, tid: t.tid, samling: t.samling, godkand: beslut === "godkand" }); }
+    catch (e) { console.error("mejl misslyckades", e); }
+  }
+  uppdatera(tillfalleId); revalidatePath("/jaktklubb/medlem/hundforare");
   return { ok: true };
 }
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { kravAdmin } from "@/lib/admin";
-import { supabaseServer } from "@/lib/supabase";
+import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import TillfalleForm from "./TillfalleForm";
 import AnmalanRad from "./AnmalanRad";
 import SittningAdmin from "./SittningAdmin";
@@ -18,6 +18,12 @@ export default async function Tillfallen() {
     db.from("anmalan").select("*").order("skapad"),
     db.from("sittning").select("id, tillfalle_id, datum, tid, platser, pris").order("datum").order("tid"),
   ]);
+  const { data: hfAnm } = await supabaseAdmin().from("hundforare_anmalan").select("tillfalle_id, status").neq("status", "aterkallad");
+  const hf = (id: string) => {
+    const r = ((hfAnm ?? []) as { tillfalle_id: string; status: string }[]).filter((x) => x.tillfalle_id === id);
+    const med = r.filter((x) => x.status === "godkand").length, intresse = r.filter((x) => x.status === "intresse").length;
+    return med || intresse ? ` · hundförare: ${med} med${intresse ? `, ${intresse} att svara på` : ""}` : "";
+  };
   const S = (sittningar ?? []) as { id: string; tillfalle_id: string; datum: string; tid: string | null; platser: number; pris: number | null }[];
   const sittningNyckel = (id: string | null) => { const s = S.find((x) => x.id === id); return s ? s.datum + (s.tid ?? "") : ""; };
   const sittningNamn = (id: string | null) => {
@@ -37,7 +43,7 @@ export default async function Tillfallen() {
             <div className="ff__head">
               <div>
                 <span className="pill">{TYP[t.typ]}</span> <b style={{ marginLeft: 8 }}>{t.titel}</b>{!t.publicerad && <span className="pill pill--block" style={{ marginLeft: 8 }}>ej publicerad</span>}
-                <div className="admin__meta">{t.datum}{t.tid ? " · " + t.tid : ""}{t.typ !== "evenemang" || t.anmalan ? ` · ${tagna} av ${t.platser} platser` : " · ingen anmälan"} · {t.pris != null ? (t.pris === 0 ? "fri entré" : t.pris + " kr") : "—"}{t.typ === "evenemang" && !t.slug ? " · saknar adress — spara en gång till" : ""}</div>
+                <div className="admin__meta">{t.datum}{t.tid ? " · " + t.tid : ""}{t.typ !== "evenemang" || t.anmalan ? ` · ${tagna} av ${t.platser} platser` : " · ingen anmälan"} · {t.pris != null ? (t.pris === 0 ? "fri entré" : t.pris + " kr") : "—"}{t.typ === "evenemang" && !t.slug ? " · saknar adress — spara en gång till" : ""}{t.typ === "jakt" ? hf(t.id) : ""}</div>
               </div>
               <div className="admin__actions">
                 {t.typ === "jakt" && <Link className="btn btn--sm" href={`/admin/tillfallen/${t.id}`}>Jaktledarvy</Link>}

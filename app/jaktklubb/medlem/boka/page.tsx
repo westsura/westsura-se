@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { kravMedlem, kursStatus, arMedlem } from "@/lib/jakt";
+import { kravMedlem, kursStatus, arMedlem, kravJagare } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
 import Boka, { type Jaktdag } from "./Boka";
 import { giltigaIdag } from "@/lib/dokument";
@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Boka jakt" };
 export const dynamic = "force-dynamic";
 
 export default async function BokaJakt() {
-  const medlem = await kravMedlem();
+  const medlem = await kravJagare();
   const adm = supabaseAdmin();
   const idag = new Date().toISOString().slice(0, 10);
   const kurs = await kursStatus(medlem);

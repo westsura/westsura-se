@@ -7,6 +7,7 @@ import Granskning from "./Granskning";
 import Redigera from "./Redigera";
 import TaBortKnapp from "@/components/TaBortKnapp";
 import { taBortJaktmedlem } from "@/app/admin/actions";
+import { DRIVERNAMN, EKIPAGESTATUS, EKIPAGETYP, type Hund } from "@/lib/ekipage";
 import { DOKUMENT, MEDLEMSSTATUS, datumtid, jaktaretsSlut, type Dokument, type Medlem, type Niva, type Sasong } from "../delar";
 
 export const dynamic = "force-dynamic";
@@ -33,11 +34,22 @@ export default async function MedlemsSida({ params }: { params: Promise<{ id: st
 
   const dok = (typ: string) => (dokument as Dokument[] | null)?.find((d) => d.typ === typ);
 
+  // Hundekipage: hundar och intresseanmälningar till jaktdagar.
+  const hundforare = !!medlem.ekipage;
+  const bara = hundforare && medlem.status === "gast" && (medlem as { konto_skapat_via?: string }).konto_skapat_via === "ekipage";
+  const adm = supabaseAdmin();
+  const [{ data: hundar }, { data: hfAnm }] = hundforare
+    ? await Promise.all([
+        adm.from("hund").select("id, namn, ras, fodd, regnr, driver, eftersok, meriter").eq("agare_id", id).order("skapad"),
+        adm.from("hundforare_anmalan").select("id, status, tillfalle:tillfalle_id(id, titel, datum)").eq("jagare_id", id).neq("status", "aterkallad").order("skapad", { ascending: false }),
+      ])
+    : [{ data: [] }, { data: [] }];
+
   return (
     <>
       <header className="admin__head">
         <div>
-          <p className="label"><Link href="/admin/jaktklubb">← Jaktklubben</Link></p>
+          <p className="label">{bara ? <Link href="/admin/jaktklubb/ekipage">← Hundekipage</Link> : <Link href="/admin/jaktklubb">← Jaktklubben</Link>}</p>
           <h1 className="admin__h1">{medlem.namn}</h1>
         </div>
         <div className="admin__actions">
@@ -47,6 +59,30 @@ export default async function MedlemsSida({ params }: { params: Promise<{ id: st
         </div>
       </header>
       <div style={{ marginBottom: 16 }}><Redigera m={medlem} nivaer={(nivaerSasong ?? []) as Niva[]} /></div>
+
+      {hundforare && (
+        <section className="admin__panel" style={{ marginBottom: 24 }}>
+          <h2 className="admin__h2">Hundekipage · {EKIPAGETYP[medlem.ekipage ?? ""] ?? ""} · {EKIPAGESTATUS[medlem.ekipage_status ?? "sokande"]}</h2>
+          <p className="admin__meta">Jägarexamen: {medlem.jagarexamen ? "ja" : "nej"}. Godkänn eller dra tillbaka under <Link href="/admin/jaktklubb/ekipage">Hundekipage</Link>. Hundarna ändrar hundföraren själv i sitt konto.</p>
+          {((hundar ?? []) as Hund[]).map((h) => (
+            <div key={h.id} className="row">
+              <span className="row__main"><b>{h.namn}</b>{h.ras ? `, ${h.ras}` : ""}{h.fodd ? ` (${h.fodd})` : ""}<br /><small>{[...h.driver.map((d) => DRIVERNAMN[d] ?? d), h.eftersok ? "Eftersök" : ""].filter(Boolean).join(" · ")}{h.meriter ? ` · ${h.meriter}` : ""}</small></span>
+              <span className="row__meta">{h.regnr ?? ""}</span>
+            </div>
+          ))}
+          {!!(hfAnm ?? []).length && (
+            <>
+              <p className="label" style={{ marginTop: 16 }}>Jaktdagar</p>
+              {((hfAnm ?? []) as unknown as { id: string; status: string; tillfalle: { id: string; titel: string; datum: string } | null }[]).map((a) => a.tillfalle && (
+                <div key={a.id} className="row">
+                  <span className="row__main"><Link href={`/admin/tillfallen/${a.tillfalle.id}`}>{a.tillfalle.datum} · {a.tillfalle.titel}</Link></span>
+                  <span className="row__meta">{a.status === "godkand" ? "Med" : a.status === "avbojd" ? "Avböjd" : "Intresse"}</span>
+                </div>
+              ))}
+            </>
+          )}
+        </section>
+      )}
 
       <div className="admin__cols">
         <section className="admin__panel">
@@ -74,13 +110,13 @@ export default async function MedlemsSida({ params }: { params: Promise<{ id: st
         </section>
       </div>
 
-      <section className="admin__panel" style={{ marginTop: 24 }}>
+      {!bara && <section className="admin__panel" style={{ marginTop: 24 }}>
         <h2 className="admin__h2">Ansökan</h2>
         <p className="admin__meta" style={{ margin: "0 0 4px" }}><b>Jakterfarenhet</b></p>
         <p style={{ fontSize: 15, margin: 0, whiteSpace: "pre-wrap" }}>{medlem.jakterfarenhet}</p>
         {medlem.hund && <><p className="admin__meta" style={{ margin: "12px 0 4px" }}><b>Hund</b></p><p style={{ fontSize: 15, margin: 0 }}>{medlem.hund}</p></>}
         {medlem.meddelande && <><p className="admin__meta" style={{ margin: "12px 0 4px" }}><b>Meddelande</b></p><p style={{ fontSize: 15, margin: 0, whiteSpace: "pre-wrap" }}>{medlem.meddelande}</p></>}
-      </section>
+      </section>}
 
       <section className="admin__panel" style={{ marginTop: 24 }}>
         <h2 className="admin__h2">Dokument</h2>

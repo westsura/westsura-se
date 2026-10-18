@@ -7,7 +7,7 @@ export type Medlem = {
   status: string; sasong_id: string | null; niva_id: string | null;
   underlag_id: string | null; kurs_genomford: boolean;
   kurs_godkand: string | null; kurs_version: number | null;
-  ekipage?: string | null; ekipage_status?: string | null;
+  ekipage?: string | null; ekipage_status?: string | null; konto_skapat_via?: string | null;
 };
 
 export type Kursinstallning = { antal_fragor: number; godkant_procent: number; giltighet: "sasong" | "version" | "alltid"; version: number; ingress: string | null };
@@ -83,6 +83,22 @@ export async function ekipageRabatt(): Promise<number> {
     const { data } = await supabaseAdmin().from("jaktmedlem").select("id").eq("anvandare_id", user.id).eq("ekipage_status", "godkand").maybeSingle();
     return data ? EKIPAGE_RABATT : 0;
   } catch { return 0; }
+}
+
+/**
+ * Konto som bara finns för hundekipage (registrerat som hundförare, aldrig anmält som jägare).
+ * De ser hundförarflikarna men inte jaktbokning, vak & pyrsch eller säkerhetskurs.
+ */
+export const arHundforare = (m: Medlem) => m.status === "gast" && !!m.ekipage && m.konto_skapat_via === "ekipage";
+/** Godkänt ekipage — oavsett om personen också är medlem eller gästjägare. */
+export const harEkipage = (m: Medlem) => !!m.ekipage && m.ekipage_status === "godkand";
+export const profilFor = (m: Medlem): "medlem" | "gast" | "hund" => (m.status === "godkand" ? "medlem" : arHundforare(m) ? "hund" : "gast");
+
+/** Skickar hundförare (rena ekipagekonton) till översikten från jägarsidorna. */
+export async function kravJagare(): Promise<Medlem> {
+  const m = await kravMedlem();
+  if (arHundforare(m)) redirect("/jaktklubb/medlem");
+  return m;
 }
 
 /** Gästjägare har konto men inte medlemskap: inga ingående dagar, ingen förtur, inget klubbmaterial. */

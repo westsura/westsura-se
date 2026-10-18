@@ -73,7 +73,7 @@ export default function Tillfallen({ tillfallen, rubrik = "Kommande tillfällen"
                 </div>
                 {t.beskrivning && <p>{t.beskrivning}</p>}
                 <div className="tf-foot">
-                  <span className="tf-meta">{TYP[t.typ]}{t.tid ? ` · ${t.tid}` : ""} · {full ? "Fullbokat" : t.typ === "evenemang" ? platsstatus(t.kvar, t.platser).text : `${t.kvar} ${t.kvar === 1 ? "plats" : "platser"} kvar`}</span>
+                  <span className="tf-meta">{TYP[t.typ]}{t.tid ? ` · ${t.tid}` : ""} · {full ? "Fullbokat" : platsstatus(t.kvar, t.platser).text}</span>
                   <button className={`btn${ar || full ? " btn--ghost" : ""}`} type="button" onClick={() => { setValt(t); setResultat(null); setFel(null); }}>
                     {ar ? "Vald" : full ? "Ställ mig på väntelista" : "Boka plats"}
                   </button>

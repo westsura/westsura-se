@@ -4,6 +4,7 @@ import JaktledareVal from "./JaktledareVal";
 import Satar from "./Satar";
 import Skottlista from "./Skottlista";
 import Skrivut from "./Skrivut";
+import Hundforare from "./Hundforare";
 
 const VECKODAG = ["söndag", "måndag", "tisdag", "onsdag", "torsdag", "fredag", "lördag"];
 
@@ -56,6 +57,8 @@ export default function Jaktledarvy({ dag, admin, medlemmar, tillbaka }: {
           : <p className="admin__meta">{jaktledare ? `${jaktledare.namn}${jaktledare.telefon ? " · " + jaktledare.telefon : ""}` : "Ingen jaktledare utsedd ännu."}</p>}
         {t.program && <div style={{ marginTop: 12 }}><p className="label">Program</p>{t.program.split("\n").filter(Boolean).map((r: string, i: number) => <p key={i} className="admin__meta" style={{ margin: "2px 0" }}>{r}</p>)}</div>}
       </section>
+
+      <Hundforare tillfalleId={t.id} lista={dag.hundforare} />
 
       <h2 className="admin__h2 print-hide" style={{ marginTop: 32 }}>Deltagare</h2>
       <div className="admin__panel print-hide">

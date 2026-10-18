@@ -67,7 +67,7 @@ export default function EkipageLista({ lista, jaktdagar }: { lista: Ekipage[]; j
                 <tr key={e.id}>
                   <td>{e.ekipage_status === "godkand" && <input type="checkbox" aria-label={`Välj ${e.namn}`} checked={valda.has(e.id)} onChange={() => vaxla(e.id)} />}</td>
                   <td>
-                    <b>{e.namn}</b> <span className="pill">{EKIPAGETYP[e.ekipage]}</span>
+                    <a href={`/admin/jaktklubb/${e.id}`}><b>{e.namn}</b></a> <span className="pill">{EKIPAGETYP[e.ekipage]}</span>
                     <div className="admin__meta">{e.telefon && <a href={`tel:${e.telefon}`}>{e.telefon}</a>} · <a href={`mailto:${e.epost}`}>{e.epost}</a>{e.ort ? ` · ${e.ort}` : ""}</div>
                     <div className="admin__meta">Jägarexamen: {e.jagarexamen ? "ja" : "nej"}{e.status === "godkand" ? " · medlem i jaktlaget" : ""}</div>
                     {e.meddelande && <div className="admin__meta"><em>{e.meddelande}</em></div>}
@@ -116,7 +116,7 @@ export default function EkipageLista({ lista, jaktdagar }: { lista: Ekipage[]; j
             onClick={() => start(async () => {
               setMedd(null);
               const r = await bjudInEkipage(jaktdag, valdaLista.map((e) => e.id), text);
-              setMedd(r.ok ? `Inbjudan skickad till ${r.skickade} ekipage. Svaren kommer till herrgårdens mejl.` : r.fel ?? "Kunde inte skicka.");
+              setMedd(r.ok ? `Inbjudan skickad till ${r.skickade} ekipage. De som vill vara med anmäler intresse i sitt konto — du godkänner i jaktledarvyn för dagen.` : r.fel ?? "Kunde inte skicka.");
               if (r.ok) setText("");
             })}>{pending ? "Skickar…" : "Bjud in till jaktdagen"}</button>
         </div>

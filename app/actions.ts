@@ -248,7 +248,7 @@ export async function registreraEkipage(fd: FormData): Promise<Svar> {
   if (ekipage === "eftersok" && !jagarexamen) return { ok: false, fel: "Eftersöksekipage behöver jägarexamen." };
   if (s(fd.get("villkor")) !== "1") return { ok: false, fel: "Du behöver godkänna villkoren för jakt." };
 
-  const antal = Math.min(4, Math.max(1, Number(s(fd.get("antal_hundar")) || 1)));
+  const antal = Math.min(8, Math.max(1, Number(s(fd.get("antal_hundar")) || 1)));
   const hundar = Array.from({ length: antal }, (_, i) => {
     const fodd = Number(s(fd.get(`hund${i}_fodd`)));
     return {

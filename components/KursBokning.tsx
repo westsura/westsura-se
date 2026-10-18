@@ -62,7 +62,7 @@ export default function KursBokning({ kurs }: { kurs: Kurs }) {
       </div>
       <p className="field--full hint">
         {rum === "dubbel" ? "Bokar du ensam i delat dubbelrum delar du rum med en annan kursdeltagare." : "Enkelrum — eget rum hela helgen."}
-        {kurs.kvar <= 6 ? ` Bara ${kurs.kvar} platser kvar.` : ""}
+        {kurs.kvar <= Math.max(4, Math.ceil(kurs.platser * 0.2)) ? " Få platser kvar." : ""}
       </p>
 
       <div className="field"><label htmlFor="k-namn">Namn</label><input id="k-namn" name="namn" required autoComplete="name" /></div>

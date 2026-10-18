@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { kravMedlem, kursStatus } from "@/lib/jakt";
+import { kravMedlem, kursStatus, kravJagare } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
 import { langtDatum } from "../delar";
 import Prov from "./Prov";
@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Säkerhetskurs" };
 export const dynamic = "force-dynamic";
 
 export default async function Sakerhetskurs() {
-  const medlem = await kravMedlem();
+  const medlem = await kravJagare();
   const { godkand, datum, installning } = await kursStatus(medlem);
   const adm = supabaseAdmin();
   const [{ data: avsnitt }, { count: antalFragor }, { data: senaste }] = await Promise.all([

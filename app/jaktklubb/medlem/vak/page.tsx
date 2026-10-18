@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { kravMedlem, kursStatus, arMedlem } from "@/lib/jakt";
+import { kravMedlem, kursStatus, arMedlem, kravJagare } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
 import { VAKSTATUS, VAKTYP, VAKVILT, vakPris, kr, type Omrade, type Utbud, type Vakbokning } from "@/lib/vak";
 import { MANAD, VECKODAG } from "../delar";
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Vak & pyrsch" };
 export const dynamic = "force-dynamic";
 
 export default async function Vak() {
-  const medlem = await kravMedlem();
+  const medlem = await kravJagare();
   const adm = supabaseAdmin();
   const idag = new Date().toISOString().slice(0, 10);
   const gast = !arMedlem(medlem);

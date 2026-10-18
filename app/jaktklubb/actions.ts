@@ -2,14 +2,93 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
-import { kravMedlem, kursStatus } from "@/lib/jakt";
-import { mejlDokumentVantar, mejlAnmalan, mejlVakOnskad } from "@/lib/epost";
+import { kravMedlem, kursStatus, arHundforare } from "@/lib/jakt";
+import { mejlDokumentVantar, mejlAnmalan, mejlVakOnskad, mejlHundforareIntresse } from "@/lib/epost";
 import { vakPris, VAKVILT } from "@/lib/vak";
 import { giltigaIdag } from "@/lib/dokument";
 import { kollaLosenord } from "@/lib/konto";
 import { site } from "@/lib/site";
 
 const s = (v: FormDataEntryValue | null) => (typeof v === "string" ? v.trim() : "");
+
+/* ---------- Hundförare: intresse för jaktdagar och egna hundar ---------- */
+const MAX_HUNDAR = 8;
+
+/** Godkänt ekipage krävs för att anmäla intresse och redigera hundar. */
+async function kravEkipage() {
+  const m = await kravMedlem();
+  if (!m.ekipage || m.ekipage_status !== "godkand") throw new Error("Ditt ekipage behöver vara godkänt först.");
+  return m;
+}
+
+/** Hundföraren anmäler intresse att gå med hund på en utlagd jaktdag. Jaktadmin godkänner. */
+export async function anmalHundforare(tillfalleId: string, hundIds: string[], meddelande: string): Promise<{ ok: boolean; fel?: string }> {
+  let m: Awaited<ReturnType<typeof kravEkipage>>; try { m = await kravEkipage(); } catch (e) { return { ok: false, fel: (e as Error).message }; }
+  const adm = supabaseAdmin();
+  const idag = new Date().toISOString().slice(0, 10);
+  const { data: t } = await adm.from("tillfalle").select("id, titel, datum, typ, publicerad").eq("id", tillfalleId).maybeSingle();
+  if (!t || t.typ !== "jakt" || !t.publicerad || t.datum < idag) return { ok: false, fel: "Jaktdagen går inte att anmäla sig till." };
+  const { data: egna } = await adm.from("hund").select("id, namn").eq("agare_id", m.id);
+  const valda = ((egna ?? []) as { id: string; namn: string }[]).filter((h) => hundIds.includes(h.id));
+  if (!valda.length) return { ok: false, fel: "Välj vilken eller vilka hundar du vill ha med." };
+  const { error } = await adm.from("hundforare_anmalan").upsert({
+    tillfalle_id: tillfalleId, jagare_id: m.id, hund_ids: valda.map((h) => h.id), meddelande: meddelande.trim() || null,
+    status: "intresse", uppdaterad: new Date().toISOString(),
+  }, { onConflict: "tillfalle_id,jagare_id" });
+  if (error) return { ok: false, fel: error.message };
+  try { await mejlHundforareIntresse({ epost: m.epost, namn: m.namn, telefon: m.telefon, titel: t.titel, datum: t.datum, hundar: valda.map((h) => h.namn), meddelande }); }
+  catch (e) { console.error("mejl misslyckades", e); }
+  revalidatePath("/jaktklubb/medlem/hundforare"); revalidatePath(`/admin/tillfallen/${tillfalleId}`);
+  return { ok: true };
+}
+
+/** Hundföraren drar tillbaka sitt intresse (så länge jaktdagen inte varit). */
+export async function aterkallaHundforare(id: string): Promise<{ ok: boolean; fel?: string }> {
+  let m: Awaited<ReturnType<typeof kravEkipage>>; try { m = await kravEkipage(); } catch (e) { return { ok: false, fel: (e as Error).message }; }
+  const adm = supabaseAdmin();
+  const { data: a } = await adm.from("hundforare_anmalan").select("tillfalle_id").eq("id", id).eq("jagare_id", m.id).maybeSingle();
+  if (!a) return { ok: false, fel: "Anmälan hittades inte." };
+  const { error } = await adm.from("hundforare_anmalan").update({ status: "aterkallad", uppdaterad: new Date().toISOString() }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/jaktklubb/medlem/hundforare"); revalidatePath(`/admin/tillfallen/${a.tillfalle_id}`);
+  return { ok: true };
+}
+
+/** Lägger till eller ändrar en av hundförarens hundar (högst åtta). */
+export async function sparaHund(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  let m: Awaited<ReturnType<typeof kravEkipage>>; try { m = await kravEkipage(); } catch (e) { return { ok: false, fel: (e as Error).message }; }
+  const adm = supabaseAdmin();
+  const id = s(fd.get("id"));
+  const fodd = Number(s(fd.get("fodd")));
+  const rad = {
+    agare_id: m.id, namn: s(fd.get("namn")), ras: s(fd.get("ras")) || null,
+    fodd: fodd >= 1990 && fodd <= new Date().getFullYear() ? fodd : null, regnr: s(fd.get("regnr")) || null,
+    driver: fd.getAll("driver").map(String).filter(Boolean), eftersok: s(fd.get("eftersok")) === "1", meriter: s(fd.get("meriter")) || null,
+  };
+  if (!rad.namn) return { ok: false, fel: "Skriv hundens namn." };
+  if (id) {
+    const { error } = await adm.from("hund").update(rad).eq("id", id).eq("agare_id", m.id);
+    if (error) return { ok: false, fel: error.message };
+  } else {
+    const { count } = await adm.from("hund").select("id", { count: "exact", head: true }).eq("agare_id", m.id);
+    if ((count ?? 0) >= MAX_HUNDAR) return { ok: false, fel: `Du kan ha högst ${MAX_HUNDAR} hundar registrerade.` };
+    const { error } = await adm.from("hund").insert(rad);
+    if (error) return { ok: false, fel: error.message };
+  }
+  revalidatePath("/jaktklubb/medlem/hundar"); revalidatePath("/admin/jaktklubb/ekipage");
+  return { ok: true };
+}
+
+export async function taBortHund(id: string): Promise<{ ok: boolean; fel?: string }> {
+  let m: Awaited<ReturnType<typeof kravEkipage>>; try { m = await kravEkipage(); } catch (e) { return { ok: false, fel: (e as Error).message }; }
+  const adm = supabaseAdmin();
+  const { count } = await adm.from("hund").select("id", { count: "exact", head: true }).eq("agare_id", m.id);
+  if ((count ?? 0) <= 1) return { ok: false, fel: "Du behöver ha minst en hund registrerad." };
+  const { error } = await adm.from("hund").delete().eq("id", id).eq("agare_id", m.id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/jaktklubb/medlem/hundar"); revalidatePath("/admin/jaktklubb/ekipage");
+  return { ok: true };
+}
 
 /** E-post + lösenord. Adressen måste vara medlem eller gästjägare. */
 export async function loggaInMedlem(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
@@ -122,13 +201,17 @@ export async function laddaUppDokument(fd: FormData): Promise<{ ok: boolean; fel
 /** Anmäler medlemmen till en av klubbens jaktdagar. Kölista när det är fullt. */
 export async function bokaJaktdag(tillfalleId: string): Promise<{ ok: boolean; fel?: string; status?: string }> {
   const medlem = await kravMedlem();
+  if (arHundforare(medlem)) return { ok: false, fel: "Hundförarkontot används för att anmäla intresse som hundförare, inte för att boka jakt." };
   const adm = supabaseAdmin();
 
-  // Alla tre handlingar ska vara godkända före första jaktdag.
-  const { count, error: felDok } = await adm.from("medlemsdokument")
-    .select("id", { count: "exact", head: true }).eq("medlem_id", medlem.id).eq("status", "godkand").or(giltigaIdag());
-  if (felDok) return { ok: false, fel: felDok.message };
-  if (count !== 3) return { ok: false, fel: "Ladda upp och få dina dokument godkända innan du bokar." };
+  // Gästjägare behöver godkända handlingar för att boka. Medlemmar får anmäla sig ändå —
+  // handlingarna ska bara vara klara innan de kommer på jakten (jaktledaren ser vem som saknar).
+  if (medlem.status !== "godkand") {
+    const { count, error: felDok } = await adm.from("medlemsdokument")
+      .select("id", { count: "exact", head: true }).eq("medlem_id", medlem.id).eq("status", "godkand").or(giltigaIdag());
+    if (felDok) return { ok: false, fel: felDok.message };
+    if (count !== 3) return { ok: false, fel: "Ladda upp och få dina dokument godkända innan du bokar." };
+  }
 
   // Bara klubbens egna, publicerade jaktdagar framåt i tiden.
   const idag = new Date().toISOString().slice(0, 10);
@@ -170,6 +253,7 @@ export async function bokaJaktdag(tillfalleId: string): Promise<{ ok: boolean; f
  */
 export async function onskaVakdygn(fd: FormData): Promise<{ ok: boolean; fel?: string; pris?: number }> {
   const medlem = await kravMedlem();
+  if (arHundforare(medlem)) return { ok: false, fel: "Hundförarkontot används för att anmäla intresse som hundförare, inte för att boka jakt." };
   const adm = supabaseAdmin();
   const idag = new Date().toISOString().slice(0, 10);
   const gast = medlem.status !== "godkand";
@@ -229,6 +313,7 @@ export async function onskaVakdygn(fd: FormData): Promise<{ ok: boolean; fel?: s
  */
 export async function anmalVakjakt(fd: FormData): Promise<{ ok: boolean; fel?: string }> {
   const medlem = await kravMedlem();
+  if (arHundforare(medlem)) return { ok: false, fel: "Hundförarkontot används för att anmäla intresse som hundförare, inte för att boka jakt." };
   if (medlem.status !== "godkand") return { ok: false, fel: "Anmäld vakjakt är för medlemmar i jaktlaget." };
   const adm = supabaseAdmin();
   const idag = new Date().toISOString().slice(0, 10);

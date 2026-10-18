@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { kravMedlem, kursStatus, arMedlem } from "@/lib/jakt";
+import { kravMedlem, kursStatus, arMedlem, arHundforare } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
 import { kr } from "@/lib/faktura";
 import { DOKUMENT, sasongKort } from "../delar";
@@ -43,6 +43,7 @@ export default async function Medlemskap() {
     : "Att fakturera";
 
   const gast = !arMedlem(medlem);
+  const hund = arHundforare(medlem);
 
   // Älgkött: hur många av säsongens genomförda älgjakter medlemmen deltagit på.
   const { data: aktiv } = gast ? { data: null } : await adm.from("jaktsasong").select("fran, till").eq("aktiv", true).maybeSingle();
@@ -53,7 +54,7 @@ export default async function Medlemskap() {
     <>
       <header className="jk-valkommen">
         <div>
-          <p className="jk-etikett">{gast ? "Mitt jägarkonto" : "Mitt medlemskap"}</p>
+          <p className="jk-etikett">{hund ? "Mitt konto" : gast ? "Mitt jägarkonto" : "Mitt medlemskap"}</p>
           <h1 className="jk-h1">{medlem.namn}</h1>
         </div>
       </header>
@@ -64,7 +65,9 @@ export default async function Medlemskap() {
           <div><dt>E-post</dt><dd>{medlem.epost}</dd></div>
           <div><dt>Telefon</dt><dd>{medlem.telefon || "—"}</dd></div>
           <div><dt>Ort</dt><dd>{medlem.ort || "—"}</dd></div>
-          {gast ? (
+          {hund ? (
+            <div><dt>Status</dt><dd>{medlem.ekipage === "eftersok" ? "Eftersöksekipage" : "Hundförare"} — {medlem.ekipage_status === "godkand" ? "godkänt" : "under granskning"}</dd></div>
+          ) : gast ? (
             <div><dt>Status</dt><dd>Gästjägare — <Link className="jk-lank" href="/jaktklubb#ansokan">ansök om medlemskap →</Link></dd></div>
           ) : (
             <>
@@ -80,13 +83,15 @@ export default async function Medlemskap() {
               )}
             </>
           )}
-          <div><dt>Säkerhets- &amp; skyttekurs</dt><dd>{kurs.godkand ? `Godkänd ${kurs.datum?.slice(0, 10) ?? ""}` : <Link className="jk-lank" href="/jaktklubb/medlem/sakerhetskurs">Inte genomförd — gör kursen →</Link>}</dd></div>
+          {!hund && <div><dt>Säkerhets- &amp; skyttekurs</dt><dd>{kurs.godkand ? `Godkänd ${kurs.datum?.slice(0, 10) ?? ""}` : <Link className="jk-lank" href="/jaktklubb/medlem/sakerhetskurs">Inte genomförd — gör kursen →</Link>}</dd></div>}
         </dl>
       </section>
 
       <section className="jk-kort jk-kort--ljus jk-kort--bred">
-        <p className="jk-etikett">Dina dokument</p>
-        <p className="jk-lede">Alla tre ska vara godkända före din första jaktdag, och jaktkort och älgskyttemärke förnyas varje jaktår (1 juli–30 juni). Kopiorna ligger i en privat lagringsyta, syns bara för jaktklubbens admin och raderas när {gast ? "kontot" : "medlemskapet"} avslutas.</p>
+        <p className="jk-etikett">{hund ? "Dina dokument — frivilligt" : "Dina dokument"}</p>
+        <p className="jk-lede">{hund
+          ? "Som hundförare behöver du inte ladda upp något för att vara med på jakten. Har du jaktkort, ID-handling eller älgskyttemärke får du gärna lägga in dem här — det är frivilligt. Kopiorna syns bara för jaktklubbens admin och raderas när kontot avslutas."
+          : <>Alla tre ska vara godkända före din första jaktdag, och jaktkort och älgskyttemärke förnyas varje jaktår (1 juli–30 juni). Kopiorna ligger i en privat lagringsyta, syns bara för jaktklubbens admin och raderas när {gast ? "kontot" : "medlemskapet"} avslutas.</>}</p>
         {DOKUMENT.map((d) => {
           const b = besked(dok(d.typ));
           return (

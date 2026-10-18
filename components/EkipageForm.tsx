@@ -72,7 +72,7 @@ export default function EkipageForm() {
         </fieldset>
       ))}
       <div className="field--full cta-row">
-        {hundar < 4 && <button type="button" className="btn btn--sm btn--ghost" onClick={() => setHundar(hundar + 1)}>+ Lägg till en hund till</button>}
+        {hundar < 8 && <button type="button" className="btn btn--sm btn--ghost" onClick={() => setHundar(hundar + 1)}>+ Lägg till en hund till</button>}
         {hundar > 1 && <button type="button" className="btn btn--sm btn--ghost" onClick={() => setHundar(hundar - 1)}>Ta bort sista hunden</button>}
       </div>
 

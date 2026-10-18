@@ -232,13 +232,42 @@ export async function mejlEkipageGodkant(o: { epost: string; namn: string; losen
   ]));
 }
 
+/** Hundförare har anmält intresse för en jaktdag: kvitto till föraren och besked till herrgården. */
+export async function mejlHundforareIntresse(o: { epost: string; namn: string; telefon?: string | null; titel: string; datum: string; hundar: string[]; meddelande?: string | null }) {
+  const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
+  const dag = mejldatum(o.datum).replace(/^./, (c) => c.toUpperCase());
+  await skicka([o.epost], `Intresse anmält: ${o.titel}`, html("Tack för din intresseanmälan", [
+    `Hej ${fritext(o.namn)}. Du har anmält intresse att gå som hundförare på <strong>${fritext(o.titel)}</strong>, ${dag}${o.hundar.length ? `, med ${o.hundar.map(fritext).join(" och ")}` : ""}.`,
+    `Jaktledaren går igenom anmälningarna och du får besked per mejl. Du ser status under <a href="${bas}/jaktklubb/medlem/hundforare" style="color:#7d6530">Jaktdagar för hundförare</a>.`,
+  ], "Med vänliga hälsningar, Westsura Herrgård"));
+  await skicka([site.email], `Hundförare: ${o.namn} — ${o.titel} ${o.datum}`, html("Hundförare har anmält intresse", [
+    `${fritext(o.namn)} · ${fritext(o.epost)}${o.telefon ? " · " + fritext(o.telefon) : ""}`,
+    `<strong>${fritext(o.titel)}</strong>, ${dag}`,
+    o.hundar.length ? `Hundar: ${o.hundar.map(fritext).join(", ")}` : "",
+    o.meddelande ? `<strong>Meddelande</strong><br>${fritext(o.meddelande)}` : "",
+    `Godkänn eller avböj i jaktledarvyn för dagen (Tillfällen i admin).`,
+  ].filter(Boolean), ""), o.epost);
+}
+
+/** Besked till hundföraren: med på jakten, eller inte denna gång. */
+export async function mejlHundforareBeslut(o: { epost: string; namn: string; titel: string; datum: string; tid?: string | null; samling?: string | null; godkand: boolean }) {
+  const dag = mejldatum(o.datum).replace(/^./, (c) => c.toUpperCase());
+  await skicka([o.epost], o.godkand ? `Välkommen som hundförare: ${o.titel}` : `Besked om ${o.titel}`, html(o.godkand ? "Du är med som hundförare" : "Inte den här gången", [
+    o.godkand
+      ? `Hej ${fritext(o.namn)}. Du är välkommen som hundförare på <strong>${fritext(o.titel)}</strong>, ${dag}${o.tid ? `, ${fritext(o.tid)}` : ""}.`
+      : `Hej ${fritext(o.namn)}. Tack för att du anmälde intresse för <strong>${fritext(o.titel)}</strong>, ${dag}. Den här gången har vi de hundar vi behöver — vi hör gärna av oss inför kommande jakter.`,
+    o.godkand ? `Samling: ${o.samling ? fritext(o.samling) : "meddelas av jaktledaren"}. Kartan med samlingsplats och pass finns i ditt konto.` : "",
+    `Frågor? Svara på det här mejlet eller ring ${site.phone}.`,
+  ].filter(Boolean)), site.email);
+}
+
 /** Inbjudan till en jaktdag, skickad från admin till utvalda ekipage. */
 export async function mejlEkipageInbjudan(o: { epost: string; namn: string; titel: string; datum: string; tid?: string | null; text?: string }) {
   const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
   await skicka([o.epost], `Inbjudan: ${o.titel} ${o.datum}`, html("Vi behöver hundar", [
     `Hej ${fritext(o.namn)}. Vi skulle gärna ha med dig och din hund på <strong>${fritext(o.titel)}</strong>, ${o.datum}${o.tid ? ", " + fritext(o.tid) : ""}.`,
     o.text ? fritext(o.text) : "",
-    `Svara på det här mejlet eller ring ${site.phone} om du kan vara med. Vill du stanna över natten bor du till halva priset — <a href="${bas}/boende" style="color:#7d6530">boka här</a> när du är inloggad.`,
+    `Kan du vara med? <a href="${bas}/jaktklubb/medlem/hundforare" style="color:#7d6530">Logga in och anmäl intresse</a> och välj vilka hundar du tar med — eller svara på det här mejlet. Vill du stanna över natten bor du till halva priset — <a href="${bas}/boende" style="color:#7d6530">boka här</a> när du är inloggad.`,
   ].filter(Boolean)), site.email);
 }
 

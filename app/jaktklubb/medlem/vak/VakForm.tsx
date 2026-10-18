@@ -106,13 +106,15 @@ export default function VakForm({ gast, omraden, utbud, kvotText, dokumentKlara 
             {kvitto && <p className="notice">{kvitto}</p>}
             {fel && <p className="notice notice--fel" role="alert">{fel}</p>}
 
-            <button className="btn btn--block" type="submit" disabled={pending || !dokumentKlara}>
+            <button className="btn btn--block" type="submit" disabled={pending || (gast && !dokumentKlara)}>
               {pending ? "Skickar…" : gast ? "Boka dygnet" : "Önska dygnet"}
             </button>
             <p className="jk-hjalp">Jaktledaren tilldelar torn eller område och bekräftar. Först då är dygnet ditt.</p>
             {!dokumentKlara && (
               <p className="jk-hjalp">
-                Ladda upp och få dina dokument godkända innan du bokar — <Link className="jk-lank" href="/jaktklubb/medlem/medlemskap">{gast ? "Mitt jägarkonto" : "Mitt medlemskap"}</Link>.
+                {gast
+                  ? <>Ladda upp och få dina dokument godkända innan du bokar — <Link className="jk-lank" href="/jaktklubb/medlem/medlemskap">Mitt jägarkonto</Link>.</>
+                  : <>Kom ihåg att jaktkort, ID och älgskyttemärke ska vara uppladdade och godkända innan du går ut — <Link className="jk-lank" href="/jaktklubb/medlem/medlemskap">Mitt medlemskap</Link>.</>}
               </p>
             )}
           </form>

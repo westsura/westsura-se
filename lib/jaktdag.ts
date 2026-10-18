@@ -6,6 +6,7 @@ export type Jaktdag = {
   tillfalle: { id: string; titel: string; datum: string; tid: string | null; samling: string | null; program: string | null; typ: string; jaktledare_id: string | null; publicerad: boolean };
   jaktledare: { id: string; namn: string; telefon: string | null } | null;
   deltagare: Deltagare[];
+  hundforare: HundforareDeltagare[];
   satar: Sat[];
   skott: Skott[];
   platser: Plats[];
@@ -52,12 +53,34 @@ export async function hamtaJaktdag(tillfalleId: string): Promise<Jaktdag | null>
     pass: passLista.filter((p) => p.sat_id === s.id).map(({ sat: _sat, ...p }) => p),
   }));
 
+  // Hundförare som anmält intresse för dagen, med de hundar de vill ha med.
+  const { data: hf } = await adm.from("hundforare_anmalan")
+    .select("id, status, meddelande, hund_ids, skapad, jagare:jagare_id(id, namn, telefon, epost, ekipage)")
+    .eq("tillfalle_id", tillfalleId).neq("status", "aterkallad").order("skapad");
+  const hundIds = [...new Set(((hf ?? []) as { hund_ids: string[] }[]).flatMap((h) => h.hund_ids))];
+  const { data: hundrader } = hundIds.length
+    ? await adm.from("hund").select("id, namn, ras, driver, eftersok").in("id", hundIds)
+    : { data: [] as { id: string; namn: string; ras: string | null; driver: string[]; eftersok: boolean }[] };
+  const hundforare: HundforareDeltagare[] = ((hf ?? []) as unknown as { id: string; status: string; meddelande: string | null; hund_ids: string[]; jagare: { id: string; namn: string; telefon: string | null; epost: string; ekipage: string | null } | null }[])
+    .map((h) => ({
+      id: h.id, status: h.status, meddelande: h.meddelande,
+      jagare_id: h.jagare?.id ?? null, namn: h.jagare?.namn ?? "—", telefon: h.jagare?.telefon ?? null, epost: h.jagare?.epost ?? "", ekipage: h.jagare?.ekipage ?? null,
+      hundar: ((hundrader ?? []) as { id: string; namn: string; ras: string | null; driver: string[]; eftersok: boolean }[]).filter((x) => h.hund_ids.includes(x.id)),
+    }));
+
   return {
     tillfalle: t,
     jaktledare: jaktledare ?? null,
     deltagare,
+    hundforare,
     satar: satLista,
     skott: (skott ?? []) as Skott[],
     platser: (platser ?? []) as Plats[],
   };
 }
+
+export type HundforareDeltagare = {
+  id: string; status: string; meddelande: string | null;
+  jagare_id: string | null; namn: string; telefon: string | null; epost: string; ekipage: string | null;
+  hundar: { id: string; namn: string; ras: string | null; driver: string[]; eftersok: boolean }[];
+};

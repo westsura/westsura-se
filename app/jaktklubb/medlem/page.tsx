@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { kravMedlem, kursStatus, arMedlem, EKIPAGE_RABATT } from "@/lib/jakt";
+import { kravMedlem, kursStatus, arMedlem, arHundforare, EKIPAGE_RABATT } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
 import { ANMALANSTATUS, MANAD, VECKODAG, langtDatum, sasongKort, sasongsdel } from "./delar";
 
@@ -7,8 +7,62 @@ export const dynamic = "force-dynamic";
 
 type Anmalan = { status: string; tillfalle: { titel: string; typ: string; datum: string; tid: string | null; samling: string | null } | null };
 
+/** Översikten för hundförare (konto bara för hundekipage): jaktdagar, hundar, karta och boenderabatt. */
+async function HundforareOversikt({ medlem }: { medlem: Awaited<ReturnType<typeof kravMedlem>> }) {
+  const adm = supabaseAdmin();
+  const idag = new Date().toISOString().slice(0, 10);
+  const [{ data: anm }, { count: hundar }, { count: oppna }] = await Promise.all([
+    adm.from("hundforare_anmalan").select("status, tillfalle:tillfalle_id(titel, datum, tid, samling)").eq("jagare_id", medlem.id).neq("status", "aterkallad"),
+    adm.from("hund").select("id", { count: "exact", head: true }).eq("agare_id", medlem.id),
+    adm.from("tillfalle").select("id", { count: "exact", head: true }).eq("typ", "jakt").eq("publicerad", true).gte("datum", idag),
+  ]);
+  const mina = ((anm ?? []) as unknown as { status: string; tillfalle: { titel: string; datum: string; tid: string | null; samling: string | null } | null }[])
+    .filter((a) => a.tillfalle && a.tillfalle.datum >= idag).sort((a, b) => (a.tillfalle!.datum < b.tillfalle!.datum ? -1 : 1));
+  const nasta = mina.find((a) => a.status === "godkand");
+  const vantar = mina.filter((a) => a.status === "intresse").length;
+  const godkand = medlem.ekipage_status === "godkand";
+  return (
+    <>
+      <header className="jk-valkommen">
+        <div>
+          <p className="jk-etikett">{medlem.ekipage === "eftersok" ? "Eftersöksekipage" : "Hundförare"}</p>
+          <h1 className="jk-h1">Välkommen, {medlem.namn.split(" ")[0]}.</h1>
+          <p className="jk-lede">{godkand ? "Anmäl intresse för jaktdagarna, håll dina hundar uppdaterade och hitta rätt med kartan." : medlem.ekipage_status === "avbojd" ? "Ditt ekipage är inte godkänt just nu. Ring oss om du har frågor." : "Vi går igenom ditt ekipage och hör av oss."}</p>
+        </div>
+        {godkand && <Link className="btn" href="/jaktklubb/medlem/hundforare">Se jaktdagarna</Link>}
+      </header>
+      {godkand && (
+        <div className="jk-rad">
+          <section className="jk-kort jk-kort--mork">
+            <p className="jk-etikett jk-etikett--guld">Din nästa jaktdag</p>
+            {nasta ? (
+              <>
+                <p className="jk-kort__rubrik">{nasta.tillfalle!.titel}</p>
+                <p className="jk-kort__text">{langtDatum(nasta.tillfalle!.datum)}{nasta.tillfalle!.tid ? ` · ${nasta.tillfalle!.tid}` : ""}{nasta.tillfalle!.samling ? ` · ${nasta.tillfalle!.samling}` : ""}</p>
+              </>
+            ) : <p className="jk-kort__text">Ingen godkänd jaktdag ännu.{oppna ? ` ${oppna} jaktdagar ligger ute — anmäl intresse för de du kan.` : ""}</p>}
+            {vantar > 0 && <p className="jk-kort__text">{vantar} intresseanmälan{vantar > 1 ? "ar" : ""} väntar på besked.</p>}
+            <div className="jk-avdelare" />
+            <Link className="btn" href="/jaktklubb/medlem/hundforare">Jaktdagar för hundförare</Link>
+          </section>
+          <section className="jk-kort jk-kort--ljus">
+            <p className="jk-etikett">Ditt ekipage</p>
+            <p className="jk-kort__rubrik jk-kort__rubrik--mork">{hundar ?? 0} {hundar === 1 ? "hund" : "hundar"}</p>
+            <p className="jk-kort__text jk-kort__text--mork">Godkänt ekipage · {EKIPAGE_RABATT}&nbsp;% rabatt på boendet</p>
+            <div className="jk-avdelare" />
+            <p className="jk-hjalp">Logga in innan du <Link className="jk-lank" href="/boende">bokar boende</Link>, så dras rabatten automatiskt.</p>
+            <Link className="jk-lank" href="/jaktklubb/medlem/hundar">Mina hundar →</Link><br />
+            <Link className="jk-lank" href="/jaktklubb/medlem/karta">Karta över marken →</Link>
+          </section>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default async function Oversikt() {
   const medlem = await kravMedlem();
+  if (arHundforare(medlem)) return <HundforareOversikt medlem={medlem} />;
   const adm = supabaseAdmin();
   const idag = new Date().toISOString().slice(0, 10);
   const kurs = await kursStatus(medlem);
@@ -51,7 +105,7 @@ export default async function Oversikt() {
         <section className="jk-kort jk-kort--ljus jk-kort--bred">
           <p className="jk-etikett">{medlem.ekipage === "eftersok" ? "Eftersöksekipage" : "Hundförare"}</p>
           {medlem.ekipage_status === "godkand"
-            ? <p className="jk-lede mb-0">Ditt ekipage är godkänt. Du får {EKIPAGE_RABATT}&nbsp;% rabatt på boendet för dig och hunden — <Link className="jk-lank" href="/boende">boka boende</Link> medan du är inloggad så dras rabatten automatiskt. Vill du ändra uppgifterna om dina hundar gör du det <Link className="jk-lank" href="/jaktklubb/hundekipage">här</Link>.</p>
+            ? <p className="jk-lede mb-0">Ditt ekipage är godkänt. Du får {EKIPAGE_RABATT}&nbsp;% rabatt på boendet för dig och hunden — <Link className="jk-lank" href="/boende">boka boende</Link> medan du är inloggad så dras rabatten automatiskt. Anmäl intresse under <Link className="jk-lank" href="/jaktklubb/medlem/hundforare">Jaktdagar för hundförare</Link> och håll <Link className="jk-lank" href="/jaktklubb/medlem/hundar">dina hundar</Link> uppdaterade.</p>
             : medlem.ekipage_status === "avbojd"
               ? <p className="jk-lede mb-0">Ditt ekipage är inte godkänt just nu. Ring oss om du har frågor.</p>
               : <p className="jk-lede mb-0">Vi går igenom ditt ekipage och hör av oss.</p>}

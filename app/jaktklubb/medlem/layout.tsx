@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { kravMedlem, arMedlem } from "@/lib/jakt";
+import { kravMedlem, profilFor, harEkipage } from "@/lib/jakt";
 import { supabaseAdmin } from "@/lib/supabase";
 import { site } from "@/lib/site";
 import MedlemsNav from "./MedlemsNav";
@@ -16,7 +16,7 @@ export default async function MedlemsLayout({ children }: { children: React.Reac
   const { data: sasong } = await supabaseAdmin().from("jaktsasong").select("namn").eq("aktiv", true).maybeSingle();
   return (
     <div className="jk">
-      <MedlemsNav sasong={sasongKort(sasong?.namn)} arMedlem={arMedlem(medlem)} />
+      <MedlemsNav sasong={sasongKort(sasong?.namn)} profil={profilFor(medlem)} ekipage={harEkipage(medlem)} />
       <div className="jk-main">{children}</div>
       <footer className="jk-fot">
         <b>Westsura Herrgård</b>
