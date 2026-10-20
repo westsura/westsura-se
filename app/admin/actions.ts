@@ -77,9 +77,9 @@ export async function sattAdminLosenord(fd: FormData): Promise<{ ok: boolean; fe
 export async function sattMedlemsLosenord(medlemId: string, losenord: string): Promise<{ ok: boolean; fel?: string }> {
   await kravAdmin("jaktadmin");
   const adm = supabaseAdmin();
-  const { data: m } = await adm.from("jaktmedlem").select("epost, status").eq("id", medlemId).maybeSingle();
+  const { data: m } = await adm.from("jaktmedlem").select("epost, status, ekipage, ekipage_status").eq("id", medlemId).maybeSingle();
   if (!m) return { ok: false, fel: "Medlemmen hittades inte." };
-  if (m.status !== "godkand" && m.status !== "gast") return { ok: false, fel: "Bara medlemmar och gästjägare kan logga in." };
+  if (m.status !== "godkand" && m.status !== "gast" && !(m.ekipage && m.ekipage_status === "godkand")) return { ok: false, fel: "Bara medlemmar, gästjägare och godkända hundförare kan logga in." };
   const r = await sattLosenord(m.epost, losenord);
   if (!r.ok) return r;
   await adm.from("jaktmedlem").update({ anvandare_id: r.id }).eq("id", medlemId);

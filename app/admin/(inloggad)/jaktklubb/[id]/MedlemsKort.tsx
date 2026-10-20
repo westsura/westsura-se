@@ -35,7 +35,7 @@ export default function MedlemsKort({ m }: { m: Medlem }) {
           placeholder="Ringt, träffat, referens…" />
       </div>
 
-      {(m.status === "godkand" || m.status === "gast") && (
+      {(m.status === "godkand" || m.status === "gast" || (m as { ekipage_status?: string | null }).ekipage_status === "godkand") && (
         <div className="field" style={{ marginTop: 12 }}>
           <label htmlFor="losen">Sätt nytt lösenord åt {m.namn.split(" ")[0]}</label>
           <div className="admin__actions">

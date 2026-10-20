@@ -64,7 +64,10 @@ export async function kravMedlem(): Promise<Medlem> {
   }
 
   // Medlemmar och gästjägare har konto; sökande, avslutade och avböjda kommer inte in.
-  if (!medlem || (medlem.status !== "godkand" && medlem.status !== "gast")) redirect("/jaktklubb/login?fel=ingen-behorighet");
+  // Medlemmar och gästjägare kommer in — och godkända hundekipage, även om personen samtidigt
+  // har en medlemsansökan som inte är avgjord (då används hundförarkontot tills vidare).
+  const ekipageOk = !!medlem?.ekipage && medlem.ekipage_status === "godkand";
+  if (!medlem || (medlem.status !== "godkand" && medlem.status !== "gast" && !ekipageOk)) redirect("/jaktklubb/login?fel=ingen-behorighet");
   return medlem;
 }
 
@@ -89,7 +92,11 @@ export async function ekipageRabatt(): Promise<number> {
  * Konto som bara finns för hundekipage (registrerat som hundförare, aldrig anmält som jägare).
  * De ser hundförarflikarna men inte jaktbokning, vak & pyrsch eller säkerhetskurs.
  */
-export const arHundforare = (m: Medlem) => m.status === "gast" && !!m.ekipage && m.konto_skapat_via === "ekipage";
+export const arHundforare = (m: Medlem) =>
+  !!m.ekipage && (m.status === "gast"
+    ? m.konto_skapat_via === "ekipage"
+    // Sökande, väntelistad eller avböjd som medlem men godkänd som hundförare: hundförarkonto.
+    : m.status !== "godkand" && m.ekipage_status === "godkand");
 /** Godkänt ekipage — oavsett om personen också är medlem eller gästjägare. */
 export const harEkipage = (m: Medlem) => !!m.ekipage && m.ekipage_status === "godkand";
 export const profilFor = (m: Medlem): "medlem" | "gast" | "hund" => (m.status === "godkand" ? "medlem" : arHundforare(m) ? "hund" : "gast");
