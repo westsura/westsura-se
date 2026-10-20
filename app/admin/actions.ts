@@ -841,6 +841,26 @@ export async function sparaJaktmedlem(id: string, fd: FormData): Promise<{ ok: b
 }
 
 /**
+ * Tar bort en medlemsansökan som den sökande själv har ångrat. Har personen också ett
+ * hundekipage finns kontot kvar som hundförarkonto — bara ansökan stryks. Annars raderas kontot.
+ */
+export async function taBortAnsokan(id: string): Promise<{ ok: boolean; fel?: string; kvar?: boolean }> {
+  await kravAdmin("jaktadmin");
+  const adm = supabaseAdmin();
+  const { data: m } = await adm.from("jaktmedlem").select("status, ekipage").eq("id", id).maybeSingle();
+  if (!m) return { ok: false, fel: "Hittades inte." };
+  if (m.status === "godkand") return { ok: false, fel: "Det här är en medlem, inte en ansökan." };
+  if (!m.ekipage) return taBortJaktmedlem(id);
+  const { error } = await adm.from("jaktmedlem").update({
+    status: "gast", konto_skapat_via: "ekipage", niva_id: null, onskad_niva_id: null,
+    jakterfarenhet: null, yrkesroll: null, anstallningsform: null, flexibla_tider: null, villkor_godkanda: null,
+  }).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  uppdateraJaktklubb(id);
+  return { ok: true, kvar: true };
+}
+
+/**
  * Tar bort en medlem, sökande eller gästjägare helt: dokumentkopior, kursförsök och vakbokningar.
  * Anmälningar och skott ligger kvar (utan koppling) för historiken. Inloggningen tas bort om den inte också är admin.
  */

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { godkannMedlem, vantelistaMedlem, avbojMedlem, taBortJaktmedlem, sparaMedlemsanteckning } from "@/app/admin/actions";
+import { godkannMedlem, vantelistaMedlem, avbojMedlem, taBortAnsokan, sparaMedlemsanteckning } from "@/app/admin/actions";
 import { MEDLEMSSTATUS, datumtid, type Medlem, type Niva } from "./delar";
 
 /** En ansökan med allt den sökande skrivit, plus besluten. */
@@ -58,7 +58,13 @@ export default function AnsokanKort({ m, nivaer, kvar }: { m: Medlem; nivaer: Ni
           onClick={() => { if (confirm(`Avböj ${m.namn}? Den sökande får ett mejl om att ansökan inte beviljats. Eventuella uppladdade dokument raderas.`)) kor(() => avbojMedlem(m.id)); }}>Avböj</button>
         <button className="btn btn--sm btn--ghost" type="button" disabled={pending}
           title="Ta bort ansökan, t.ex. när den sökande själv har ångrat sig — inget mejl skickas"
-          onClick={() => { if (confirm(`Ta bort ansökan från ${m.namn}?\n\nAnvänd detta när den sökande själv har ångrat sig. Inget mejl skickas, och ansökan, konto och eventuella dokument raderas. Det går inte att ångra.`)) kor(() => taBortJaktmedlem(m.id)); }}>Ta bort</button>
+          onClick={() => {
+            const ekipage = !!(m as { ekipage?: string | null }).ekipage;
+            const text = ekipage
+              ? `Ta bort medlemsansökan från ${m.namn}?\n\n${m.namn.split(" ")[0]} är också registrerad som hundförare. Hundförarkontot och hundarna finns kvar — bara medlemsansökan stryks. Inget mejl skickas.`
+              : `Ta bort ansökan från ${m.namn}?\n\nAnvänd detta när den sökande själv har ångrat sig. Inget mejl skickas, och ansökan, konto och eventuella dokument raderas. Det går inte att ångra.`;
+            if (confirm(text)) kor(() => taBortAnsokan(m.id));
+          }}>Ta bort</button>
       </div>
     </article>
   );

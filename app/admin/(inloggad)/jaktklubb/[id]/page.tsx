@@ -55,7 +55,7 @@ export default async function MedlemsSida({ params }: { params: Promise<{ id: st
         <div className="admin__actions">
           <span className={`pill pill--${medlem.status}`}>{MEDLEMSSTATUS[medlem.status]}</span>
           <TaBortKnapp gor={taBortJaktmedlem.bind(null, medlem.id)} efter="/admin/jaktklubb"
-            fraga={`Ta bort ${medlem.namn} helt? Uppladdade dokument, kursförsök och vakbokningar raderas, och inloggningen tas bort. Tidigare anmälningar och skott finns kvar i historiken. Det går inte att ångra.${medlem.status === "godkand" ? "\n\nVill du bara avsluta medlemskapet — använd hellre \"Avsluta medlemskap\" längre ner." : ""}`} />
+            fraga={`Ta bort ${medlem.namn} helt? Uppladdade dokument, kursförsök och vakbokningar raderas, och inloggningen tas bort. Tidigare anmälningar och skott finns kvar i historiken. Det går inte att ångra.${medlem.ekipage ? "\n\nOBS: hundekipaget och alla hundar raderas också." : ""}${medlem.status === "godkand" ? "\n\nVill du bara avsluta medlemskapet — använd hellre \"Avsluta medlemskap\" längre ner." : ""}`} />
         </div>
       </header>
       <div style={{ marginBottom: 16 }}><Redigera m={medlem} nivaer={(nivaerSasong ?? []) as Niva[]} /></div>
