@@ -6,3 +6,6 @@ out
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+# Överblivna filer från ett tidigare upplägg för flygfotot — behövs inte, kan raderas.
+ladda-upp-flygfoto.command
+scripts/

@@ -33,7 +33,7 @@ export default async function Karta() {
           <p className="jk-lede">Torn, pass, åtlar och samlingsplatser på jaktmarken. Tryck på en plats för beskrivning, och på <b>Visa var jag är</b> för att se din position — telefonen frågar om lov första gången.</p>
         </div>
       </header>
-      <JaktKarta platser={platser} granser={(mark ?? []) as KartGrans[]} harFlygfoto={!!process.env.KARTA_ORTO_URL} mitt={LIARSBO} />
+      <JaktKarta platser={platser} granser={(mark ?? []) as KartGrans[]} harFlygfoto={process.env.KARTA_ORTO !== "av"} mitt={LIARSBO} />
       {!platser.length && <p className="jk-hjalp" style={{ marginTop: 12 }}>Inga platser är inlagda på kartan ännu.</p>}
     </>
   );

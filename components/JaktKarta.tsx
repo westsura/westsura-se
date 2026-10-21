@@ -47,7 +47,11 @@ export default function JaktKarta({ platser, granser, harFlygfoto, mitt }: { pla
       const m = L.map(ruta.current, { zoomControl: true, attributionControl: true }).setView(mitt, 14);
       karta.current = m;
       lagerRef.current.topo = L.tileLayer("/api/karta/topo/{z}/{x}/{y}", { maxNativeZoom: 15, maxZoom: 19, attribution: "© Lantmäteriet (CC BY 4.0)" }).addTo(m);
-      if (harFlygfoto) lagerRef.current.orto = L.tileLayer("/api/karta/orto/{z}/{x}/{y}", { maxNativeZoom: 19, maxZoom: 19, attribution: "© Lantmäteriet" });
+      // Flygfotot finns bara över jaktmarken (z 12–18) och läggs ovanpå terrängkartan, som syns runt omkring.
+      if (harFlygfoto) lagerRef.current.orto = L.tileLayer("/api/karta/orto/{z}/{x}/{y}", {
+        minNativeZoom: 12, maxNativeZoom: 18, maxZoom: 19, zIndex: 2,
+        bounds: [[59.7120, 16.0729], [59.7717, 16.2008]], attribution: "Flygfoto © Lantmäteriet",
+      });
 
       const avgransning: L[] = [];
       for (const g of granser) {
@@ -80,7 +84,9 @@ export default function JaktKarta({ platser, granser, harFlygfoto, mitt }: { pla
 
   function bytLager(nytt: "topo" | "orto") {
     const m = karta.current; if (!m) return;
-    m.removeLayer(lagerRef.current[lager]); lagerRef.current[nytt].addTo(m).bringToBack();
+    // Terrängkartan ligger alltid kvar underst; flygfotot läggs på eller tas bort ovanpå.
+    if (nytt === "orto") lagerRef.current.orto?.addTo(m);
+    else if (lagerRef.current.orto) m.removeLayer(lagerRef.current.orto);
     setLager(nytt);
   }
 

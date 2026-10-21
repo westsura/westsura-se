@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
   // Evenemangsbilder laddas upp via en server action. Admin förminskar dem i webbläsaren först,
   // men en stor PNG kan ändå bli några megabyte.
   experimental: { serverActions: { bodySizeLimit: "8mb" } },
+  // Flygfotoplattorna över jaktmarken (ca 45 MB) följer med kartans API-route, inte /public —
+  // de ska bara nås av inloggade.
+  outputFileTracingIncludes: { "/api/karta/[lager]/[z]/[x]/[y]": ["./karta-orto/**/*"] },
   async headers() {
     if (process.env.INDEXERA === "1") return [];
     return [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }] }];
