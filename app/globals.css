@@ -632,11 +632,12 @@ p { margin:0 0 20px; max-width:66ch; }
 .ev-fakta dt { font-size:11px; font-weight:700; letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--text-accent); padding-top:3px; }
 .ev-fakta dd { margin:0; color:var(--text-heading); font-weight:500; }
 .ev-fakta__not { font-size:15px; margin:14px 0 0; }
-.ev-avsnitt { align-items:center; }
+.ev-layout { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:72px; align-items:start; }
+.ev-text h2 { margin-top:44px; }
+.ev-avslut { margin-top:40px; padding-top:28px; border-top:1px solid var(--border-gold); }
 .fig--45 { aspect-ratio:4/5; }
-.ev-avsnitt--om > .fig { order:2; }
 .ev-program li { padding-left:4px; }
-@media (max-width:900px) { .ev-sida { position:static; } .ev-avsnitt--om > .fig { order:0; } }
+@media (max-width:900px) { .ev-layout { grid-template-columns:1fr; gap:40px; } .ev-sida { position:static; } }
 
 /* --- Bildvisning (klick på galleriet) --- */
 .visning { position:fixed; inset:0; z-index:200; background:rgba(16,32,27,.92); display:flex; align-items:center; justify-content:center; padding:24px; }

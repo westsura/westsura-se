@@ -116,8 +116,6 @@ export default async function EvenemangSida({ params }: { params: Promise<{ slug
     const finns = fakta.findIndex(([f]) => f.toLowerCase() === k.toLowerCase());
     if (finns >= 0) fakta[finns] = [k, v]; else fakta.push([k, v]);
   }
-  // Avsnitten får var sin bild ur galleriet (inte huvudbilden), så länge det räcker.
-  const avsnittsbilder = e.bilder.filter((x) => x.src !== bild);
 
   return (
     <>
@@ -125,18 +123,25 @@ export default async function EvenemangSida({ params }: { params: Promise<{ slug
       <Hero remote={bild.startsWith("http")} src={bild} alt={e.bild_alt ?? e.titel} sub
         label={nar(e)} title={e.titel.toLowerCase()} lede={e.ingress ?? undefined} />
 
-      {/* Inledning + praktisk ruta */}
+      {/* All text i en lugn spalt, praktisk ruta bredvid. Bilderna samlas i galleriet längre ner. */}
       <section className="section section--tight">
-        <div className="container split split--start ev-intro">
-          <div className="prose">
+        <div className="container ev-layout">
+          <div className="prose ev-text">
             {passerat && <p className="notice">Det här evenemanget har redan varit. <Link href="/#aktuellt">Se vad som är på gång →</Link></p>}
             {text.intro.map((p, i) => <p key={i} className={i === 0 ? "ev-lede" : undefined}>{p}</p>)}
+            {text.avsnitt.map((a) => (
+              <div key={a.rubrik}>
+                <h2 className="lower">{a.rubrik.toLowerCase()}</h2>
+                {a.stycken.map((p, j) => <p key={j} className={j === 0 && a.stycken.length > 1 && p.length < 60 ? "ev-kicker" : undefined}>{p}</p>)}
+              </div>
+            ))}
             {!!program.length && (
               <>
                 <h2 className="lower">program</h2>
                 <ul className="ev-program">{program.map((r, i) => <li key={i}>{r}</li>)}</ul>
               </>
             )}
+            {text.avslut.map((p, i) => <p key={i} className="ev-kicker ev-avslut">{p}</p>)}
           </div>
           <div className="ev-sida">
             {e.anmalan && !passerat && e.sittningar.length > 0 ? (
@@ -159,37 +164,8 @@ export default async function EvenemangSida({ params }: { params: Promise<{ slug
         </div>
       </section>
 
-      {/* Avsnitten — varannan med bild till vänster, varannan till höger */}
-      {text.avsnitt.map((a, i) => {
-        const b = avsnittsbilder[i];
-        return (
-          <section key={a.rubrik} className={`section section--tight${i % 2 === 0 ? " tint" : ""}`}>
-            <div className={`container${b ? " split ev-avsnitt" : " narrow"}${b && i % 2 ? " ev-avsnitt--om" : ""}`}>
-              {b && (
-                <div className="fig fig--45">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={b.src} alt={b.alt} loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
-              )}
-              <div className="prose">
-                <h2 className="lower">{a.rubrik.toLowerCase()}</h2>
-                {a.stycken.map((p, j) => <p key={j} className={j === 0 && a.stycken.length > 1 && p.length < 60 ? "ev-kicker" : undefined}>{p}</p>)}
-              </div>
-            </div>
-          </section>
-        );
-      })}
-
-      {text.avslut.length > 0 && (
-        <section className="section section--tight">
-          <div className="container narrow center">
-            {text.avslut.map((p, i) => <p key={i} className="motto">{p}</p>)}
-          </div>
-        </section>
-      )}
-
       {e.bilder.length > 1 && (
-        <section className={`section section--tight${text.avsnitt.length % 2 === 0 ? " tint" : ""}`}>
+        <section className="section section--tight tint">
           <div className="container">
             <p className="label">Bilder</p>
             <h2 className="lower">{passerat ? "så här blev det" : "från förra året"}</h2>
