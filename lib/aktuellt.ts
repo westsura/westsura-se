@@ -7,10 +7,16 @@ export type Evenemang = {
   datum: string; datum_till: string | null; tid: string | null; pris: number | null; platser: number; kvar: number;
   bild: string | null; bild_alt: string | null; anmalan: boolean;
   barnpris: number | null; barn_alder: number; skapad: string | null;
+  /** Egen text till startsidan (tom rad mellan styckena). Saknas den visas ingress + början av texten. */
+  kort: string | null;
+  /** Egen text på länken från startsidan, t.ex. "Läs mer och se program för dagen". */
+  lanktext: string | null;
+  /** Bildgalleri på evenemangssidan, t.ex. bilder från förra året. */
+  bilder: { src: string; alt: string }[];
   sittningar: Sittning[];
 };
 
-const FALT = "id, slug, titel, ingress, beskrivning, program, datum, datum_till, tid, pris, barnpris, barn_alder, platser, bild, bild_alt, anmalan, skapad";
+const FALT = "id, slug, titel, ingress, beskrivning, program, datum, datum_till, tid, pris, barnpris, barn_alder, platser, bild, bild_alt, anmalan, skapad, kort, lanktext, bilder";
 type Rad = Omit<Evenemang, "kvar" | "sittningar">;
 
 async function komplettera(rader: Rad[]): Promise<Evenemang[]> {

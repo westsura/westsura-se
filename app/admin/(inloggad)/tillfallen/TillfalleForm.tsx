@@ -8,6 +8,7 @@ type T = {
   publicerad: boolean; synlighet?: string; samling?: string | null; program?: string | null; algjakt?: boolean;
   slug?: string | null; ingress?: string | null; bild?: string | null; bild_alt?: string | null; anmalan?: boolean;
   barnpris?: number | null; barn_alder?: number; gastplatser?: number; gastpris?: number | null;
+  kort?: string | null; lanktext?: string | null;
 };
 
 /** Förminskar en bild i webbläsaren till högst 2000 px och JPEG, så att uppladdningen går snabbt. */
@@ -59,6 +60,10 @@ export default function TillfalleForm({ tillfalle }: { tillfalle?: T }) {
         <>
           <div className="field field--full"><label>Ingress</label>
             <input name="ingress" defaultValue={tillfalle?.ingress ?? ""} placeholder="En mening som lockar — visas på startsidan och överst på evenemangssidan" /></div>
+          <div className="field field--full"><label>Text på startsidan</label>
+            <textarea name="kort" defaultValue={tillfalle?.kort ?? ""} style={{ minHeight: 110 }} placeholder="Valfritt — kort text som visas under Aktuellt på startsidan. Tom rad mellan styckena. Lämnas den tom visas ingressen och början av texten nedan." /></div>
+          <div className="field field--full"><label>Länktext på startsidan</label>
+            <input name="lanktext" defaultValue={tillfalle?.lanktext ?? ""} placeholder="Valfritt — t.ex. Läs mer och se program för dagen" /></div>
           <div className="field field--full"><label>Bild</label>
             <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
               {forhand && !taBort && (
@@ -104,7 +109,7 @@ export default function TillfalleForm({ tillfalle }: { tillfalle?: T }) {
         </>
       )}
       <div className="field field--full"><label>{ev ? "Text" : "Beskrivning"}</label>
-        <textarea name="beskrivning" defaultValue={tillfalle?.beskrivning ?? ""} style={{ minHeight: ev ? 180 : 80 }} placeholder={ev ? "Berätta om evenemanget. Tom rad mellan styckena." : ""} /></div>
+        <textarea name="beskrivning" defaultValue={tillfalle?.beskrivning ?? ""} style={{ minHeight: ev ? 180 : 80 }} placeholder={ev ? "Berätta om evenemanget. Tom rad mellan styckena. Skriv ## före en rad för att göra den till mellanrubrik, t.ex. ## Praktisk information" : ""} /></div>
       <div className="field field--full"><label title="En rad per punkt">Program</label>
         <textarea name="program" defaultValue={tillfalle?.program ?? ""} style={{ minHeight: 100 }} placeholder={ev ? "Valfritt — en rad per punkt, t.ex.\n10.00  Portarna öppnas\n12.00  Lunch från grillen" : "En rad per punkt, t.ex.\n07.00  Samling vid herrgården\n07.30  Säkerhetsgenomgång"} /></div>
       {ev && (

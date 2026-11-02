@@ -5,6 +5,7 @@ import { Hero } from "@/components/Blocks";
 import Signup from "@/components/Signup";
 import Tillfallen from "@/components/Tillfallen";
 import Sittningar from "@/components/Sittningar";
+import Bildgalleri from "@/components/Bildgalleri";
 import { evenemang, nar } from "@/lib/aktuellt";
 import { site } from "@/lib/site";
 
@@ -44,6 +45,31 @@ function tider(datum: string, tid: string | null) {
   return { start: p(m[1], m[2]), slut: m[3] ? p(m[3], m[4]) : datum };
 }
 
+/**
+ * Delar upp brödtexten: inledning före första "## Rubrik", ett avsnitt per rubrik, och
+ * "## Praktisk information" som blir faktarutan (rader "Etikett: värde") + avslutande ord.
+ */
+function delaUpp(beskrivning: string) {
+  const stycken = beskrivning.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+  const intro: string[] = [], avsnitt: { rubrik: string; stycken: string[] }[] = [], fakta: [string, string][] = [], avslut: string[] = [];
+  let i = 0, praktiskt = false;
+  for (const p of stycken) {
+    if (p.startsWith("#")) {
+      const rubrik = p.replace(/^#+\s*/, "");
+      praktiskt = /^praktisk/i.test(rubrik);
+      if (!praktiskt) avsnitt.push({ rubrik, stycken: [] });
+      i++; continue;
+    }
+    if (praktiskt) {
+      const rader = p.split("\n").map((r) => r.match(/^([A-ZÅÄÖ][^:]{1,18}):\s+(.+)$/));
+      if (rader.every(Boolean)) rader.forEach((m) => fakta.push([m![1], m![2]]));
+      else avslut.push(p);
+    } else if (i === 0) intro.push(p);
+    else avsnitt[avsnitt.length - 1].stycken.push(p);
+  }
+  return { intro, avsnitt, fakta, avslut };
+}
+
 export default async function EvenemangSida({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const e = await evenemang(slug);
@@ -76,8 +102,22 @@ export default async function EvenemangSida({ params }: { params: Promise<{ slug
       ],
     } : {}),
   };
-  const stycken = (e.beskrivning ?? "").split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+  const text = delaUpp(e.beskrivning ?? "");
   const program = (e.program ?? "").split("\n").map((x) => x.trim()).filter(Boolean);
+  // Faktarutan: datum, tid, plats och pris från fälten, plus egna rader under "## Praktisk information".
+  const fakta: [string, string][] = [
+    ["Datum", nar(e).replace(/ · .*$/, "")],
+    ...(e.tid && !e.sittningar.length ? [["Tid", e.tid] as [string, string]] : []),
+    ["Plats", `${site.name}, Lisjövägen 50, Surahammar`],
+    ["Entré", e.pris === 0 ? "Fri entré" : e.pris ? `${e.pris.toLocaleString("sv-SE")} kr per person${e.barnpris != null ? `, barn upp till ${e.barn_alder} år ${e.barnpris.toLocaleString("sv-SE")} kr` : ""}` : "Se texten"],
+  ];
+  // Det som står i texten vinner — "Söndag 6 december 2026, andra advent" säger mer än bara datumet.
+  for (const [k, v] of text.fakta) {
+    const finns = fakta.findIndex(([f]) => f.toLowerCase() === k.toLowerCase());
+    if (finns >= 0) fakta[finns] = [k, v]; else fakta.push([k, v]);
+  }
+  // Avsnitten får var sin bild ur galleriet (inte huvudbilden), så länge det räcker.
+  const avsnittsbilder = e.bilder.filter((x) => x.src !== bild);
 
   return (
     <>
@@ -85,33 +125,78 @@ export default async function EvenemangSida({ params }: { params: Promise<{ slug
       <Hero remote={bild.startsWith("http")} src={bild} alt={e.bild_alt ?? e.titel} sub
         label={nar(e)} title={e.titel.toLowerCase()} lede={e.ingress ?? undefined} />
 
+      {/* Inledning + praktisk ruta */}
       <section className="section section--tight">
-        <div className="container split split--start">
+        <div className="container split split--start ev-intro">
           <div className="prose">
             {passerat && <p className="notice">Det här evenemanget har redan varit. <Link href="/#aktuellt">Se vad som är på gång →</Link></p>}
-            {stycken.map((p, i) => <p key={i} style={{ whiteSpace: "pre-line" }}>{p}</p>)}
+            {text.intro.map((p, i) => <p key={i} className={i === 0 ? "ev-lede" : undefined}>{p}</p>)}
             {!!program.length && (
               <>
                 <h2 className="lower">program</h2>
-                <ul>{program.map((r, i) => <li key={i}>{r}</li>)}</ul>
+                <ul className="ev-program">{program.map((r, i) => <li key={i}>{r}</li>)}</ul>
               </>
             )}
-            <p className="muted">{site.name} · Lisjövägen 50, Surahammar{e.pris === 0 ? " · Fri entré" : e.pris ? ` · ${e.pris.toLocaleString("sv-SE")} kr per person` : ""}{e.barnpris != null ? `, barn upp till ${e.barn_alder} år ${e.barnpris.toLocaleString("sv-SE")} kr` : ""}</p>
           </div>
-          <div>
+          <div className="ev-sida">
             {e.anmalan && !passerat && e.sittningar.length > 0 ? (
               <Sittningar tillfalleId={e.id} titel={e.titel} pris={e.pris} barnpris={e.barnpris} barnAlder={e.barn_alder} sittningar={e.sittningar} />
             ) : e.anmalan && !passerat ? (
               <Tillfallen rubrik="Anmälan" barn={e.barnpris != null ? { pris: e.barnpris, alder: e.barn_alder } : null}tillfallen={[{ id: e.id, typ: "evenemang", titel: e.titel, beskrivning: null, datum: e.datum, tid: e.tid, pris: e.pris, vanpris: null, platser: e.platser, kvar: e.kvar }]} />
-            ) : (
-              <div className="card card--plain">
-                <p className="label">{passerat ? "Missa inte nästa" : "Välkommen"}</p>
-                <p className="mb-0">{passerat ? "Bli Westsuras Vän så får du inbjudan till nästa evenemang först." : "Ingen anmälan behövs — välkommen när det passar dig. Frågor? Ring "}{!passerat && <a href={site.phoneHref}>{site.phone}</a>}{!passerat && "."}</p>
-              </div>
-            )}
+            ) : null}
+            <div className="ev-fakta">
+              <p className="label">Praktiskt</p>
+              <dl>
+                {fakta.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+              </dl>
+              {!e.anmalan && !passerat && <p className="ev-fakta__not">Ingen anmälan behövs — kom när det passar dig.</p>}
+              <p className="ev-fakta__not">
+                <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent("Westsura Herrgård, Lisjövägen 50, Surahammar")}`} target="_blank" rel="noopener">Vägbeskrivning →</a><br />
+                Frågor? Ring <a href={site.phoneHref}>{site.phone}</a>
+              </p>
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Avsnitten — varannan med bild till vänster, varannan till höger */}
+      {text.avsnitt.map((a, i) => {
+        const b = avsnittsbilder[i];
+        return (
+          <section key={a.rubrik} className={`section section--tight${i % 2 === 0 ? " tint" : ""}`}>
+            <div className={`container${b ? " split ev-avsnitt" : " narrow"}${b && i % 2 ? " ev-avsnitt--om" : ""}`}>
+              {b && (
+                <div className="fig fig--45">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={b.src} alt={b.alt} loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+              )}
+              <div className="prose">
+                <h2 className="lower">{a.rubrik.toLowerCase()}</h2>
+                {a.stycken.map((p, j) => <p key={j} className={j === 0 && a.stycken.length > 1 && p.length < 60 ? "ev-kicker" : undefined}>{p}</p>)}
+              </div>
+            </div>
+          </section>
+        );
+      })}
+
+      {text.avslut.length > 0 && (
+        <section className="section section--tight">
+          <div className="container narrow center">
+            {text.avslut.map((p, i) => <p key={i} className="motto">{p}</p>)}
+          </div>
+        </section>
+      )}
+
+      {e.bilder.length > 1 && (
+        <section className={`section section--tight${text.avsnitt.length % 2 === 0 ? " tint" : ""}`}>
+          <div className="container">
+            <p className="label">Bilder</p>
+            <h2 className="lower">{passerat ? "så här blev det" : "från förra året"}</h2>
+            <Bildgalleri max={12} bilder={e.bilder} rubrik={e.titel} foto={e.bilder.some((x) => x.src.includes("/julmarknad/")) ? "Lizette Kullberg" : undefined} />
+          </div>
+        </section>
+      )}
 
       <section className="section tint">
         <div className="container narrow center">

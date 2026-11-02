@@ -624,6 +624,8 @@ export async function sparaTillfalle(fd: FormData) {
     rad.ingress = s(fd.get("ingress")) || null;
     rad.bild_alt = s(fd.get("bild_alt")) || null;
     rad.anmalan = !!fd.get("anmalan");
+    if (fd.has("kort")) rad.kort = s(fd.get("kort")) || null;
+    if (fd.has("lanktext")) rad.lanktext = s(fd.get("lanktext")) || null;
     // Bara om fälten finns i formuläret — ett äldre formulär i en öppen flik ska inte nollställa barnpriset.
     if (fd.has("barnpris")) rad.barnpris = s(fd.get("barnpris")) === "" ? null : Math.max(0, Math.round(Number(s(fd.get("barnpris")))));
     if (fd.has("barn_alder")) rad.barn_alder = Math.min(18, Math.max(1, Number(s(fd.get("barn_alder")) || 12)));

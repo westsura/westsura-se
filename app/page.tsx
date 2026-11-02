@@ -4,6 +4,7 @@ import Image from "next/image";
 import SearchBar from "@/components/SearchBar";
 import Signup from "@/components/Signup";
 import Galleri from "@/components/Galleri";
+import Bildgalleri from "@/components/Bildgalleri";
 import { Hero, Kung, DogBand, CtaRow, Ornament } from "@/components/Blocks";
 import { img } from "@/lib/site";
 import { kommandeEvenemang, nar } from "@/lib/aktuellt";
@@ -39,12 +40,19 @@ export default async function Home() {
               <div>
                 <p className="label">Aktuellt · {nar(forsta)}</p>
                 <h2 className="lower">{forsta.titel.toLowerCase()}</h2>
-                {forsta.ingress && <p>{forsta.ingress}</p>}
-                {/* Början av brödtexten — de två första styckena, kortade om de är långa. */}
-                {(forsta.beskrivning ?? "").split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean).slice(0, 2).map((p, i) => (
-                  <p key={i}>{p.length > 420 ? p.slice(0, p.lastIndexOf(" ", 400)) + " …" : p}</p>
-                ))}
-                <p className="mb-0"><Link className="link-more" href={`/aktuellt/${forsta.slug}`}>{forsta.anmalan ? "Läs mer och anmäl dig →" : "Läs mer →"}</Link></p>
+                {forsta.kort ? (
+                  // Egen text till startsidan.
+                  forsta.kort.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean).map((p, i) => <p key={i} style={{ whiteSpace: "pre-line" }}>{p}</p>)
+                ) : (
+                  <>
+                    {forsta.ingress && <p>{forsta.ingress}</p>}
+                    {/* Början av brödtexten — de två första styckena (inte rubriker), kortade om de är långa. */}
+                    {(forsta.beskrivning ?? "").split(/\n\s*\n/).map((x) => x.trim()).filter((x) => x && !x.startsWith("#")).slice(0, 2).map((p, i) => (
+                      <p key={i}>{p.length > 420 ? p.slice(0, p.lastIndexOf(" ", 400)) + " …" : p}</p>
+                    ))}
+                  </>
+                )}
+                <p className="mb-0"><Link className="link-more" href={`/aktuellt/${forsta.slug}`}>{forsta.lanktext || (forsta.anmalan ? "Läs mer och anmäl dig" : "Läs mer")} →</Link></p>
               </div>
             ) : (
               <div>
@@ -70,12 +78,17 @@ export default async function Home() {
                   <p className="label" style={{ marginTop: 14 }}>{nar(e)}</p>
                   <h3>{e.titel}</h3>
                   {e.ingress && <p>{e.ingress}</p>}
-                  <span className="link-more">{e.anmalan ? "Läs mer och anmäl dig →" : "Läs mer →"}</span>
+                  <span className="link-more">{e.lanktext || (e.anmalan ? "Läs mer och anmäl dig" : "Läs mer")} →</span>
                 </Link>
               ))}
             </div>
           )}
-          <Galleri teman={[
+          {/* Med ett evenemang på gång visas dess egna bilder; annars ett urval från herrgården. */}
+          {forsta ? (
+            forsta.bilder.filter((b) => b.src !== forsta.bild).length >= 2 && (
+              <Bildgalleri bilder={forsta.bilder.filter((b) => b.src !== forsta.bild).slice(0, 4)} rubrik={forsta.titel} />
+            )
+          ) : <Galleri teman={[
             { rubrik: "Marknadsdagar", bilder: [
               { src: "/bilder/julmarknad-1.jpg", alt: "Besökare på marknaden med herrgården i bakgrunden" },
               { src: "/bilder/julmarknad-fasad.jpg", alt: "Marknadsstånd vid herrgårdens gula fasad" },
@@ -97,7 +110,7 @@ export default async function Home() {
               { src: "/bilder/gast-buffe.jpg", alt: "En gäst tar mat från buffén i salongen" },
               { src: "/bilder/herrgarden.jpg", alt: "Picknick på gräsmattan framför herrgården" },
             ] },
-          ]} />
+          ]} />}
         </div>
       </section>
 
