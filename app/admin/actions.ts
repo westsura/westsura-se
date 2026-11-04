@@ -115,14 +115,14 @@ export async function sattBokningsstatus(id: string, status: "preliminar" | "bek
       } catch (e) { console.error(e); }
     }
   }
-  revalidatePath("/admin/bokningar"); revalidatePath("/admin"); revalidatePath("/admin/kalender");
+  revalidatePath("/admin/bokningar"); revalidatePath("/admin/bokningar/boende"); revalidatePath("/admin"); revalidatePath("/admin/kalender");
   return { ok: true };
 }
 
 export async function skapaManuellBokning(fd: FormData): Promise<{ ok: boolean; fel?: string; nummer?: number }> {
-  const db = await supabaseServer();
-  const { data: { user } } = await db.auth.getUser();
-  if (!user) return { ok: false, fel: "Inte inloggad" };
+  // Använder servicenyckeln nedan — därför krävs adminbehörighet, inte bara inloggning
+  // (jägar- och hundförarkonton är också inloggade användare).
+  await kravAdmin("vardskap");
   const admin = supabaseAdmin();
   const enheter = s(fd.get("enheter")).split(",").map((x) => x.trim()).filter(Boolean);
   const { data, error } = await admin.rpc("skapa_bokning", {
@@ -136,7 +136,7 @@ export async function skapaManuellBokning(fd: FormData): Promise<{ ok: boolean; 
   // Bokningen finns redan; misslyckas märkningen blir den kvar som preliminär från webben.
   const { error: felMark } = await admin.from("bokning").update({ kalla: "admin", status: "bekraftad" }).eq("id", rad.bokning_id);
   if (felMark) console.error("kunde inte märka bokningen som admin/bekräftad", rad.nummer, felMark.message);
-  revalidatePath("/admin/bokningar"); revalidatePath("/admin/kalender");
+  revalidatePath("/admin/bokningar/boende"); revalidatePath("/admin/kalender");
   return { ok: true, nummer: rad.nummer };
 }
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { kravAdmin, harRoll, datum, kr } from "@/lib/admin";
 import { supabaseServer } from "@/lib/supabase";
+import { arendeNamn, foljUpp, type Arende } from "@/lib/arende";
 
 export const dynamic = "force-dynamic";
 
@@ -28,12 +29,17 @@ export default async function Oversikt() {
     vardskap ? db.from("bokningar_admin").select("*").neq("status", "avbokad").gte("ankomst", idag).lte("ankomst", omEnVecka).order("ankomst") : inget,
     vardskap ? db.from("bokningar_admin").select("*").neq("status", "avbokad").eq("avresa", idag) : inget,
     vardskap ? db.from("bokningar_admin").select("*").eq("status", "preliminar").order("skapad", { ascending: false }) : inget,
-    vardskap ? db.from("forfragan").select("*").in("status", ["ny", "pagar"]).order("skapad", { ascending: false }) : inget,
+    vardskap ? db.from("arende").select("*").in("status", ["forfragan", "preliminar"]).order("skapad", { ascending: false }) : inget,
     ekonomi ? db.from("fakturaunderlag").select("*", { count: "exact", head: true }).eq("status", "ej_fakturerad") : inget,
     vanner ? db.from("van").select("*", { count: "exact", head: true }).is("avanmald_tid", null) : inget,
     tillfallen ? db.from("tillfalle").select("*").gte("datum", idag).order("datum") : inget,
     tillfallen ? db.from("anmalan").select("tillfalle_id, antal, status") : inget,
   ]);
+
+  // Förfrågningar och preliminära bokningar i den interna bokningshanteringen.
+  const arenden = ((nyaForfragningar ?? []) as Arende[]);
+  const forfragningar = arenden.filter((a) => a.status === "forfragan");
+  const foljUppLista = arenden.map((a) => ({ a, f: foljUpp(a, idag) })).filter((x) => x.f).sort((x, y) => (x.a.svara_senast ?? "").localeCompare(y.a.svara_senast ?? ""));
 
   const tagnaPlatser = (id: string) =>
     (anmalningar ?? [])
@@ -48,8 +54,9 @@ export default async function Oversikt() {
       </header>
 
       <div className="admin__stats">
-        {vardskap && <Link href="/admin/bokningar?status=preliminar" className="stat"><b>{nyaBokningar?.length ?? 0}</b><span>Bokningar att bekräfta</span></Link>}
-        {vardskap && <Link href="/admin/forfragningar" className="stat"><b>{nyaForfragningar?.length ?? 0}</b><span>Obesvarade förfrågningar</span></Link>}
+        {vardskap && <Link href="/admin/bokningar/boende?status=preliminar" className="stat"><b>{nyaBokningar?.length ?? 0}</b><span>Bokningar att bekräfta</span></Link>}
+        {vardskap && <Link href="/admin/bokningar?status=forfragan" className="stat"><b>{forfragningar.length}</b><span>Förfrågningar</span></Link>}
+        {vardskap && <Link href="/admin/bokningar?status=preliminar" className="stat"><b>{foljUppLista.length}</b><span>Att följa upp</span></Link>}
         {vardskap && <Link href="/admin/kalender" className="stat"><b>{ankomster?.length ?? 0}</b><span>Ankomster inom en vecka</span></Link>}
         {ekonomi && <Link href="/admin/fakturering" className="stat"><b>{attFakturera ?? 0}</b><span>Att fakturera</span></Link>}
         {tillfallen && <Link href="/admin/tillfallen" className="stat"><b>{kommande?.length ?? 0}</b><span>Kommande tillfällen</span></Link>}
@@ -62,19 +69,25 @@ export default async function Oversikt() {
             <h2 className="admin__h2">Att bekräfta</h2>
             {!nyaBokningar?.length && <p className="empty">Inga preliminära bokningar.</p>}
             {nyaBokningar?.map((b) => (
-              <Link key={b.id} href={`/admin/bokningar#${b.nummer}`} className="row">
+              <Link key={b.id} href={`/admin/bokningar/boende#${b.nummer}`} className="row">
                 <span className="row__main"><b>{b.gast_namn}</b> · {b.paket_namn ?? b.enheter}</span>
                 <span className="row__meta">{datum(b.ankomst)}–{datum(b.avresa)} · {kr(b.summa)}</span>
               </Link>
             ))}
           </section>
           <section className="admin__panel">
-            <h2 className="admin__h2">Förfrågningar</h2>
-            {!nyaForfragningar?.length && <p className="empty">Inkorgen är tom.</p>}
-            {nyaForfragningar?.map((f) => (
-              <Link key={f.id} href={`/admin/forfragningar#${f.nummer}`} className="row">
-                <span className="row__main"><b>{f.namn}</b> · {f.typ}</span>
-                <span className="row__meta">{f.onskat_datum || "datum ej satt"} · {f.antal_gaster || "?"} gäster · <em>{f.status}</em></span>
+            <h2 className="admin__h2">Förfrågningar och uppföljning</h2>
+            {!foljUppLista.length && !forfragningar.length && <p className="empty">Inkorgen är tom.</p>}
+            {foljUppLista.map(({ a, f }) => (
+              <Link key={a.id} href={`/admin/bokningar/${a.id}`} className="row">
+                <span className="row__main"><b>{arendeNamn(a)}</b> · preliminär</span>
+                <span className={`row__meta folj folj--${f!.niva}`}>{f!.text}</span>
+              </Link>
+            ))}
+            {forfragningar.slice(0, 8).map((a) => (
+              <Link key={a.id} href={`/admin/bokningar/${a.id}`} className="row">
+                <span className="row__main"><b>{arendeNamn(a)}</b></span>
+                <span className="row__meta">{a.antal_gaster ? `${a.antal_gaster} gäster · ` : ""}inkom {datum(a.skapad)}</span>
               </Link>
             ))}
           </section>

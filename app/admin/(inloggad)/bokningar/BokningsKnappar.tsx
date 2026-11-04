@@ -14,7 +14,7 @@ export default function BokningsKnappar({ id, status }: { id: string; status: st
   return (
     <div className="admin__actions">
       {fel && <div className="notice notice--fel" role="alert">{fel}</div>}
-      {status !== "bekraftad" && <button className="btn btn--sm" disabled={pending} onClick={() => satt("bekraftad")}>Bekräfta</button>}
+      {status !== "bekraftad" && <button className="btn btn--sm" disabled={pending} onClick={() => { if (confirm("Bekräfta bokningen?\n\nGästen får ett bekräftelsemejl direkt med datum, boende, summa och betalningsvillkor.")) satt("bekraftad"); }}>Bekräfta</button>}
       {status !== "avbokad" && <button className="btn btn--sm btn--ghost" disabled={pending} onClick={() => { if (confirm("Avboka bokningen?")) satt("avbokad"); }}>Avboka</button>}
       {status === "avbokad" && <button className="btn btn--sm btn--ghost" disabled={pending} onClick={() => satt("preliminar")}>Återöppna</button>}
     </div>

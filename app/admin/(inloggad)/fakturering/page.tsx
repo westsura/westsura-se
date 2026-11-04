@@ -52,7 +52,7 @@ export default async function Fakturering({ searchParams }: { searchParams: Prom
                     <td className="num"><Link href={`/admin/fakturering/${u.id}`}>{u.nummer}</Link></td>
                     <td><b>{u.kund_foretag || u.kund_namn || <em>namn saknas</em>}</b>{u.kund_foretag && <><br /><small>{u.kund_namn}</small></>}</td>
                     <td><Link href={`/admin/fakturering/${u.id}`} style={{ textDecoration: "none" }}>{u.rubrik}</Link></td>
-                    <td><small>{u.bokning_nummer ? <Link href={`/admin/bokningar#${u.bokning_nummer}`}>Bokning {u.bokning_nummer}</Link> : u.forfragan_nummer ? <Link href={`/admin/forfragningar#${u.forfragan_nummer}`}>Förfrågan {u.forfragan_nummer}</Link> : "Manuellt"}</small></td>
+                    <td><small>{u.bokning_nummer ? <Link href={`/admin/bokningar/boende#${u.bokning_nummer}`}>Bokning {u.bokning_nummer}</Link> : u.forfragan_nummer ? <Link href={`/admin/forfragningar#${u.forfragan_nummer}`}>Förfrågan {u.forfragan_nummer}</Link> : "Manuellt"}</small></td>
                     <td className="num">{kr(u.summa)}</td>
                     <td style={sen ? { color: "#a33", fontWeight: 700 } : undefined}>{u.forfallodatum ?? "—"}</td>
                     <td><span className={`pill pill--${u.status}`}>{STATUS[u.status]}</span></td>
