@@ -2,6 +2,7 @@ import Link from "next/link";
 import { kravAdmin, harRoll, datum, kr } from "@/lib/admin";
 import { supabaseServer } from "@/lib/supabase";
 import { arendeNamn, foljUpp, type Arende } from "@/lib/arende";
+import Uppgiftslista, { type Uppgift } from "./Uppgiftslista";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,13 @@ export default async function Oversikt() {
     tillfallen ? db.from("tillfalle").select("*").gte("datum", idag).order("datum") : inget,
     tillfallen ? db.from("anmalan").select("tillfalle_id, antal, status") : inget,
   ]);
+
+  const { data: uppgiftRader } = vardskap
+    ? await db.from("uppgift").select("*, arende:arende_id(id, nummer, typ, rubrik, kund_namn, kund_foretag)").eq("klar", false).order("forfallo", { nullsFirst: false }).limit(30)
+    : { data: [] };
+  const uppgifter: Uppgift[] = ((uppgiftRader ?? []) as (Uppgift & { arende: (Arende & { id: string }) | null })[]).map((u) => ({
+    ...u, arende: u.arende ? { id: u.arende.id, nummer: u.arende.nummer, namn: arendeNamn(u.arende) } : null,
+  }));
 
   // Förfrågningar och preliminära bokningar i den interna bokningshanteringen.
   const arenden = ((nyaForfragningar ?? []) as Arende[]);
@@ -93,6 +101,8 @@ export default async function Oversikt() {
           </section>
         </div>
       )}
+
+      {vardskap && <div style={{ marginTop: 24 }}><Uppgiftslista uppgifter={uppgifter} /></div>}
 
       {vardskap && (
         <section className="admin__panel" style={{ marginTop: 24 }}>

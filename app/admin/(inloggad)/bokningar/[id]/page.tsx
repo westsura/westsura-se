@@ -4,6 +4,9 @@ import { kravAdmin } from "@/lib/admin";
 import { supabaseServer } from "@/lib/supabase";
 import { ARENDETYP, ARENDESTATUS, arendeNamn, foljUpp, type Arende, type Del } from "@/lib/arende";
 import { Statusknappar, Uppgifter, Delar, TaBort } from "./Arendevy";
+import Mejl, { type Logg } from "./Mejl";
+import Uppgiftslista, { type Uppgift } from "../../Uppgiftslista";
+import type { Mejlmall } from "@/lib/arendemejl";
 
 export const dynamic = "force-dynamic";
 
@@ -15,11 +18,14 @@ export default async function Bokning({ params }: { params: Promise<{ id: string
   const { data: a } = await db.from("arende").select("*").eq("id", id).maybeSingle();
   if (!a) notFound();
   const arende = a as Arende;
-  const [{ data: delar }, { data: enheter }, { data: lokaler }, { data: forfragan }] = await Promise.all([
+  const [{ data: delar }, { data: enheter }, { data: lokaler }, { data: forfragan }, { data: mallar }, { data: logg }, { data: uppgifter }] = await Promise.all([
     db.from("arende_del").select("*").eq("arende_id", id).order("fran").order("tid_fran"),
     db.from("enhet").select("id, namn, ingar_i").eq("aktiv", true).order("ordning"),
     db.from("lokal").select("id, namn").eq("aktiv", true).order("ordning"),
     arende.forfragan_id ? db.from("forfragan").select("nummer, typ, onskat_datum, antal_gaster, meddelande, skapad, hundar").eq("id", arende.forfragan_id).maybeSingle() : Promise.resolve({ data: null }),
+    db.from("mejlmall").select("*").order("ordning"),
+    db.from("arende_mejl").select("*").eq("arende_id", id).order("skickat", { ascending: false }),
+    db.from("uppgift").select("*").eq("arende_id", id).order("klar").order("forfallo", { nullsFirst: false }),
   ]);
   const folj = foljUpp(arende);
 
@@ -41,6 +47,8 @@ export default async function Bokning({ params }: { params: Promise<{ id: string
       <div className="arende">
         <Delar a={arende} delar={(delar ?? []) as Del[]} resurser={{ enheter: enheter ?? [], lokaler: lokaler ?? [] }} />
         <Uppgifter a={arende} />
+        {arende.typ !== "intern" && <Mejl a={arende} mallar={(mallar ?? []) as Mejlmall[]} logg={(logg ?? []) as Logg[]} />}
+        <Uppgiftslista arendeId={arende.id} uppgifter={(uppgifter ?? []) as Uppgift[]} visaKlara />
         {forfragan && (
           <section className="admin__panel">
             <h2 className="admin__h2">Förfrågan från sajten</h2>

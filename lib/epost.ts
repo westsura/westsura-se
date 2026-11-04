@@ -31,6 +31,15 @@ async function skicka(till: string[], amne: string, body: string, svaraTill?: st
   return true;
 }
 
+/**
+ * Mejl skrivet (och granskat) i admin. Texten skickas som den står — tom rad blir nytt stycke.
+ * Svar går till herrgården. Returnerar om utskicket lyckades.
+ */
+export async function mejlFranAdmin(o: { till: string; amne: string; rubrik: string; text: string }) {
+  const stycken = o.text.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean).map(fritext);
+  return skicka([o.till], o.amne, html(fritext(o.rubrik), stycken, ""), site.email);
+}
+
 export async function mejlBokning(o: { epost: string; namn: string; nummer: number; ankomst: string; avresa: string; enheter: string[]; summa: number; hundar: number; frukost: boolean; bricka?: boolean; paket?: boolean }) {
   const kr = o.summa.toLocaleString("sv-SE") + " kr";
   const rader = [

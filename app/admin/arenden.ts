@@ -3,13 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { kravAdmin } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/supabase";
+import { mejlFranAdmin } from "@/lib/epost";
+import { fyllMall, valjMall, type Mejlmall } from "@/lib/arendemejl";
+import type { Arende, Del } from "@/lib/arende";
 
 /**
  * Intern bokningshantering. Allt kräver behörigheten värdskap (Boende & bokningar).
- * Inga av dessa åtgärder skickar mejl till kunden.
+ * Ändringar och anteckningar skickar aldrig mejl. Mejl går bara ut när någon trycker
+ * Skicka efter förhandsgranskning — eller när bokningen har mejlläget Automatiskt och
+ * bekräftas (då står det i bekräftelsefrågan).
  */
 
-type Svar = { ok: boolean; fel?: string; id?: string; konflikter?: string[] };
+type Svar = { ok: boolean; fel?: string; id?: string; konflikter?: string[]; mejlat?: boolean; foreslaMejl?: string };
 const s = (v: FormDataEntryValue | null) => (typeof v === "string" ? v.trim() : "");
 const n = (v: FormDataEntryValue | null) => { const t = s(v); return t === "" ? null : Math.max(0, Math.round(Number(t))); };
 const datumOk = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d);
@@ -135,7 +140,21 @@ export async function sattArendestatus(id: string, status: string): Promise<Svar
   // Den gamla förfrågningslistan hålls i takt så länge den finns kvar.
   if (a.forfragan_id) await db.from("forfragan").update({ status: FORFRAGANSTATUS[status] }).eq("id", a.forfragan_id);
   uppdatera(id); revalidatePath("/admin/forfragningar");
-  return { ok: true };
+
+  // Mejl: automatiskt bara vid bekräftelse och bara om bokningen har läget Automatiskt.
+  const syfte = status === "bekraftad" ? "bekraftelse" : status === "preliminar" ? "preliminar" : status === "avbokad" ? "avbokning" : null;
+  const { data: full } = await db.from("arende").select("*").eq("id", id).maybeSingle();
+  if (!syfte || !full?.kund_epost || full.mejllage === "inget" || full.typ === "intern") return { ok: true };
+  if (full.mejllage === "auto" && syfte === "bekraftelse") {
+    const f = await mejlforslag(id, null, syfte);
+    if (f) {
+      const lyckat = await mejlFranAdmin(f);
+      await db.from("arende_mejl").insert({ arende_id: id, syfte, till: f.till, amne: f.amne, text: f.text, ok: lyckat, auto: true, skickat_av: (await kravAdmin("vardskap")).namn });
+      uppdatera(id);
+      return { ok: true, mejlat: lyckat, fel: lyckat ? undefined : "Statusen är ändrad, men bekräftelsemejlet gick inte iväg." };
+    }
+  }
+  return { ok: true, foreslaMejl: syfte };
 }
 
 /** Lägger till eller ändrar en del (tjänst). Krockkontroll om bokningen reserverar. */
@@ -155,7 +174,6 @@ export async function sparaDel(arendeId: string, fd: FormData): Promise<Svar> {
     ? await db.from("arende_del").update(d.rad).eq("id", delId).eq("arende_id", arendeId)
     : await db.from("arende_del").insert({ ...d.rad, arende_id: arendeId });
   if (error) return { ok: false, fel: error.message };
-  await db.from("arende").update({ uppdaterad: new Date().toISOString() }).eq("id", arendeId);
   uppdatera(arendeId);
   return { ok: true };
 }
@@ -174,5 +192,101 @@ export async function taBortArende(id: string): Promise<Svar> {
   const { error } = await supabaseAdmin().from("arende").delete().eq("id", id);
   if (error) return { ok: false, fel: error.message };
   uppdatera();
+  return { ok: true };
+}
+
+
+/* ---------- Mejl till kunden ---------- */
+
+/** Fyller i en mall (eller bästa mallen för syftet) med bokningens uppgifter. */
+async function mejlforslag(arendeId: string, mallId: string | null, syfte?: string) {
+  const db = supabaseAdmin();
+  const [{ data: a }, { data: delar }, { data: lokaler }, { data: enheter }, { data: mallar }] = await Promise.all([
+    db.from("arende").select("*").eq("id", arendeId).maybeSingle(),
+    db.from("arende_del").select("*").eq("arende_id", arendeId).order("fran").order("tid_fran"),
+    db.from("lokal").select("id, namn"),
+    db.from("enhet").select("id, namn"),
+    db.from("mejlmall").select("*").order("ordning"),
+  ]);
+  if (!a) return null;
+  const M = (mallar ?? []) as Mejlmall[];
+  const mall = mallId ? M.find((m) => m.id === mallId) : valjMall(M, syfte ?? "fritt", a.typ);
+  if (!mall) return null;
+  const ln = (x: string) => lokaler?.find((l) => l.id === x)?.namn ?? x;
+  const en = (x: string) => enheter?.find((e) => e.id === x)?.namn ?? x;
+  const fyll = (t: string) => fyllMall(t, a as Arende, (delar ?? []) as Del[], ln, en);
+  return { mallId: mall.id, syfte: mall.syfte, till: a.kund_epost ?? "", amne: fyll(mall.amne), rubrik: fyll(mall.rubrik), text: fyll(mall.text) };
+}
+
+/** Förslag till mejl att granska och redigera innan det skickas. */
+export async function forhandsgranskaMejl(arendeId: string, mallId: string | null, syfte?: string) {
+  await kravAdmin("vardskap");
+  return mejlforslag(arendeId, mallId, syfte);
+}
+
+/** Skickar ett granskat mejl till kunden och sparar det i bokningens logg. */
+export async function skickaArendeMejl(arendeId: string, fd: FormData): Promise<Svar> {
+  const admin = await kravAdmin("vardskap");
+  const db = supabaseAdmin();
+  const { data: a } = await db.from("arende").select("mejllage, typ").eq("id", arendeId).maybeSingle();
+  if (!a) return { ok: false, fel: "Bokningen hittades inte." };
+  if (a.mejllage === "inget") return { ok: false, fel: "Mejl är avstängt för den här bokningen. Ändra mejlläget först." };
+  const till = s(fd.get("till")).toLowerCase(), amne = s(fd.get("amne")), rubrik = s(fd.get("rubrik")), text = s(fd.get("text"));
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(till)) return { ok: false, fel: "Ange en giltig e-postadress." };
+  if (!amne || !text) return { ok: false, fel: "Ämne och text behövs." };
+  if (/\[(sista svarsdatum|inga tjänster inlagda)\]/.test(text)) return { ok: false, fel: "Texten innehåller fortfarande en markering inom [hakparenteser] — fyll i eller ta bort den först." };
+  const syfte = s(fd.get("syfte")) || "fritt";
+  const lyckat = await mejlFranAdmin({ till, amne, rubrik: rubrik || "Westsura Herrgård", text });
+  await db.from("arende_mejl").insert({ arende_id: arendeId, syfte, till, amne, text, ok: lyckat, skickat_av: admin.namn ?? admin.epost });
+  uppdatera(arendeId);
+  return lyckat ? { ok: true, mejlat: true } : { ok: false, fel: "Mejlet gick inte iväg. Det är sparat i loggen som misslyckat — försök igen om en stund." };
+}
+
+/** Automatiskt, manuellt (förhandsgranska) eller inga mejl för bokningen. */
+export async function sattMejllage(arendeId: string, lage: string): Promise<Svar> {
+  await kravAdmin("vardskap");
+  if (!["auto", "manuell", "inget"].includes(lage)) return { ok: false, fel: "Okänt läge." };
+  const { error } = await supabaseAdmin().from("arende").update({ mejllage: lage }).eq("id", arendeId);
+  if (error) return { ok: false, fel: error.message };
+  uppdatera(arendeId);
+  return { ok: true };
+}
+
+/** Ändrar en mejlmall. */
+export async function sparaMejlmall(id: string, fd: FormData): Promise<Svar> {
+  await kravAdmin("vardskap");
+  const rad = { namn: s(fd.get("namn")), amne: s(fd.get("amne")), rubrik: s(fd.get("rubrik")), text: s(fd.get("text")), uppdaterad: new Date().toISOString() };
+  if (!rad.namn || !rad.amne || !rad.rubrik || !rad.text) return { ok: false, fel: "Alla fält behöver fyllas i." };
+  const { error } = await supabaseAdmin().from("mejlmall").update(rad).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/bokningar/mallar");
+  return { ok: true };
+}
+
+/* ---------- Uppgifter och påminnelser ---------- */
+
+export async function skapaUppgift(fd: FormData): Promise<Svar> {
+  const admin = await kravAdmin("vardskap");
+  const text = s(fd.get("text")), forfallo = s(fd.get("forfallo")), arendeId = s(fd.get("arende_id")) || null;
+  if (!text) return { ok: false, fel: "Skriv vad som ska göras." };
+  const { error } = await supabaseAdmin().from("uppgift").insert({ text, forfallo: datumOk(forfallo) ? forfallo : null, arende_id: arendeId, skapad_av: admin.namn ?? admin.epost });
+  if (error) return { ok: false, fel: error.message };
+  uppdatera(arendeId ?? undefined);
+  return { ok: true };
+}
+
+export async function klarUppgift(id: string, klar: boolean): Promise<Svar> {
+  await kravAdmin("vardskap");
+  const { data, error } = await supabaseAdmin().from("uppgift").update({ klar, klar_tid: klar ? new Date().toISOString() : null }).eq("id", id).select("arende_id").maybeSingle();
+  if (error) return { ok: false, fel: error.message };
+  uppdatera(data?.arende_id ?? undefined);
+  return { ok: true };
+}
+
+export async function taBortUppgift(id: string): Promise<Svar> {
+  await kravAdmin("vardskap");
+  const { data, error } = await supabaseAdmin().from("uppgift").delete().eq("id", id).select("arende_id").maybeSingle();
+  if (error) return { ok: false, fel: error.message };
+  uppdatera(data?.arende_id ?? undefined);
   return { ok: true };
 }

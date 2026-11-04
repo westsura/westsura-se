@@ -6,13 +6,17 @@ import { sattArendestatus, sparaArende, sparaDel, taBortDel, taBortArende } from
 import { ARENDETYP, DELTYP, tid, type Arende, type Del } from "@/lib/arende";
 import DelFalt, { type Resurser } from "../DelFalt";
 import Konflikter from "../Konflikter";
+import { oppnaMejl } from "./Mejl";
 
 const MAN = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
 const DAG = ["sön", "mån", "tis", "ons", "tor", "fre", "lör"];
 const dag = (d: string) => { const x = new Date(d + "T12:00:00"); return `${DAG[x.getDay()]} ${x.getDate()} ${MAN[x.getMonth()]} ${x.getFullYear()}`; };
 const dagEfter = (d: string) => { const x = new Date(d + "T12:00:00Z"); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10); };
 
-/** Statusknappar. Varje byte bekräftas först; inget mejl skickas till kunden. */
+/**
+ * Statusknappar. Varje byte bekräftas först. Mejl går bara ut automatiskt vid bekräftelse om
+ * bokningen har läget Automatiskt — annars öppnas mejlrutan för granskning (eller inget alls).
+ */
 export function Statusknappar({ a }: { a: Arende }) {
   const [fel, setFel] = useState<{ fel: string; k: string[] } | null>(null);
   const [pending, start] = useTransition();
@@ -20,15 +24,24 @@ export function Statusknappar({ a }: { a: Arende }) {
   const byt = (status: string, fraga: string) => {
     if (!confirm(fraga)) return;
     setFel(null);
-    start(async () => { const r = await sattArendestatus(a.id, status); if (!r.ok) setFel({ fel: r.fel ?? "Kunde inte ändra status.", k: r.konflikter ?? [] }); });
+    start(async () => {
+      const r = await sattArendestatus(a.id, status);
+      if (!r.ok) setFel({ fel: r.fel ?? "Kunde inte ändra status.", k: r.konflikter ?? [] });
+      else if (r.fel) setFel({ fel: r.fel, k: [] });
+      else if (r.foreslaMejl) oppnaMejl(r.foreslaMejl);
+    });
   };
   const namn = a.kund_foretag || a.kund_namn || "bokningen";
+  // Vad händer med mejl när statusen byts? Står i varje fråga.
+  const mejl = (syfte: string) => !a.kund_epost || a.mejllage === "inget" ? "Inget mejl skickas till kunden."
+    : a.mejllage === "auto" && syfte === "bekraftelse" ? `Kunden får ett bekräftelsemejl automatiskt till ${a.kund_epost}.`
+    : "Inget mejl skickas automatiskt — du får ett förslag att granska och kan välja att inte skicka.";
   return (
     <div>
       <div className="admin__actions" style={{ flexWrap: "wrap" }}>
-        {a.status === "forfragan" && <button className="btn btn--sm" disabled={pending} onClick={() => byt("preliminar", `Gör ${namn} till preliminär bokning? Valda lokaler och boenden reserveras (och stängs på sajten). Inget mejl skickas.`)}>Gör preliminär</button>}
-        {(a.status === "forfragan" || a.status === "preliminar") && <button className="btn btn--sm" disabled={pending} onClick={() => byt("bekraftad", `Bekräfta bokningen för ${namn}? Valda lokaler och boenden reserveras. Inget mejl skickas till kunden.`)}>Bekräfta</button>}
-        {a.status !== "avbokad" && <button className="btn btn--sm btn--ghost" disabled={pending} onClick={() => byt("avbokad", `Avboka ${namn}? Lokaler och boenden släpps. Inget mejl skickas till kunden.`)}>Avboka</button>}
+        {a.status === "forfragan" && <button className="btn btn--sm" disabled={pending} onClick={() => byt("preliminar", `Gör ${namn} till preliminär bokning? Valda lokaler och boenden reserveras (och stängs på sajten). ${mejl("preliminar")}`)}>Gör preliminär</button>}
+        {(a.status === "forfragan" || a.status === "preliminar") && <button className="btn btn--sm" disabled={pending} onClick={() => byt("bekraftad", `Bekräfta bokningen för ${namn}? Valda lokaler och boenden reserveras. ${mejl("bekraftelse")}`)}>Bekräfta</button>}
+        {a.status !== "avbokad" && <button className="btn btn--sm btn--ghost" disabled={pending} onClick={() => byt("avbokad", `Avboka ${namn}? Lokaler och boenden släpps. ${mejl("avbokning")}`)}>Avboka</button>}
         {(a.status === "avbokad" || a.status === "bekraftad") && <button className="btn btn--sm btn--ghost" disabled={pending} onClick={() => byt("preliminar", `Ändra ${namn} till preliminär?`)}>Gör preliminär</button>}
         {a.status === "avbokad" && <button className="btn btn--sm btn--ghost" disabled={pending} onClick={() => byt("forfragan", `Öppna ${namn} igen som förfrågan?`)}>Öppna som förfrågan</button>}
       </div>

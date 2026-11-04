@@ -73,6 +73,7 @@ export default async function Bokningar({ searchParams }: { searchParams: Promis
         <div className="admin__actions">
           <Link className="btn btn--sm" href="/admin/bokningar/ny">+ Ny bokning</Link>
           <Link className="btn btn--sm btn--ghost" href="/admin/bokningar/ny?intern=1">+ Intern aktivitet</Link>
+          <Link className="btn btn--sm btn--ghost" href="/admin/bokningar/mallar">Mejlmallar</Link>
         </div>
       </header>
 
