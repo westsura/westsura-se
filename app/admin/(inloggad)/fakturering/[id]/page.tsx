@@ -20,6 +20,7 @@ export default async function UnderlagSida({ params }: { params: Promise<{ id: s
         <div><p className="label"><Link href="/admin/fakturering" style={{ textDecoration: "none" }}>Fakturering</Link> · Underlag {u.nummer}</p><h1 className="admin__h1">{u.rubrik}</h1></div>
         <p className="admin__meta">
           {u.bokning_nummer && <Link href={`/admin/bokningar/boende#${u.bokning_nummer}`}>Bokning {u.bokning_nummer}</Link>}
+          {u.arende_nummer && <Link href={`/admin/bokningar/${u.arende_id}`}>Bokning #{u.arende_nummer}</Link>}
           {u.forfragan_nummer && <Link href={`/admin/forfragningar#${u.forfragan_nummer}`}>Förfrågan {u.forfragan_nummer}</Link>}
           {!u.bokning_nummer && !u.forfragan_nummer && "Manuellt underlag"}
         </p>

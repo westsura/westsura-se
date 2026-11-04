@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { kravAdmin } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/supabase";
 import { mejlFranAdmin } from "@/lib/epost";
-import { fyllMall, valjMall, type Mejlmall } from "@/lib/arendemejl";
-import type { Arende, Del } from "@/lib/arende";
+import { fyllMall, valjMall, tjanstRad, SYFTE, type Mejlmall } from "@/lib/arendemejl";
+import { ARENDESTATUS, ARENDETYP, type Arende, type Del } from "@/lib/arende";
 
 /**
  * Intern bokningshantering. Allt kräver behörigheten värdskap (Boende & bokningar).
@@ -23,6 +23,20 @@ const TYPER = ["boende", "konferens", "middag", "evenemang", "privat", "intern"]
 const STATUSAR = ["forfragan", "preliminar", "bekraftad", "avbokad"];
 const DELTYPER = ["konferens", "middag", "boende", "evenemang", "aktivitet", "intern"];
 const reserverar = (status: string) => status === "preliminar" || status === "bekraftad";
+
+/** Historik: en rad per ändring, med vem som gjorde den. */
+async function logga(arendeId: string, text: string, vem?: string | null) {
+  const { error } = await supabaseAdmin().from("arende_logg").insert({ arende_id: arendeId, text, vem: vem ?? null });
+  if (error) console.error("kunde inte logga historik", error.message);
+}
+const vemAr = (a: { namn: string | null; epost: string }) => a.namn ?? a.epost;
+
+/** Läsbar rad för en tjänst, med lokal- och boendenamn. */
+async function tjanstText(d: Record<string, unknown>) {
+  const db = supabaseAdmin();
+  const [{ data: l }, { data: e }] = await Promise.all([db.from("lokal").select("id, namn"), db.from("enhet").select("id, namn")]);
+  return tjanstRad(d as unknown as Del, (x) => l?.find((y) => y.id === x)?.namn ?? x, (x) => e?.find((y) => y.id === x)?.namn ?? x);
+}
 
 function uppdatera(id?: string) {
   revalidatePath("/admin/bokningar"); revalidatePath("/admin/kalender"); revalidatePath("/admin");
@@ -102,20 +116,36 @@ export async function skapaArende(fd: FormData): Promise<Svar> {
   }
   const { data, error } = await db.from("arende").insert({ ...falt, status, skapad_av: admin.id }).select("id").single();
   if (error || !data) return { ok: false, fel: error?.message ?? "Kunde inte spara." };
+  await logga(data.id, falt.typ === "intern" ? "Aktiviteten lades in" : `Bokningen skapades som ${ARENDESTATUS[status].toLowerCase()}`, vemAr(admin));
   if (del) {
     const { error: felDel } = await db.from("arende_del").insert({ ...del, arende_id: data.id });
     if (felDel) return { ok: false, fel: `Bokningen sparades men inte tjänsten: ${felDel.message}`, id: data.id };
+    await logga(data.id, `Tjänst tillagd: ${await tjanstText(del)}`, vemAr(admin));
   }
   uppdatera(data.id);
   return { ok: true, id: data.id };
 }
 
 /** Ändrar uppgifterna på en bokning (kund, antal, anteckningar …). Skickar inget till kunden. */
+const FALTNAMN: Record<string, string> = {
+  typ: "typ", rubrik: "rubrik", kund_namn: "kontaktperson", kund_foretag: "företag", kund_epost: "e-post", kund_telefon: "telefon",
+  antal_gaster: "antal gäster", svara_senast: "sista svarsdatum", onskemal: "önskemål", anteckningar: "interna anteckningar",
+};
+
 export async function sparaArende(id: string, fd: FormData): Promise<Svar> {
-  await kravAdmin("vardskap");
+  const admin = await kravAdmin("vardskap");
   const falt = arendeFalt(fd);
+  const { data: fore } = await supabaseAdmin().from("arende").select("*").eq("id", id).maybeSingle();
   const { error } = await supabaseAdmin().from("arende").update(falt).eq("id", id);
   if (error) return { ok: false, fel: error.message };
+  if (fore) {
+    const andrat = Object.entries(falt).filter(([k, v]) => (fore[k] ?? null) !== (v ?? null)).map(([k, v]) => {
+      const kort = ["antal_gaster", "svara_senast", "typ"].includes(k);
+      const visa = (x: unknown) => (k === "typ" ? ARENDETYP[String(x)] : x ?? "—");
+      return kort ? `${FALTNAMN[k]} ${visa(fore[k])} → ${visa(v)}` : FALTNAMN[k];
+    });
+    if (andrat.length) await logga(id, `Ändrade ${andrat.join(", ")}`, vemAr(admin));
+  }
   uppdatera(id);
   return { ok: true };
 }
@@ -124,7 +154,7 @@ const FORFRAGANSTATUS: Record<string, string> = { forfragan: "pagar", preliminar
 
 /** Byter status. Innan en bokning blir preliminär eller bekräftad kontrolleras att inget krockar. */
 export async function sattArendestatus(id: string, status: string): Promise<Svar> {
-  await kravAdmin("vardskap");
+  const admin = await kravAdmin("vardskap");
   if (!STATUSAR.includes(status)) return { ok: false, fel: "Okänd status." };
   const db = supabaseAdmin();
   const { data: a } = await db.from("arende").select("id, status, forfragan_id").eq("id", id).maybeSingle();
@@ -139,6 +169,7 @@ export async function sattArendestatus(id: string, status: string): Promise<Svar
   if (error) return { ok: false, fel: error.message };
   // Den gamla förfrågningslistan hålls i takt så länge den finns kvar.
   if (a.forfragan_id) await db.from("forfragan").update({ status: FORFRAGANSTATUS[status] }).eq("id", a.forfragan_id);
+  await logga(id, `Status: ${ARENDESTATUS[a.status]} → ${ARENDESTATUS[status]}`, vemAr(admin));
   uppdatera(id); revalidatePath("/admin/forfragningar");
 
   // Mejl: automatiskt bara vid bekräftelse och bara om bokningen har läget Automatiskt.
@@ -149,7 +180,8 @@ export async function sattArendestatus(id: string, status: string): Promise<Svar
     const f = await mejlforslag(id, null, syfte);
     if (f) {
       const lyckat = await mejlFranAdmin(f);
-      await db.from("arende_mejl").insert({ arende_id: id, syfte, till: f.till, amne: f.amne, text: f.text, ok: lyckat, auto: true, skickat_av: (await kravAdmin("vardskap")).namn });
+      await db.from("arende_mejl").insert({ arende_id: id, syfte, till: f.till, amne: f.amne, text: f.text, ok: lyckat, auto: true, skickat_av: vemAr(admin) });
+      await logga(id, `${lyckat ? "Mejl skickat automatiskt" : "Automatiskt mejl gick inte fram"}: ${f.amne} (till ${f.till})`, vemAr(admin));
       uppdatera(id);
       return { ok: true, mejlat: lyckat, fel: lyckat ? undefined : "Statusen är ändrad, men bekräftelsemejlet gick inte iväg." };
     }
@@ -159,7 +191,7 @@ export async function sattArendestatus(id: string, status: string): Promise<Svar
 
 /** Lägger till eller ändrar en del (tjänst). Krockkontroll om bokningen reserverar. */
 export async function sparaDel(arendeId: string, fd: FormData): Promise<Svar> {
-  await kravAdmin("vardskap");
+  const admin = await kravAdmin("vardskap");
   const db = supabaseAdmin();
   const d = delFalt(fd);
   if ("fel" in d) return { ok: false, fel: d.fel };
@@ -170,18 +202,23 @@ export async function sparaDel(arendeId: string, fd: FormData): Promise<Svar> {
     if (k.length) return { ok: false, fel: "Krockar med annan bokning — inget sparades.", konflikter: k };
   }
   const delId = s(fd.get("del_id"));
+  const { data: fore } = delId ? await db.from("arende_del").select("*").eq("id", delId).maybeSingle() : { data: null };
   const { error } = delId
     ? await db.from("arende_del").update(d.rad).eq("id", delId).eq("arende_id", arendeId)
     : await db.from("arende_del").insert({ ...d.rad, arende_id: arendeId });
   if (error) return { ok: false, fel: error.message };
+  const ny = await tjanstText(d.rad);
+  await logga(arendeId, fore ? `Tjänst ändrad: ${await tjanstText(fore)} → ${ny}` : `Tjänst tillagd: ${ny}`, vemAr(admin));
   uppdatera(arendeId);
   return { ok: true };
 }
 
 export async function taBortDel(arendeId: string, delId: string): Promise<Svar> {
-  await kravAdmin("vardskap");
+  const admin = await kravAdmin("vardskap");
+  const { data: fore } = await supabaseAdmin().from("arende_del").select("*").eq("id", delId).maybeSingle();
   const { error } = await supabaseAdmin().from("arende_del").delete().eq("id", delId).eq("arende_id", arendeId);
   if (error) return { ok: false, fel: error.message };
+  if (fore) await logga(arendeId, `Tjänst borttagen: ${await tjanstText(fore)}`, vemAr(admin));
   uppdatera(arendeId);
   return { ok: true };
 }
@@ -237,17 +274,19 @@ export async function skickaArendeMejl(arendeId: string, fd: FormData): Promise<
   if (/\[(sista svarsdatum|inga tjänster inlagda)\]/.test(text)) return { ok: false, fel: "Texten innehåller fortfarande en markering inom [hakparenteser] — fyll i eller ta bort den först." };
   const syfte = s(fd.get("syfte")) || "fritt";
   const lyckat = await mejlFranAdmin({ till, amne, rubrik: rubrik || "Westsura Herrgård", text });
-  await db.from("arende_mejl").insert({ arende_id: arendeId, syfte, till, amne, text, ok: lyckat, skickat_av: admin.namn ?? admin.epost });
+  await db.from("arende_mejl").insert({ arende_id: arendeId, syfte, till, amne, text, ok: lyckat, skickat_av: vemAr(admin) });
+  await logga(arendeId, `${lyckat ? "Mejl skickat" : "Mejl gick inte fram"}: ${SYFTE[syfte] ?? syfte} — ${amne} (till ${till})`, vemAr(admin));
   uppdatera(arendeId);
   return lyckat ? { ok: true, mejlat: true } : { ok: false, fel: "Mejlet gick inte iväg. Det är sparat i loggen som misslyckat — försök igen om en stund." };
 }
 
 /** Automatiskt, manuellt (förhandsgranska) eller inga mejl för bokningen. */
 export async function sattMejllage(arendeId: string, lage: string): Promise<Svar> {
-  await kravAdmin("vardskap");
+  const admin = await kravAdmin("vardskap");
   if (!["auto", "manuell", "inget"].includes(lage)) return { ok: false, fel: "Okänt läge." };
   const { error } = await supabaseAdmin().from("arende").update({ mejllage: lage }).eq("id", arendeId);
   if (error) return { ok: false, fel: error.message };
+  await logga(arendeId, `Mejlläge: ${{ auto: "automatiskt", manuell: "manuellt", inget: "inga mejl" }[lage]}`, vemAr(admin));
   uppdatera(arendeId);
   return { ok: true };
 }
@@ -271,14 +310,16 @@ export async function skapaUppgift(fd: FormData): Promise<Svar> {
   if (!text) return { ok: false, fel: "Skriv vad som ska göras." };
   const { error } = await supabaseAdmin().from("uppgift").insert({ text, forfallo: datumOk(forfallo) ? forfallo : null, arende_id: arendeId, skapad_av: admin.namn ?? admin.epost });
   if (error) return { ok: false, fel: error.message };
+  if (arendeId) await logga(arendeId, `Uppgift tillagd: ${text}${datumOk(forfallo) ? ` (senast ${forfallo})` : ""}`, vemAr(admin));
   uppdatera(arendeId ?? undefined);
   return { ok: true };
 }
 
 export async function klarUppgift(id: string, klar: boolean): Promise<Svar> {
-  await kravAdmin("vardskap");
-  const { data, error } = await supabaseAdmin().from("uppgift").update({ klar, klar_tid: klar ? new Date().toISOString() : null }).eq("id", id).select("arende_id").maybeSingle();
+  const admin = await kravAdmin("vardskap");
+  const { data, error } = await supabaseAdmin().from("uppgift").update({ klar, klar_tid: klar ? new Date().toISOString() : null }).eq("id", id).select("arende_id, text").maybeSingle();
   if (error) return { ok: false, fel: error.message };
+  if (data?.arende_id) await logga(data.arende_id, `Uppgift ${klar ? "klar" : "öppnad igen"}: ${data.text}`, vemAr(admin));
   uppdatera(data?.arende_id ?? undefined);
   return { ok: true };
 }
@@ -289,4 +330,47 @@ export async function taBortUppgift(id: string): Promise<Svar> {
   if (error) return { ok: false, fel: error.message };
   uppdatera(data?.arende_id ?? undefined);
   return { ok: true };
+}
+
+/* ---------- Fakturering ---------- */
+
+const FAKTURASTATUS: Record<string, string> = { ej: "ej fakturerad", fakturerad: "fakturerad", betald: "betald" };
+
+export async function sattFakturastatus(arendeId: string, status: string): Promise<Svar> {
+  const admin = await kravAdmin("vardskap", "ekonomi");
+  if (!(status in FAKTURASTATUS)) return { ok: false, fel: "Okänd status." };
+  const { error } = await supabaseAdmin().from("arende").update({ fakturastatus: status }).eq("id", arendeId);
+  if (error) return { ok: false, fel: error.message };
+  await logga(arendeId, `Fakturastatus: ${FAKTURASTATUS[status]}`, vemAr(admin));
+  uppdatera(arendeId);
+  return { ok: true };
+}
+
+/**
+ * Skapar ett fakturaunderlag från bokningen: kunduppgifterna och en rad per tjänst.
+ * Priserna fylls i under Fakturering (radernas pris är 0 tills dess).
+ */
+export async function skapaUnderlagFranArende(arendeId: string): Promise<Svar> {
+  const admin = await kravAdmin("vardskap", "ekonomi");
+  const db = supabaseAdmin();
+  const { data: a } = await db.from("arende").select("*").eq("id", arendeId).maybeSingle();
+  if (!a) return { ok: false, fel: "Bokningen hittades inte." };
+  const { data: finns } = await db.from("fakturaunderlag").select("id").eq("arende_id", arendeId).limit(1).maybeSingle();
+  if (finns) return { ok: true, id: finns.id };
+  const { data: delar } = await db.from("arende_del").select("*").eq("arende_id", arendeId).order("fran").order("tid_fran");
+  const { data: u, error } = await db.from("fakturaunderlag").insert({
+    rubrik: `#${a.nummer} ${a.rubrik || ARENDETYP[a.typ]}${a.kund_foretag ? ", " + a.kund_foretag : ""}`,
+    kund_namn: a.kund_namn || a.kund_foretag || "", kund_foretag: a.kund_foretag, kund_epost: a.kund_epost, kund_telefon: a.kund_telefon,
+    arende_id: arendeId,
+  }).select("id").single();
+  if (error || !u) return { ok: false, fel: error?.message ?? "Kunde inte skapa underlaget." };
+  // Moms: logi och mat 12 %, övrigt (lokalhyra, konferens, aktiviteter) 25 %. Kontrolleras i underlaget.
+  const rader = await Promise.all(((delar ?? []) as Del[]).filter((d) => d.typ !== "intern").map(async (d, i) => ({
+    underlag_id: u.id, ordning: i, beskrivning: await tjanstText(d as unknown as Record<string, unknown>),
+    antal: d.antal || 1, enhet: d.typ === "boende" ? "natt" : "st", a_pris: 0, moms: d.typ === "boende" || d.typ === "middag" ? 12 : 25,
+  })));
+  if (rader.length) await db.from("fakturarad").insert(rader);
+  await logga(arendeId, "Fakturaunderlag skapat", vemAr(admin));
+  uppdatera(arendeId); revalidatePath("/admin/fakturering");
+  return { ok: true, id: u.id };
 }

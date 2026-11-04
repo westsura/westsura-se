@@ -8,6 +8,8 @@ import { site } from "@/lib/site";
 export type Kurs = {
   id: string; namn: string; datum_text: string; platser: number; kvar: number; oppen: boolean;
   pris_dubbel: number; pris_enkel: number; earlybird_dubbel: number | null; earlybird_enkel: number | null; earlybird_till: string | null;
+  /** Helgkurs med boende (rumstyp väljs) eller dagskurs (ett pris per person). */
+  med_boende?: boolean;
 };
 
 const kr = (n: number) => n.toLocaleString("sv-SE") + " kr";
@@ -16,6 +18,7 @@ const kr = (n: number) => n.toLocaleString("sv-SE") + " kr";
 export default function KursBokning({ kurs }: { kurs: Kurs }) {
   const [antal, setAntal] = useState(1);
   const [rum, setRum] = useState<"dubbel" | "enkel">("dubbel");
+  const boende = kurs.med_boende !== false;
   const [klar, setKlar] = useState<{ nummer: number; summa: number } | null>(null);
   const [fel, setFel] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -53,15 +56,17 @@ export default function KursBokning({ kurs }: { kurs: Kurs }) {
           {[1, 2, 3, 4].filter((n) => n <= kurs.kvar).map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
       </div>
-      <div className="field">
-        <label htmlFor="k-rum">Boende</label>
-        <select id="k-rum" value={rum} onChange={(e) => setRum(e.target.value as "dubbel" | "enkel")}>
-          <option value="dubbel">Delat dubbelrum</option>
-          <option value="enkel">Enkelrum</option>
-        </select>
-      </div>
+      {boende && (
+        <div className="field">
+          <label htmlFor="k-rum">Boende</label>
+          <select id="k-rum" value={rum} onChange={(e) => setRum(e.target.value as "dubbel" | "enkel")}>
+            <option value="dubbel">Delat dubbelrum</option>
+            <option value="enkel">Enkelrum</option>
+          </select>
+        </div>
+      )}
       <p className="field--full hint">
-        {rum === "dubbel" ? "Bokar du ensam i delat dubbelrum delar du rum med en annan kursdeltagare." : "Enkelrum — eget rum hela helgen."}
+        {boende ? (rum === "dubbel" ? "Bokar du ensam i delat dubbelrum delar du rum med en annan kursdeltagare." : "Enkelrum — eget rum hela helgen.") : ""}
         {kurs.kvar <= Math.max(4, Math.ceil(kurs.platser * 0.2)) ? " Få platser kvar." : ""}
       </p>
 
@@ -73,7 +78,7 @@ export default function KursBokning({ kurs }: { kurs: Kurs }) {
         <div className="field field--full"><label htmlFor="k-delt">Övriga deltagares namn</label><input id="k-delt" name="deltagare" required placeholder="Namn på de du bokar för" /></div>
       )}
       <div className="field field--full"><label htmlFor="k-kost">Kost och allergier</label><input id="k-kost" name="kost" placeholder="Valfritt — t.ex. vegetarian, glutenfritt" /></div>
-      <div className="field field--full"><label htmlFor="k-medd">Meddelande</label><textarea id="k-medd" name="meddelande" className="ta--xs" placeholder="Valfritt — vill du dela rum med någon särskild? Vilken kamera har du?" /></div>
+      <div className="field field--full"><label htmlFor="k-medd">Meddelande</label><textarea id="k-medd" name="meddelande" className="ta--xs" placeholder={boende ? "Valfritt — vill du dela rum med någon särskild? Något vi bör veta?" : "Valfritt — något vi bör veta?"} /></div>
       <Fakturafalt prefix="kf" full />
 
       <div className="field--full sumrow sumrow--total" style={{ display: "flex", justifyContent: "space-between", fontWeight: 600 }}>

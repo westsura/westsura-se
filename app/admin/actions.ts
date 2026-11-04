@@ -294,6 +294,24 @@ export async function sparaUnderlag(id: string, fd: FormData, rader: Fakturarad[
   return { ok: true };
 }
 
+/**
+ * Snabbmarkering från listan: fakturan är skickad (med valfritt fakturanummer) eller betald.
+ * Används tills kopplingen till Fortnox finns.
+ */
+export async function markeraUnderlag(id: string, status: "fakturerad" | "betald" | "ej_fakturerad", fortnoxNummer?: string) {
+  await kravAdmin("ekonomi");
+  const db = await supabaseServer();
+  const idag = new Date().toISOString().slice(0, 10);
+  const rad: Record<string, unknown> = { status };
+  if (status === "fakturerad") { rad.fakturerad = idag; rad.betald = null; if (fortnoxNummer?.trim()) rad.fortnox_nummer = fortnoxNummer.trim(); }
+  if (status === "betald") rad.betald = idag;
+  if (status === "ej_fakturerad") { rad.fakturerad = null; rad.betald = null; }
+  const { error } = await db.from("fakturaunderlag").update(rad).eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/fakturering"); revalidatePath(`/admin/fakturering/${id}`); revalidatePath("/admin/bokningar"); revalidatePath("/admin");
+  return { ok: true };
+}
+
 /** Bara ofakturerade underlag får tas bort — är det fakturerat finns en faktura i Fortnox. */
 export async function taBortUnderlag(id: string) {
   await kravAdmin("ekonomi");
@@ -884,22 +902,74 @@ export async function taBortJaktmedlem(id: string): Promise<{ ok: boolean; fel?:
 }
 
 /* ---------- Kurser ---------- */
-/** Datum, platser och priser för en kurs. Tomt datumfält = datumet visas bara som text. */
+/**
+ * Sparar en kurs: datum, platser och priser — och för kurser med egen sida (alla utom naturfoto)
+ * även sidans innehåll och bild. Dagskurser har ett pris per person (sparas som båda rumspriserna).
+ */
 export async function sparaKurs(id: string, fd: FormData): Promise<{ ok: boolean; fel?: string }> {
   await kravAdmin("vardskap", "ekonomi");
   const tal = (k: string) => { const v = s(fd.get(k)); return v === "" ? null : Math.round(Number(v)); };
-  const rad = {
+  const medBoende = fd.has("med_boende") ? s(fd.get("med_boende")) === "1" : true;
+  const rad: Record<string, unknown> = {
     namn: s(fd.get("namn")), datum_text: s(fd.get("datum_text")),
     datum_fran: s(fd.get("datum_fran")) || null, datum_till: s(fd.get("datum_till")) || null,
-    platser: tal("platser") ?? 0, pris_dubbel: tal("pris_dubbel"), pris_enkel: tal("pris_enkel"),
-    earlybird_dubbel: tal("earlybird_dubbel"), earlybird_enkel: tal("earlybird_enkel"),
+    platser: tal("platser") ?? 0, pris_dubbel: tal("pris_dubbel"), pris_enkel: medBoende ? tal("pris_enkel") : tal("pris_dubbel"),
+    earlybird_dubbel: tal("earlybird_dubbel"), earlybird_enkel: medBoende ? tal("earlybird_enkel") : tal("earlybird_dubbel"),
     earlybird_till: s(fd.get("earlybird_till")) || null, oppen: !!fd.get("oppen"),
   };
   if (!rad.namn || !rad.datum_text) return { ok: false, fel: "Namn och datumtext behövs." };
-  if (rad.pris_dubbel == null || rad.pris_enkel == null) return { ok: false, fel: "Ange ordinarie priser." };
+  if (rad.pris_dubbel == null || rad.pris_enkel == null) return { ok: false, fel: "Ange ordinarie pris." };
+  // Sidans innehåll — bara när fälten finns i formuläret (naturfoto har en handbyggd sida).
+  if (fd.has("ingress")) {
+    for (const k of ["ingress", "beskrivning", "kursledare", "ingar", "villkor", "fakturatext", "bild_alt"]) rad[k] = s(fd.get(k)) || null;
+    rad.med_boende = medBoende;
+    rad.publicerad = !!fd.get("publicerad");
+    const fil = fd.get("bildfil");
+    if (fil instanceof File && fil.size > 0) {
+      if (!fil.type.startsWith("image/")) return { ok: false, fel: "Bilden måste vara en bildfil (jpg, png eller webp)." };
+      const sokvag = `kurs-${id}-${Date.now()}.${fil.type === "image/png" ? "png" : fil.type === "image/webp" ? "webp" : "jpg"}`;
+      const lagring = supabaseAdmin().storage.from("aktuellt");
+      const { error: felBild } = await lagring.upload(sokvag, fil, { contentType: fil.type, upsert: false });
+      if (felBild) return { ok: false, fel: `Bilden kunde inte laddas upp: ${felBild.message}` };
+      rad.bild = lagring.getPublicUrl(sokvag).data.publicUrl;
+    }
+  }
   const { error } = await supabaseAdmin().from("kurs").update(rad).eq("id", id);
   if (error) return { ok: false, fel: error.message };
-  revalidatePath("/admin/kurser"); revalidatePath("/paket/naturfoto"); revalidatePath("/paket");
+  revalidatePath("/admin/kurser"); revalidatePath("/paket/naturfoto"); revalidatePath("/paket"); revalidatePath(`/kurser/${id}`); revalidatePath("/admin/kalender");
+  return { ok: true };
+}
+
+/** Ny kurs — sparas som utkast (opublicerad, stängd för bokning) tills sidan är klar. */
+export async function skapaKurs(fd: FormData): Promise<{ ok: boolean; fel?: string; id?: string }> {
+  await kravAdmin("vardskap", "ekonomi");
+  const namn = s(fd.get("namn")), datumText = s(fd.get("datum_text"));
+  const medBoende = s(fd.get("med_boende")) === "1";
+  const pris = Math.round(Number(s(fd.get("pris")) || 0));
+  if (!namn || !datumText) return { ok: false, fel: "Namn och datum behövs." };
+  const db = supabaseAdmin();
+  const bas = slugga(`${namn} ${(datumText.match(/\d{4}/) ?? [new Date().getFullYear()])[0]}`) || "kurs";
+  let id = bas;
+  for (let i = 2; (await db.from("kurs").select("id").eq("id", id).maybeSingle()).data; i++) id = `${bas}-${i}`;
+  const { error } = await db.from("kurs").insert({
+    id, namn, datum_text: datumText, platser: Math.max(1, Math.round(Number(s(fd.get("platser")) || 12))),
+    pris_dubbel: pris, pris_enkel: pris, med_boende: medBoende, oppen: false, publicerad: false,
+  });
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/kurser");
+  return { ok: true, id };
+}
+
+/** Tar bort en kurs som saknar bokningar. Naturfoto har en egen sida och tas inte bort härifrån. */
+export async function taBortKurs(id: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("vardskap", "ekonomi");
+  if (id === "naturfoto") return { ok: false, fel: "Naturfotokursen har en egen sida och kan inte tas bort här." };
+  const db = supabaseAdmin();
+  const { count } = await db.from("kursbokning").select("id", { count: "exact", head: true }).eq("kurs_id", id);
+  if (count) return { ok: false, fel: "Kursen har bokningar. Avboka dem först, eller stäng kursen för bokning och avpublicera den." };
+  const { error } = await db.from("kurs").delete().eq("id", id);
+  if (error) return { ok: false, fel: error.message };
+  revalidatePath("/admin/kurser"); revalidatePath("/paket");
   return { ok: true };
 }
 

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { site } from "@/lib/site";
 import { evenemangAdresser } from "@/lib/aktuellt";
+import { supabasePublik } from "@/lib/supabase";
 
 export const revalidate = 3600;
 
@@ -30,5 +31,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Evenemangen under Aktuellt — kommande högre än passerade.
   const idag = now.toISOString().slice(0, 10);
   const evenemang = (await evenemangAdresser()).map((e) => ({ path: `/aktuellt/${e.slug}`, priority: e.datum >= idag ? 0.7 : 0.3, freq: (e.datum >= idag ? "weekly" : "yearly") as MetadataRoute.Sitemap[number]["changeFrequency"] }));
-  return [...pages, ...evenemang].map((p) => ({ url: site.url + p.path, lastModified: now, changeFrequency: p.freq, priority: p.priority }));
+  let kurser: typeof evenemang = [];
+  try {
+    const { data } = await supabasePublik().from("kurs").select("id").eq("publicerad", true).neq("id", "naturfoto");
+    kurser = (data ?? []).map((k) => ({ path: `/kurser/${k.id}`, priority: 0.6, freq: "weekly" as const }));
+  } catch { /* sitemapen ska fungera även utan kurser */ }
+  return [...pages, ...evenemang, ...kurser].map((p) => ({ url: site.url + p.path, lastModified: now, changeFrequency: p.freq, priority: p.priority }));
 }

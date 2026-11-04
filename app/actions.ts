@@ -209,8 +209,8 @@ export async function bokaKurs(fd: FormData): Promise<Svar<{ nummer: number; sum
   });
   if (error) return { ok: false, fel: error.code === "P0001" ? error.message : "Det gick inte att boka just nu. Ring oss så hjälper vi dig." };
   const b = (data as { bokning_id: string; nummer: number; pris_per_person: number; summa: number; earlybird: boolean }[])[0];
-  const { data: k } = await db.from("kurs").select("namn, datum_text").eq("id", kurs).single();
-  const rum = rumstyp === "enkel" ? "enkelrum" : "delat dubbelrum";
+  const { data: k } = await db.from("kurs").select("namn, datum_text, med_boende, fakturatext").eq("id", kurs).single();
+  const rum = k?.med_boende === false ? "" : rumstyp === "enkel" ? "enkelrum" : "delat dubbelrum";
 
   // Fakturaunderlag direkt — betalning sker i samband med bokningen. Ett fel här stoppar inte bokningen.
   try {
@@ -222,14 +222,14 @@ export async function bokaKurs(fd: FormData): Promise<Svar<{ nummer: number; sum
       forfallodatum: forfaller, anteckning: deltagare ? `Deltagare: ${namn}, ${deltagare}` : null,
     }).select("id").single();
     if (felU || !u) throw new Error(felU?.message ?? "inget underlag");
-    await db.from("fakturarad").insert({ underlag_id: u.id, ordning: 0, beskrivning: `${k?.namn ?? "Kurs"}, ${rum}${b.earlybird ? ", Early Bird" : ""} — kurs, två nätter och alla måltider`, antal, enhet: "pers", a_pris: b.pris_per_person, moms: 25 });
+    await db.from("fakturarad").insert({ underlag_id: u.id, ordning: 0, beskrivning: `${k?.namn ?? "Kurs"}${rum ? ", " + rum : ""}${b.earlybird ? ", Early Bird" : ""}${k?.fakturatext ? " — " + k.fakturatext : ""}`, antal, enhet: "pers", a_pris: b.pris_per_person, moms: 25 });
     await db.from("kursbokning").update({ underlag_id: u.id }).eq("id", b.bokning_id);
   } catch (e) { console.error("kunde inte skapa fakturaunderlag för kursbokning", b.nummer, e); }
 
   try {
     await mejlKursbokning({ epost, namn, telefon, kurs: k?.namn ?? "Kurs", datum: k?.datum_text ?? "", nummer: b.nummer, antal, rum, earlybird: b.earlybird, prisPerPerson: b.pris_per_person, summa: b.summa, deltagare, kost, meddelande });
   } catch (e) { console.error("mejl misslyckades", e); }
-  revalidatePath("/paket/naturfoto"); revalidatePath("/paket");
+  revalidatePath("/paket/naturfoto"); revalidatePath("/paket"); revalidatePath(`/kurser/${kurs}`);
   return { ok: true, data: { nummer: b.nummer, summa: b.summa } };
 }
 

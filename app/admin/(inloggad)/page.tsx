@@ -67,7 +67,7 @@ export default async function Oversikt() {
         {vardskap && <Link href="/admin/bokningar?status=preliminar" className="stat"><b>{foljUppLista.length}</b><span>Att följa upp</span></Link>}
         {vardskap && <Link href="/admin/kalender" className="stat"><b>{ankomster?.length ?? 0}</b><span>Ankomster inom en vecka</span></Link>}
         {ekonomi && <Link href="/admin/fakturering" className="stat"><b>{attFakturera ?? 0}</b><span>Att fakturera</span></Link>}
-        {tillfallen && <Link href="/admin/tillfallen" className="stat"><b>{kommande?.length ?? 0}</b><span>Kommande tillfällen</span></Link>}
+        {tillfallen && <Link href={harRoll(admin, "jaktadmin") ? "/admin/tillfallen" : "/admin/evenemang"} className="stat"><b>{kommande?.length ?? 0}</b><span>Kommande tillfällen</span></Link>}
         {vanner && <Link href="/admin/vanner" className="stat"><b>{antalVanner ?? 0}</b><span>Westsuras Vänner</span></Link>}
       </div>
 
@@ -123,7 +123,7 @@ export default async function Oversikt() {
           <h2 className="admin__h2">Kommande tillfällen</h2>
           {!kommande?.length && <p className="empty">Inga tillfällen inlagda framåt.</p>}
           {kommande?.map((t) => (
-            <Link key={t.id} href="/admin/tillfallen" className="row">
+            <Link key={t.id} href={t.typ === "evenemang" ? "/admin/evenemang" : t.typ === "jakt" ? `/admin/tillfallen/${t.id}` : "/admin/tillfallen"} className="row">
               <span className="row__main"><b>{datum(t.datum)}</b> · {t.titel} <span className="pill">{TYP[t.typ]}</span>{!t.publicerad && <span className="pill pill--block" style={{ marginLeft: 6 }}>ej publicerad</span>}</span>
               <span className="row__meta">{tagnaPlatser(t.id)} av {t.platser} platser{t.tid ? " · " + t.tid : ""}</span>
             </Link>

@@ -22,9 +22,9 @@ async function forminska(fil: File): Promise<Blob> {
   return new Promise((res) => canvas.toBlob((b) => res(b ?? fil), "image/jpeg", 0.85));
 }
 
-export default function TillfalleForm({ tillfalle }: { tillfalle?: T }) {
+export default function TillfalleForm({ tillfalle, del = "jakt" }: { tillfalle?: T; del?: "jakt" | "evenemang" }) {
   const [open, setOpen] = useState(false);
-  const [typ, setTyp] = useState(tillfalle?.typ ?? "jakt");
+  const [typ, setTyp] = useState(tillfalle?.typ ?? (del === "evenemang" ? "evenemang" : "jakt"));
   const [synlighet, setSynlighet] = useState(tillfalle?.synlighet ?? "publik");
   const [bild, setBild] = useState<Blob | null>(null);
   const [forhand, setForhand] = useState<string | null>(tillfalle?.bild ?? null);
@@ -35,7 +35,7 @@ export default function TillfalleForm({ tillfalle }: { tillfalle?: T }) {
   /** Jaktklubbens egen jakt — kan ha gästplatser till försäljning. */
   const gastJakt = typ === "jakt" && synlighet === "medlem";
 
-  if (!open) return <button className="btn btn--ghost btn--sm" onClick={() => setOpen(true)} style={{ marginBottom: tillfalle ? 0 : 20 }}>{tillfalle ? "Ändra" : "+ Nytt tillfälle eller evenemang"}</button>;
+  if (!open) return <button className="btn btn--ghost btn--sm" onClick={() => setOpen(true)} style={{ marginBottom: tillfalle ? 0 : 20 }}>{tillfalle ? "Ändra" : del === "evenemang" ? "+ Nytt evenemang" : "+ Ny jaktdag, hundträning eller jaktkurs"}</button>;
   return (
     <form className="form admin__panel" style={{ marginBottom: 20, gridColumn: "1 / -1", width: "100%" }} onSubmit={(e) => {
       e.preventDefault();
@@ -49,8 +49,9 @@ export default function TillfalleForm({ tillfalle }: { tillfalle?: T }) {
       {tillfalle && <input type="hidden" name="id" value={tillfalle.id} />}
       <div className="field"><label>Typ</label>
         <select name="typ" value={typ} onChange={(e) => setTyp(e.target.value)}>
-          <option value="jakt">Jakt</option><option value="hundtraning">Hundträning</option><option value="jaktkurs">Jaktkurs</option>
-          <option value="evenemang">Evenemang — visas under Aktuellt på startsidan</option>
+          {del === "evenemang"
+            ? <option value="evenemang">Evenemang — visas under Aktuellt på startsidan</option>
+            : <><option value="jakt">Jakt</option><option value="hundtraning">Hundträning</option><option value="jaktkurs">Jaktkurs</option></>}
         </select></div>
       <div className="field"><label>Titel</label><input name="titel" defaultValue={tillfalle?.titel} required placeholder={ev ? "Julmarknad på Westsura" : ""} /></div>
       <div className="field"><label>Datum</label><input type="date" name="datum" defaultValue={tillfalle?.datum} required /></div>

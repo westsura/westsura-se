@@ -79,6 +79,7 @@ export default async function Kalender({ searchParams }: { searchParams: Promise
         <div className="admin__actions">
           <Link className="btn btn--sm" href={`/admin/bokningar/ny?datum=${d}`}>+ Bokning</Link>
           <Link className="btn btn--sm btn--ghost" href={`/admin/bokningar/ny?intern=1&datum=${d}`}>+ Intern aktivitet</Link>
+          <Link className="btn btn--sm btn--ghost" href={`/admin/kalender/utskrift?d=${vy === "vecka" ? veckaStart : d}&dagar=${vy === "vecka" ? 7 : 1}`}>Skriv ut {vy === "vecka" ? "veckan" : "dagen"}</Link>
         </div>
       </header>
 

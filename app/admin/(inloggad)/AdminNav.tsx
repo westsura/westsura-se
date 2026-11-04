@@ -5,33 +5,55 @@ import { usePathname } from "next/navigation";
 import { loggaUt } from "@/app/admin/actions";
 import type { Roll } from "@/lib/admin";
 
-/** `roller` tom betyder att posten syns för alla. Superadmin ser allt. */
-const menu: { href: string; label: string; roller: Roll[] }[] = [
-  { href: "/admin", label: "Översikt", roller: [] },
-  { href: "/admin/kalender", label: "Kalender", roller: ["vardskap"] },
-  { href: "/admin/bokningar", label: "Bokningar", roller: ["vardskap"] },
-  { href: "/admin/forfragningar", label: "Förfrågningar", roller: ["vardskap"] },
-  { href: "/admin/kurser", label: "Kurser", roller: ["vardskap", "ekonomi"] },
-  { href: "/admin/priser", label: "Priser", roller: ["ekonomi"] },
-  { href: "/admin/fakturering", label: "Fakturering", roller: ["ekonomi"] },
-  { href: "/admin/tillfallen", label: "Tillfällen", roller: ["vardskap", "jaktadmin"] },
-  { href: "/admin/jaktklubb", label: "Jaktklubb", roller: ["jaktadmin"] },
-  { href: "/admin/sakerhetskurs", label: "Säkerhetskurs", roller: ["jaktadmin"] },
-  { href: "/admin/vanner", label: "Vänner", roller: ["vardskap", "kommunikation"] },
-  { href: "/admin/anvandare", label: "Användare", roller: ["superadmin"] },
+type Post = { href: string; label: string; roller: Roll[] };
+
+/** Menyn i grupper. `roller` tom = alla. Superadmin ser allt; en grupp utan synliga poster döljs. */
+const grupper: { rubrik: string | null; poster: Post[] }[] = [
+  { rubrik: null, poster: [{ href: "/admin", label: "Översikt", roller: [] }] },
+  { rubrik: "Bokningar", poster: [
+    { href: "/admin/kalender", label: "Kalender", roller: ["vardskap"] },
+    { href: "/admin/bokningar", label: "Bokningar", roller: ["vardskap"] },
+    { href: "/admin/bokningar/boende", label: "Boende bokat på sajten", roller: ["vardskap"] },
+  ] },
+  { rubrik: "Evenemang & kurser", poster: [
+    { href: "/admin/evenemang", label: "Evenemang", roller: ["vardskap"] },
+    { href: "/admin/kurser", label: "Kurser", roller: ["vardskap", "ekonomi"] },
+  ] },
+  { rubrik: "Jakt", poster: [
+    { href: "/admin/tillfallen", label: "Jaktdagar & kurser", roller: ["jaktadmin"] },
+    { href: "/admin/jaktklubb", label: "Jaktklubben", roller: ["jaktadmin"] },
+    { href: "/admin/sakerhetskurs", label: "Säkerhetskurs", roller: ["jaktadmin"] },
+  ] },
+  { rubrik: "Ekonomi", poster: [
+    { href: "/admin/priser", label: "Priser", roller: ["ekonomi"] },
+    { href: "/admin/fakturering", label: "Fakturering", roller: ["ekonomi"] },
+  ] },
+  { rubrik: "Kommunikation", poster: [{ href: "/admin/vanner", label: "Westsuras Vänner", roller: ["vardskap", "kommunikation"] }] },
+  { rubrik: "Inställningar", poster: [{ href: "/admin/anvandare", label: "Användare", roller: ["superadmin"] }] },
 ];
 
 export default function AdminNav({ roller }: { roller: Roll[] }) {
   const p = usePathname();
   const superadmin = roller.includes("superadmin");
-  const synliga = menu.filter((m) => !m.roller.length || superadmin || m.roller.some((r) => roller.includes(r)));
+  const far = (m: Post) => !m.roller.length || superadmin || m.roller.some((r) => roller.includes(r));
+  const alla = grupper.flatMap((g) => g.poster).filter(far);
+  // Mest specifika träffen är aktiv (så att Bokningar inte lyser när man är på Boende bokat på sajten).
+  const aktiv = alla.filter((m) => p === m.href || (m.href !== "/admin" && p.startsWith(m.href + "/"))).sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
   return (
     <nav className="admin__nav" aria-label="Admin">
       <p className="label" style={{ marginBottom: 6 }}>Westsura</p>
       <p style={{ fontFamily: "var(--font-display)", fontSize: 18, margin: "0 0 20px", color: "var(--text-heading)" }}>Admin</p>
-      {synliga.map((m) => (
-        <Link key={m.href} href={m.href} aria-current={p === m.href || (m.href !== "/admin" && p.startsWith(m.href)) ? "page" : undefined}>{m.label}</Link>
-      ))}
+      {grupper.map((g) => {
+        const synliga = g.poster.filter(far);
+        if (!synliga.length) return null;
+        return (
+          <div key={g.rubrik ?? "start"} className="admin__navgrupp">
+            {g.rubrik && <p className="admin__navrubrik">{g.rubrik}</p>}
+            {synliga.map((m) => <Link key={m.href} href={m.href} aria-current={aktiv === m.href ? "page" : undefined}>{m.label}</Link>)}
+          </div>
+        );
+      })}
       <div style={{ marginTop: "auto", paddingTop: 20 }}>
         <Link href="/" style={{ fontSize: 13 }}>Till sajten →</Link>
         <Link href="/admin/losenord" style={{ fontSize: 13 }}>Byt lösenord</Link>

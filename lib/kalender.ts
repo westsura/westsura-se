@@ -77,7 +77,7 @@ export async function hamtaPoster(fran: string, till: string, visaAvbokade = fal
       id: t.id, kalla: "tillfalle", kategori: t.typ === "evenemang" ? "evenemang" : "jakt", status: "info",
       titel: t.titel, under: `${t.typ === "evenemang" ? "Evenemang på sajten" : t.typ === "jakt" ? "Jakt" : t.typ === "hundtraning" ? "Hundträning" : "Jaktkurs"}${t.publicerad ? "" : " · ej publicerad"}`,
       fran: t.datum, till: slut, tid_fran: tf, tid_till: tt, enheter: [], lokaler: [], reserverar: false,
-      href: t.typ === "jakt" ? `/admin/tillfallen/${t.id}` : "/admin/tillfallen",
+      href: t.typ === "jakt" ? `/admin/tillfallen/${t.id}` : t.typ === "evenemang" ? "/admin/evenemang" : "/admin/tillfallen",
     });
   }
   for (const k of (kurser ?? []) as { id: string; namn: string; datum_fran: string; datum_till: string | null }[]) {

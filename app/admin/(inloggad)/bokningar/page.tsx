@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 type Rad = {
   key: string; href: string; nummer: string; namn: string; kontakt: string; typ: string; status: string;
-  datum: string | null; vad: string; folj: { niva: string; text: string } | null; kalla: string;
+  datum: string | null; vad: string; folj: { niva: string; text: string } | null; kalla: string; faktura?: string | null;
 };
 
 const STATUSFILTER = [["", "Alla aktiva"], ["forfragan", "Förfrågningar"], ["preliminar", "Preliminära"], ["bekraftad", "Bekräftade"], ["avbokad", "Avbokade"]];
@@ -40,6 +40,7 @@ export default async function Bokningar({ searchParams }: { searchParams: Promis
         typ: a.typ, status: a.status, datum: forsta?.fran ?? null,
         vad: mina.map((d) => `${datum(d.fran)}${d.tid_fran ? " " + tid(d.tid_fran) : ""} ${d.beskrivning || d.typ}${d.lokal_ids.length ? " · " + d.lokal_ids.map(lokalNamn).join(", ") : ""}${d.enhet_ids.length ? " · " + d.enhet_ids.map(enhetNamn).join(", ") : ""}`).join("\n") || "Datum ej satt",
         folj: foljUpp(a, idag), kalla: a.forfragan_id ? "Förfrågan via sajten" : a.typ === "intern" ? "Internt" : "Admin",
+        faktura: a.fakturastatus === "betald" ? "Betald" : a.fakturastatus === "fakturerad" ? "Fakturerad" : null,
       };
     }),
     ...((webb ?? []) as { id: string; nummer: number; gast_namn: string; gast_telefon: string | null; gast_epost: string; status: string; ankomst: string; avresa: string; enheter: string | null; paket_namn: string | null; summa: number; antal_personer: number }[]).map((b) => ({
@@ -74,6 +75,7 @@ export default async function Bokningar({ searchParams }: { searchParams: Promis
           <Link className="btn btn--sm" href="/admin/bokningar/ny">+ Ny bokning</Link>
           <Link className="btn btn--sm btn--ghost" href="/admin/bokningar/ny?intern=1">+ Intern aktivitet</Link>
           <Link className="btn btn--sm btn--ghost" href="/admin/bokningar/mallar">Mejlmallar</Link>
+          <a className="btn btn--sm btn--ghost" href={`/admin/bokningar/export${period === "alla" ? "?fran=2000-01-01" : ""}`} title="Kommande bokningar som fil för Excel">Exportera</a>
         </div>
       </header>
 
@@ -113,7 +115,7 @@ export default async function Bokningar({ searchParams }: { searchParams: Promis
                   <td><Link href={r.href}><b>{r.namn}</b></Link>{r.kontakt && <><br /><small>{r.kontakt}</small></>}<br /><small className="muted">{r.kalla}</small></td>
                   <td><small style={{ whiteSpace: "pre-line" }}>{r.vad}</small></td>
                   <td><span className="kal-typ" data-typ={r.typ}>{ARENDETYP[r.typ] ?? r.typ}</span></td>
-                  <td><span className={`pill pill--${r.status}`}>{ARENDESTATUS[r.status] ?? r.status}</span>{r.folj && <><br /><small className={`folj folj--${r.folj.niva}`}>{r.folj.text}</small></>}</td>
+                  <td><span className={`pill pill--${r.status}`}>{ARENDESTATUS[r.status] ?? r.status}</span>{r.folj && <><br /><small className={`folj folj--${r.folj.niva}`}>{r.folj.text}</small></>}{r.faktura && <><br /><small>{r.faktura}</small></>}</td>
                 </tr>
               ))}
             </tbody>
