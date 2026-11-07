@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { skapaInloggningslank } from "@/lib/inloggningslank";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import { kravMedlem, kursStatus, arHundforare } from "@/lib/jakt";
-import { mejlDokumentVantar, mejlAnmalan, mejlVakOnskad, mejlHundforareIntresse } from "@/lib/epost";
+import { mejlInloggningslank, mejlDokumentVantar, mejlAnmalan, mejlVakOnskad, mejlHundforareIntresse } from "@/lib/epost";
 import { vakPris, VAKVILT } from "@/lib/vak";
 import { giltigaIdag } from "@/lib/dokument";
 import { kollaLosenord } from "@/lib/konto";
@@ -132,14 +134,20 @@ export async function skickaMedlemslank(fd: FormData): Promise<{ ok: boolean; fe
   if (felUppslag) return { ok: false, fel: felUppslag.message };
   if (!medlem) return { ok: false, fel: "Adressen är inte registrerad som medlem – ring oss." };
 
-  const db = await supabaseServer();
-  const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
-  const { error } = await db.auth.signInWithOtp({
-    email: epost,
-    options: { emailRedirectTo: `${bas}/jaktklubb/auth/callback?next=/jaktklubb/medlem/losenord`, shouldCreateUser: true },
-  });
-  if (error) return { ok: false, fel: error.message };
+  const l = await skapaInloggningslank(epost, "/jaktklubb/auth/bekrafta", "/jaktklubb/medlem/losenord");
+  if ("fel" in l) return { ok: false, fel: l.fel };
+  const skickat = await mejlInloggningslank({ epost, lank: l.lank! });
+  if (!skickat) return { ok: false, fel: "Mejlet gick inte att skicka just nu. Försök igen om en stund eller ring oss." };
   return { ok: true };
+}
+
+/** Steg två av engångslänken: knappen på bekräftelsesidan. Först här förbrukas koden. */
+export async function bekraftaMedlemslank(fd: FormData) {
+  const tokenHash = s(fd.get("token_hash")), next = s(fd.get("next"));
+  const db = await supabaseServer();
+  const { error } = await db.auth.verifyOtp({ token_hash: tokenHash, type: "magiclink" });
+  if (error) redirect("/jaktklubb/login?fel=lank");
+  redirect(next.startsWith("/jaktklubb") ? next : "/jaktklubb/medlem");
 }
 
 /** Loggar ut medlemmen. Ligger här och inte i lib/jakt.ts — server actions kräver "use server". */

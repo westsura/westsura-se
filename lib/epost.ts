@@ -40,6 +40,18 @@ export async function mejlFranAdmin(o: { till: string; amne: string; rubrik: str
   return skicka([o.till], o.amne, html(fritext(o.rubrik), stycken, ""), site.email);
 }
 
+/** Engångslänk för att logga in och välja nytt lösenord. */
+export async function mejlInloggningslank(o: { epost: string; lank: string; admin?: boolean }) {
+  return skicka([o.epost], o.admin ? "Logga in i admin — Westsura Herrgård" : "Logga in och välj nytt lösenord — Westsura Herrgård", html(
+    o.admin ? "Logga in i admin" : "Välj ett nytt lösenord",
+    [
+      `Någon (förhoppningsvis du) bad om en inloggningslänk till ${o.admin ? "admin på westsura.se" : "medlemsklubben på westsura.se"}.`,
+      `<a href="${o.lank}" style="display:inline-block;background:#b68e40;color:#fff;text-decoration:none;padding:12px 22px;letter-spacing:.1em;text-transform:uppercase;font-size:13px">Logga in</a>`,
+      `Länken fungerar en gång och i en timme. Efter inloggningen kommer du till sidan där du väljer ett nytt lösenord.`,
+      `Bad du inte om länken kan du bortse från mejlet.`,
+    ], "Med vänliga hälsningar, Westsura Herrgård"));
+}
+
 export async function mejlBokning(o: { epost: string; namn: string; nummer: number; ankomst: string; avresa: string; enheter: string[]; summa: number; hundar: number; frukost: boolean; bricka?: boolean; paket?: boolean }) {
   const kr = o.summa.toLocaleString("sv-SE") + " kr";
   const rader = [

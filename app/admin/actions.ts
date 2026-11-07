@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { skapaInloggningslank } from "@/lib/inloggningslank";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import { kravAdmin } from "@/lib/admin";
 import { OMRADEN, ROLLNAMN, type Roll } from "@/lib/roller";
-import { mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokumentstatus, mejlDokumentKlar, mejlVakSvar, mejlAdminValkommen, mejlEkipageGodkant, mejlEkipageInbjudan, mejlAnmalanStatus, mejlAnmalan } from "@/lib/epost";
+import { mejlInloggningslank, mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokumentstatus, mejlDokumentKlar, mejlVakSvar, mejlAdminValkommen, mejlEkipageGodkant, mejlEkipageInbjudan, mejlAnmalanStatus, mejlAnmalan } from "@/lib/epost";
 import { EKIPAGE_RABATT } from "@/lib/jakt";
 import { giltigaIdag } from "@/lib/dokument";
 import { Resend } from "resend";
@@ -41,11 +43,20 @@ export async function skickaInloggningslank(fd: FormData): Promise<{ ok: boolean
   const { data: inbjuden, error: felUppslag } = await admin.rpc("ar_inbjuden", { e: epost });
   if (felUppslag) return { ok: false, fel: felUppslag.message };
   if (!inbjuden) return { ok: false, fel: "Adressen har inte behörighet till admin. Be superadmin lägga till dig." };
-  const db = await supabaseServer();
-  const bas = process.env.NEXT_PUBLIC_SITE_URL || site.url;
-  const { error } = await db.auth.signInWithOtp({ email: epost, options: { emailRedirectTo: `${bas}/admin/auth/callback?next=/admin/losenord`, shouldCreateUser: true } });
-  if (error) return { ok: false, fel: error.message };
+  const l = await skapaInloggningslank(epost, "/admin/auth/bekrafta", "/admin/losenord");
+  if ("fel" in l) return { ok: false, fel: l.fel };
+  const skickat = await mejlInloggningslank({ epost, lank: l.lank!, admin: true });
+  if (!skickat) return { ok: false, fel: "Mejlet gick inte att skicka just nu. Försök igen om en stund." };
   return { ok: true };
+}
+
+/** Steg två av engångslänken till admin: knappen på bekräftelsesidan. */
+export async function bekraftaAdminlank(fd: FormData) {
+  const tokenHash = s(fd.get("token_hash")), next = s(fd.get("next"));
+  const db = await supabaseServer();
+  const { error } = await db.auth.verifyOtp({ token_hash: tokenHash, type: "magiclink" });
+  if (error) redirect("/admin/login?fel=lank");
+  redirect(next.startsWith("/admin") ? next : "/admin");
 }
 
 /** Inloggad admin byter sitt eget lösenord. */
