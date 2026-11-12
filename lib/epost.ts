@@ -203,21 +203,19 @@ export async function mejlAdminValkommen(o: { epost: string; namn: string; omrad
 /* ---------- Kurser ---------- */
 
 /** Bokningsbekräftelse för en kurs, och besked till herrgården. */
-export async function mejlKursbokning(o: { epost: string; namn: string; telefon: string; kurs: string; datum: string; nummer: number; antal: number; rum: string; earlybird: boolean; prisPerPerson: number; summa: number; deltagare?: string; kost?: string; meddelande?: string }) {
+/** Bokning av kurs/aktivitet: kundens mejl (texten kommer från aktiviteten och kan skrivas om i admin) och besked till herrgården. */
+export async function mejlKursbokning(o: { epost: string; namn: string; telefon: string; kurs: string; nummer: number; swish: boolean; summa: number; kundtext: string; bokning: string; deltagare?: string; kost?: string; meddelande?: string }) {
   const kr = (n: number) => n.toLocaleString("sv-SE") + " kr";
-  await skicka([o.epost], `Bokningsbekräftelse: ${o.kurs}`, html(`Välkommen på ${o.kurs.toLowerCase()}`, [
-    `Hej ${fritext(o.namn)}. Tack för din bokning — vi ser fram emot att ses${o.rum ? " på kurshelgen" : " på kursen"}.`,
-    `<strong>${fritext(o.kurs)}</strong><br>${fritext(o.datum)}<br>${o.antal} deltagare${o.rum ? " · " + o.rum : ""}${o.earlybird ? " · Early Bird" : ""}<br>${kr(o.prisPerPerson)} per person · <strong>totalt ${kr(o.summa)}</strong><br>Bokningsnummer ${o.nummer}`,
-    `Bokningen är bindande. Faktura skickas separat och betalas inom tio dagar. Får du förhinder kan du överlåta platsen till någon annan utan kostnad — meddela oss namn och kontaktuppgifter. Blir kursen inställd på grund av för få deltagare återbetalas hela beloppet.`,
-    `Vi skickar program och praktisk information närmare kursen. Frågor? Ring ${site.phone} eller svara på det här mejlet.`,
-  ]), site.email);
-  await skicka([site.email], `Kursbokning ${o.nummer}: ${o.kurs} — ${o.namn}`, html("Ny kursbokning", [
+  await mejlFranAdmin({ till: o.epost, amne: `${o.swish ? "Bokning — betala med Swish för att säkra platsen" : "Bokningsbekräftelse"}: ${o.kurs}`, rubrik: o.swish ? "Tack för din bokning" : `Välkommen på ${o.kurs.toLowerCase()}`, text: o.kundtext });
+  await skicka([site.email], `Bokning ${o.nummer}: ${o.kurs} — ${o.namn}`, html("Ny bokning", [
     `${fritext(o.namn)} · ${fritext(o.epost)} · ${fritext(o.telefon)}`,
-    `<strong>${fritext(o.kurs)}</strong>, ${o.antal} pers${o.rum ? " · " + o.rum : ""}${o.earlybird ? " · Early Bird" : ""} · ${kr(o.summa)}`,
+    `<strong>${fritext(o.kurs)}</strong><br>${fritext(o.bokning)}`,
     o.deltagare ? `<strong>Övriga deltagare</strong><br>${fritext(o.deltagare)}` : "",
     o.kost ? `<strong>Kost och allergier</strong><br>${fritext(o.kost)}` : "",
     o.meddelande ? `<strong>Meddelande</strong><br>${fritext(o.meddelande)}` : "",
-    `Fakturaunderlaget ligger under Fakturering i admin. Deltagarlistan finns under Kurser.`,
+    o.swish
+      ? `Väntar på Swish ${kr(o.summa)} märkt "${fritext(o.namn)}, ${o.nummer}". Klicka <em>Betalning mottagen</em> under Kurser &amp; aktiviteter i admin när den har kommit in — då går bekräftelsen till kunden.`
+      : `Fakturaunderlaget ligger under Fakturering i admin. Deltagarlistan finns under Kurser &amp; aktiviteter.`,
   ].filter(Boolean), ""), o.epost);
 }
 

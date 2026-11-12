@@ -34,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let kurser: typeof evenemang = [];
   try {
     const { data } = await supabasePublik().from("kurs").select("id").eq("publicerad", true).neq("id", "naturfoto");
-    kurser = (data ?? []).map((k) => ({ path: `/kurser/${k.id}`, priority: 0.6, freq: "weekly" as const }));
+    kurser = (data ?? []).map((k) => ({ path: `/aktiviteter/${k.id}`, priority: 0.6, freq: "weekly" as const }));
   } catch { /* sitemapen ska fungera även utan kurser */ }
   return [...pages, ...evenemang, ...kurser].map((p) => ({ url: site.url + p.path, lastModified: now, changeFrequency: p.freq, priority: p.priority }));
 }

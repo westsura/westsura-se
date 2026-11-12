@@ -75,16 +75,16 @@ export default async function Paket() {
       db.from("kurs").select("datum_text, pris_dubbel, earlybird_dubbel, earlybird_till").eq("id", "naturfoto").maybeSingle(),
     ]);
     // Övriga publicerade kurser — var och en med egen sida under /kurser.
-    const { data: ovriga } = await db.from("kurs").select("id, namn, datum_text, pris_dubbel, earlybird_dubbel, earlybird_till, med_boende, ingress, ingar, bild, bild_alt")
+    const { data: ovriga } = await db.from("kurs").select("id, namn, datum_text, pris_dubbel, earlybird_dubbel, earlybird_till, med_boende, ingress, ingar, bild, bild_alt, benamning")
       .eq("publicerad", true).neq("id", "naturfoto").order("datum_fran", { nullsFirst: false });
     const idag = new Date().toISOString().slice(0, 10);
-    kurser = ((ovriga ?? []) as { id: string; namn: string; datum_text: string; pris_dubbel: number; earlybird_dubbel: number | null; earlybird_till: string | null; med_boende: boolean; ingress: string | null; ingar: string | null; bild: string | null; bild_alt: string | null }[]).map((x) => {
+    kurser = ((ovriga ?? []) as { id: string; namn: string; datum_text: string; pris_dubbel: number; earlybird_dubbel: number | null; earlybird_till: string | null; med_boende: boolean; ingress: string | null; ingar: string | null; bild: string | null; bild_alt: string | null; benamning: string | null }[]).map((x) => {
       const eb = x.earlybird_till && x.earlybird_dubbel != null && idag <= x.earlybird_till;
       return {
-        id: x.id, bild: x.bild ?? "/bilder/herrgarden.jpg", alt: x.bild_alt ?? x.namn, label: `Kurs · ${x.datum_text}`, titel: x.namn.toLowerCase(),
+        id: x.id, bild: x.bild ?? "/bilder/herrgarden.jpg", alt: x.bild_alt ?? x.namn, label: `${(x.benamning || "aktivitet").replace(/^./, (c) => c.toUpperCase())} · ${x.datum_text}`, titel: x.namn.toLowerCase(),
         pris: `${x.med_boende ? "från " : ""}${(eb ? x.earlybird_dubbel! : x.pris_dubbel).toLocaleString("sv-SE")} kr`, per: eb ? "per person · Early Bird" : "per person",
         text: x.ingress ? [x.ingress] : [], ingar: (x.ingar ?? "").split("\n").map((r) => r.trim()).filter(Boolean).slice(0, 4),
-        extra: "Begränsat antal platser. Bindande bokning.", lank: `/kurser/${x.id}`,
+        extra: "Begränsat antal platser. Bindande bokning.", lank: `/aktiviteter/${x.id}`,
       };
     });
     prislista = (p ?? []) as typeof prislista;

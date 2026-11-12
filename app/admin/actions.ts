@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { skapaInloggningslank } from "@/lib/inloggningslank";
+import { bokningsrader, fyllAktivitetsmejl, barnAlderText, STANDARD_BEKRAFTELSE } from "@/lib/aktivitet";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import { kravAdmin } from "@/lib/admin";
 import { OMRADEN, ROLLNAMN, type Roll } from "@/lib/roller";
-import { mejlInloggningslank, mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokumentstatus, mejlDokumentKlar, mejlVakSvar, mejlAdminValkommen, mejlEkipageGodkant, mejlEkipageInbjudan, mejlAnmalanStatus, mejlAnmalan } from "@/lib/epost";
+import { mejlInloggningslank, mejlFranAdmin, mejlMedlemGodkand, mejlMedlemVantelista, mejlMedlemAvbojd, mejlDokumentstatus, mejlDokumentKlar, mejlVakSvar, mejlAdminValkommen, mejlEkipageGodkant, mejlEkipageInbjudan, mejlAnmalanStatus, mejlAnmalan } from "@/lib/epost";
 import { EKIPAGE_RABATT } from "@/lib/jakt";
 import { giltigaIdag } from "@/lib/dokument";
 import { Resend } from "resend";
@@ -931,8 +932,17 @@ export async function sparaKurs(id: string, fd: FormData): Promise<{ ok: boolean
   if (!rad.namn || !rad.datum_text) return { ok: false, fel: "Namn och datumtext behövs." };
   if (rad.pris_dubbel == null || rad.pris_enkel == null) return { ok: false, fel: "Ange ordinarie pris." };
   // Sidans innehåll — bara när fälten finns i formuläret (naturfoto har en handbyggd sida).
+  // Barnpris, betalsätt och mejltexter gäller alla aktiviteter (även naturfoto).
+  if (fd.has("betalning")) {
+    rad.betalning = s(fd.get("betalning")) === "swish" ? "swish" : "faktura";
+    rad.barnpris = tal("barnpris");
+    rad.barn_alder_fran = tal("barn_alder_fran");
+    rad.barn_alder_till = tal("barn_alder_till");
+    for (const k of ["mejl_bokning", "mejl_bekraftelse", "villkor"]) rad[k] = s(fd.get(k)) || null;
+    rad.benamning = s(fd.get("benamning")) || "aktivitet";
+  }
   if (fd.has("ingress")) {
-    for (const k of ["ingress", "beskrivning", "kursledare", "ingar", "villkor", "fakturatext", "bild_alt"]) rad[k] = s(fd.get(k)) || null;
+    for (const k of ["ingress", "beskrivning", "kursledare", "ingar", "fakturatext", "bild_alt"]) rad[k] = s(fd.get(k)) || null;
     rad.med_boende = medBoende;
     rad.publicerad = !!fd.get("publicerad");
     const fil = fd.get("bildfil");
@@ -944,10 +954,24 @@ export async function sparaKurs(id: string, fd: FormData): Promise<{ ok: boolean
       if (felBild) return { ok: false, fel: `Bilden kunde inte laddas upp: ${felBild.message}` };
       rad.bild = lagring.getPublicUrl(sokvag).data.publicUrl;
     }
+    // Fler bilder till galleriet på sidan: nya läggs till, bockade tas bort.
+    const { data: nu } = await supabaseAdmin().from("kurs").select("bilder").eq("id", id).maybeSingle();
+    const bort = new Set(fd.getAll("ta_bort_bild").map(String));
+    const bilder = ((nu?.bilder ?? []) as { src: string; alt: string }[]).filter((b) => !bort.has(b.src));
+    for (const [i, f] of fd.getAll("galleri").entries()) {
+      if (!(f instanceof File) || !f.size) continue;
+      if (!f.type.startsWith("image/")) return { ok: false, fel: "Galleriet tar bara bilder (jpg, png eller webp)." };
+      const sokvag = `kurs-${id}-galleri-${Date.now()}-${i}.${f.type === "image/png" ? "png" : f.type === "image/webp" ? "webp" : "jpg"}`;
+      const lagring = supabaseAdmin().storage.from("aktuellt");
+      const { error: felG } = await lagring.upload(sokvag, f, { contentType: f.type, upsert: false });
+      if (felG) return { ok: false, fel: `En bild kunde inte laddas upp: ${felG.message}` };
+      bilder.push({ src: lagring.getPublicUrl(sokvag).data.publicUrl, alt: rad.namn as string });
+    }
+    rad.bilder = bilder;
   }
   const { error } = await supabaseAdmin().from("kurs").update(rad).eq("id", id);
   if (error) return { ok: false, fel: error.message };
-  revalidatePath("/admin/kurser"); revalidatePath("/paket/naturfoto"); revalidatePath("/paket"); revalidatePath(`/kurser/${id}`); revalidatePath("/admin/kalender");
+  revalidatePath("/admin/kurser"); revalidatePath("/paket/naturfoto"); revalidatePath("/paket"); revalidatePath(`/aktiviteter/${id}`); revalidatePath("/admin/kalender");
   return { ok: true };
 }
 
@@ -965,6 +989,7 @@ export async function skapaKurs(fd: FormData): Promise<{ ok: boolean; fel?: stri
   const { error } = await db.from("kurs").insert({
     id, namn, datum_text: datumText, platser: Math.max(1, Math.round(Number(s(fd.get("platser")) || 12))),
     pris_dubbel: pris, pris_enkel: pris, med_boende: medBoende, oppen: false, publicerad: false,
+    benamning: s(fd.get("benamning")) || "aktivitet", betalning: s(fd.get("betalning")) === "swish" ? "swish" : "faktura",
   });
   if (error) return { ok: false, fel: error.message };
   revalidatePath("/admin/kurser");
@@ -981,6 +1006,37 @@ export async function taBortKurs(id: string): Promise<{ ok: boolean; fel?: strin
   const { error } = await db.from("kurs").delete().eq("id", id);
   if (error) return { ok: false, fel: error.message };
   revalidatePath("/admin/kurser"); revalidatePath("/paket");
+  return { ok: true };
+}
+
+/** Förslag till bekräftelsemejl när en Swishbetalning har kommit in (granskas innan det skickas). */
+export async function forslagKursbekraftelse(bokningId: string) {
+  await kravAdmin("vardskap", "ekonomi");
+  const db = supabaseAdmin();
+  const { data: b } = await db.from("kursbokning").select("*, kurs:kurs_id(*)").eq("id", bokningId).maybeSingle();
+  if (!b) return null;
+  const k = b.kurs as { namn: string; datum_text: string; med_boende: boolean; barnpris: number | null; barn_alder_fran: number | null; barn_alder_till: number | null; mejl_bekraftelse: string | null };
+  const bokning = bokningsrader({ antal: b.antal, barn: b.antal_barn, rum: k.med_boende ? (b.rumstyp === "enkel" ? "enkelrum" : "delat dubbelrum") : null,
+    prisPerPerson: b.pris_per_person, barnpris: k.barnpris, barnAlder: k.barnpris != null ? barnAlderText(k.barn_alder_fran, k.barn_alder_till) : null, summa: b.summa, nummer: b.nummer, earlybird: b.earlybird });
+  return {
+    till: b.epost as string, amne: `Bekräftat: ${k.namn}`,
+    text: fyllAktivitetsmejl(k.mejl_bekraftelse || STANDARD_BEKRAFTELSE, { namn: b.namn, aktivitet: k.namn, datum: k.datum_text, bokning, summa: b.summa, nummer: b.nummer }),
+  };
+}
+
+/** Betalningen har kommit in: bokningen blir bekräftad och (om man vill) går ett granskat mejl till kunden. */
+export async function bekraftaKursbokning(bokningId: string, fd: FormData): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("vardskap", "ekonomi");
+  const db = supabaseAdmin();
+  const { error } = await db.from("kursbokning").update({ status: "bekraftad", bekraftad: new Date().toISOString() }).eq("id", bokningId).in("status", ["vantar", "bokad"]);
+  if (error) return { ok: false, fel: error.message };
+  if (s(fd.get("skicka")) === "1") {
+    const till = s(fd.get("till")), amne = s(fd.get("amne")), text = s(fd.get("text"));
+    if (!till.includes("@") || !text) return { ok: false, fel: "Bokningen är bekräftad, men mejlet saknar mottagare eller text." };
+    const lyckat = await mejlFranAdmin({ till, amne: amne || "Bekräftelse", rubrik: "Din plats är bekräftad", text });
+    if (!lyckat) return { ok: false, fel: "Bokningen är bekräftad, men mejlet gick inte iväg. Försök igen eller mejla själv." };
+  }
+  revalidatePath("/admin/kurser");
   return { ok: true };
 }
 

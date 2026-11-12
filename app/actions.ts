@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { bokningsrader, fyllAktivitetsmejl, standardMejlBokning, barnAlderText } from "@/lib/aktivitet";
 import { supabaseAdmin, supabasePublik } from "@/lib/supabase";
 import { mejlBokning, mejlForfragan, mejlAnmalan, mejlMedlemsansokan, mejlJagarkonto, mejlVakOnskad, mejlVanValkommen, mejlEkipageRegistrerat, mejlKursbokning } from "@/lib/epost";
 import { inloggningForNyttKonto } from "@/lib/konto";
@@ -190,10 +191,11 @@ export async function skapaMedlemsansokan(fd: FormData): Promise<Svar> {
  * Bindande bokning av kursplatser. Pris (Early Bird eller ordinarie, delat dubbelrum eller enkelrum)
  * och lediga platser avgörs i databasen; ett fakturaunderlag skapas direkt med kort förfallotid.
  */
-export async function bokaKurs(fd: FormData): Promise<Svar<{ nummer: number; summa: number }>> {
+export async function bokaKurs(fd: FormData): Promise<Svar<{ nummer: number; summa: number; swish: boolean }>> {
   const kurs = s(fd.get("kurs"));
   const namn = s(fd.get("namn")), epost = s(fd.get("epost")).toLowerCase(), telefon = s(fd.get("telefon"));
-  const antal = Math.min(4, Math.max(1, Number(s(fd.get("antal")) || 1)));
+  const antal = Math.min(10, Math.max(1, Number(s(fd.get("antal")) || 1)));
+  const barn = Math.min(antal, Math.max(0, Number(s(fd.get("antal_barn")) || 0)));
   const rumstyp = s(fd.get("rumstyp")) === "enkel" ? "enkel" : "dubbel";
   if (!namn || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(epost)) return { ok: false, fel: "Fyll i namn och en giltig e-postadress." };
   if (!telefon) return { ok: false, fel: "Fyll i ett telefonnummer." };
@@ -205,32 +207,43 @@ export async function bokaKurs(fd: FormData): Promise<Svar<{ nummer: number; sum
   const db = supabaseAdmin();
   const { data, error } = await db.rpc("boka_kurs", {
     p_kurs: kurs, p_namn: namn, p_epost: epost, p_telefon: telefon, p_antal: antal, p_rumstyp: rumstyp,
-    p_deltagare: deltagare || null, p_kost: kost || null, p_meddelande: meddelande || null, p_faktura: faktura,
+    p_deltagare: deltagare || null, p_kost: kost || null, p_meddelande: meddelande || null, p_faktura: faktura, p_barn: barn,
   });
   if (error) return { ok: false, fel: error.code === "P0001" ? error.message : "Det gick inte att boka just nu. Ring oss så hjälper vi dig." };
   const b = (data as { bokning_id: string; nummer: number; pris_per_person: number; summa: number; earlybird: boolean }[])[0];
-  const { data: k } = await db.from("kurs").select("namn, datum_text, med_boende, fakturatext").eq("id", kurs).single();
+  const { data: k } = await db.from("kurs").select("namn, datum_text, med_boende, fakturatext, betalning, barnpris, barn_alder_fran, barn_alder_till, mejl_bokning, benamning").eq("id", kurs).single();
   const rum = k?.med_boende === false ? "" : rumstyp === "enkel" ? "enkelrum" : "delat dubbelrum";
+  const swish = k?.betalning === "swish";
+  const barnBokade = k?.barnpris != null ? barn : 0;
 
-  // Fakturaunderlag direkt — betalning sker i samband med bokningen. Ett fel här stoppar inte bokningen.
-  try {
-    const forfaller = new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10);
-    const { data: u, error: felU } = await db.from("fakturaunderlag").insert({
-      rubrik: `${k?.namn ?? "Kurs"}, ${k?.datum_text ?? ""}, kursbokning ${b.nummer}`,
-      kund_namn: namn, kund_epost: faktura?.epost || epost, kund_telefon: telefon,
-      kund_foretag: faktura?.foretag || null, kund_orgnr: faktura?.orgnr || null, kund_adress: faktura?.adress || s(fd.get("adress")) || null, kund_referens: faktura?.referens || null,
-      forfallodatum: forfaller, anteckning: deltagare ? `Deltagare: ${namn}, ${deltagare}` : null,
-    }).select("id").single();
-    if (felU || !u) throw new Error(felU?.message ?? "inget underlag");
-    await db.from("fakturarad").insert({ underlag_id: u.id, ordning: 0, beskrivning: `${k?.namn ?? "Kurs"}${rum ? ", " + rum : ""}${b.earlybird ? ", Early Bird" : ""}${k?.fakturatext ? " — " + k.fakturatext : ""}`, antal, enhet: "pers", a_pris: b.pris_per_person, moms: 25 });
-    await db.from("kursbokning").update({ underlag_id: u.id }).eq("id", b.bokning_id);
-  } catch (e) { console.error("kunde inte skapa fakturaunderlag för kursbokning", b.nummer, e); }
+  // Faktura: underlag direkt (ett fel här stoppar inte bokningen). Swish: inget underlag — betalningen bekräftas i admin.
+  if (!swish) {
+    try {
+      const forfaller = new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10);
+      const { data: u, error: felU } = await db.from("fakturaunderlag").insert({
+        rubrik: `${k?.namn ?? "Aktivitet"}, ${k?.datum_text ?? ""}, bokning ${b.nummer}`,
+        kund_namn: namn, kund_epost: faktura?.epost || epost, kund_telefon: telefon,
+        kund_foretag: faktura?.foretag || null, kund_orgnr: faktura?.orgnr || null, kund_adress: faktura?.adress || s(fd.get("adress")) || null, kund_referens: faktura?.referens || null,
+        forfallodatum: forfaller, anteckning: deltagare ? `Deltagare: ${namn}, ${deltagare}` : null,
+      }).select("id").single();
+      if (felU || !u) throw new Error(felU?.message ?? "inget underlag");
+      const text = `${k?.namn ?? "Aktivitet"}${rum ? ", " + rum : ""}${b.earlybird ? ", Early Bird" : ""}${k?.fakturatext ? " — " + k.fakturatext : ""}`;
+      const rader = [{ underlag_id: u.id, ordning: 0, beskrivning: text, antal: antal - barnBokade, enhet: "pers", a_pris: b.pris_per_person, moms: 25 }];
+      if (barnBokade) rader.push({ underlag_id: u.id, ordning: 1, beskrivning: `${text}, ${barnAlderText(k?.barn_alder_fran ?? null, k?.barn_alder_till ?? null)}`, antal: barnBokade, enhet: "pers", a_pris: k!.barnpris!, moms: 25 });
+      await db.from("fakturarad").insert(rader.filter((r) => r.antal > 0));
+      await db.from("kursbokning").update({ underlag_id: u.id }).eq("id", b.bokning_id);
+    } catch (e) { console.error("kunde inte skapa fakturaunderlag för bokning", b.nummer, e); }
+  }
 
   try {
-    await mejlKursbokning({ epost, namn, telefon, kurs: k?.namn ?? "Kurs", datum: k?.datum_text ?? "", nummer: b.nummer, antal, rum, earlybird: b.earlybird, prisPerPerson: b.pris_per_person, summa: b.summa, deltagare, kost, meddelande });
+    const bokning = bokningsrader({ antal, barn: barnBokade, rum: rum || null, prisPerPerson: b.pris_per_person, barnpris: k?.barnpris ?? null,
+      barnAlder: k?.barnpris != null ? barnAlderText(k.barn_alder_fran, k.barn_alder_till) : null, summa: b.summa, nummer: b.nummer, earlybird: b.earlybird });
+    const text = fyllAktivitetsmejl(k?.mejl_bokning || standardMejlBokning(swish ? "swish" : "faktura"),
+      { namn, aktivitet: k?.namn ?? "", datum: k?.datum_text ?? "", bokning, summa: b.summa, nummer: b.nummer });
+    await mejlKursbokning({ epost, namn, telefon, kurs: k?.namn ?? "Aktivitet", nummer: b.nummer, swish, summa: b.summa, kundtext: text, bokning, deltagare, kost, meddelande });
   } catch (e) { console.error("mejl misslyckades", e); }
-  revalidatePath("/paket/naturfoto"); revalidatePath("/paket"); revalidatePath(`/kurser/${kurs}`);
-  return { ok: true, data: { nummer: b.nummer, summa: b.summa } };
+  revalidatePath("/paket/naturfoto"); revalidatePath("/paket"); revalidatePath(`/aktiviteter/${kurs}`); revalidatePath("/admin/kurser");
+  return { ok: true, data: { nummer: b.nummer, summa: b.summa, swish } };
 }
 
 /* ---------- Hundekipage ---------- */

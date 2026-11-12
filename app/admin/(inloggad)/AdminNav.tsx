@@ -15,9 +15,9 @@ const grupper: { rubrik: string | null; poster: Post[] }[] = [
     { href: "/admin/bokningar", label: "Bokningar", roller: ["vardskap"] },
     { href: "/admin/bokningar/boende", label: "Boende bokat på sajten", roller: ["vardskap"] },
   ] },
-  { rubrik: "Evenemang & kurser", poster: [
+  { rubrik: "Evenemang & aktiviteter", poster: [
     { href: "/admin/evenemang", label: "Evenemang", roller: ["vardskap"] },
-    { href: "/admin/kurser", label: "Kurser", roller: ["vardskap", "ekonomi"] },
+    { href: "/admin/kurser", label: "Kurser & aktiviteter", roller: ["vardskap", "ekonomi"] },
   ] },
   { rubrik: "Jakt", poster: [
     { href: "/admin/tillfallen", label: "Jaktdagar & kurser", roller: ["jaktadmin"] },
