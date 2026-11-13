@@ -3,6 +3,7 @@ import { kravAdmin, kr } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/supabase";
 import KursForm, { NyKurs, type KursRad } from "./KursForm";
 import BekraftaBetalning from "./BekraftaBetalning";
+import SkickaIgen from "./SkickaIgen";
 import Paketordning from "./Paketordning";
 import { FASTA_PAKET, sorteraPaket } from "@/lib/paketordning";
 import { KURSSTATUS, barnAlderText } from "@/lib/aktivitet";
@@ -11,7 +12,7 @@ import { avbokaKursbokning } from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 
-type Bokning = { id: string; nummer: number; kurs_id: string; namn: string; epost: string; telefon: string | null; antal: number; antal_barn: number; betalning: string; rumstyp: string; deltagare: string | null; kost: string | null; meddelande: string | null; pris_per_person: number; earlybird: boolean; summa: number; status: string; underlag_id: string | null; skapad: string };
+type Bokning = { id: string; nummer: number; kurs_id: string; namn: string; epost: string; telefon: string | null; antal: number; antal_barn: number; betalning: string; mejlat: boolean | null; rumstyp: string; deltagare: string | null; kost: string | null; meddelande: string | null; pris_per_person: number; earlybird: boolean; summa: number; status: string; underlag_id: string | null; skapad: string };
 
 /** Kurser med fast helg: datum, priser och deltagarlista. */
 export default async function Kurser() {
@@ -60,7 +61,7 @@ export default async function Kurser() {
                     {aktiva.map((b) => (
                       <tr key={b.id}>
                         <td className="num">{b.nummer}</td>
-                        <td><b>{b.namn}</b><div className="admin__meta">{b.telefon} · {b.epost}</div>{b.deltagare && <div className="admin__meta">Med: {b.deltagare}</div>}</td>
+                        <td><b>{b.namn}</b><div className="admin__meta">{b.telefon} · {b.epost}</div><SkickaIgen id={b.id} epost={b.epost} mejlat={b.mejlat} />{b.deltagare && <div className="admin__meta">Med: {b.deltagare}</div>}</td>
                         <td className="num">{b.antal}{b.antal_barn ? <div className="admin__meta">varav {b.antal_barn} barn</div> : null}</td>
                         <td>{!k.med_boende ? "—" : b.rumstyp === "enkel" ? "Enkelrum" : "Delat dubbel"}{b.earlybird ? <div className="admin__meta">Early Bird</div> : null}<div><span className={`pill pill--${b.status === "vantar" ? "preliminar" : b.status === "bekraftad" ? "bekraftad" : "ny"}`}>{KURSSTATUS[b.status]}</span></div></td>
                         <td><small>{[b.kost, b.meddelande].filter(Boolean).join(" · ")}</small></td>

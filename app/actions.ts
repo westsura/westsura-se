@@ -240,8 +240,9 @@ export async function bokaKurs(fd: FormData): Promise<Svar<{ nummer: number; sum
       barnAlder: k?.barnpris != null ? barnAlderText(k.barn_alder_fran, k.barn_alder_till) : null, summa: b.summa, nummer: b.nummer, earlybird: b.earlybird });
     const text = fyllAktivitetsmejl(k?.mejl_bokning || standardMejlBokning(swish ? "swish" : "faktura"),
       { namn, aktivitet: k?.namn ?? "", datum: k?.datum_text ?? "", bokning, summa: b.summa, nummer: b.nummer });
-    await mejlKursbokning({ epost, namn, telefon, kurs: k?.namn ?? "Aktivitet", nummer: b.nummer, swish, summa: b.summa, kundtext: text, bokning, deltagare, kost, meddelande });
-  } catch (e) { console.error("mejl misslyckades", e); }
+    const ok = await mejlKursbokning({ epost, namn, telefon, kurs: k?.namn ?? "Aktivitet", nummer: b.nummer, swish, summa: b.summa, kundtext: text, bokning, deltagare, kost, meddelande });
+    await db.from("kursbokning").update({ mejlat: ok }).eq("id", b.bokning_id);
+  } catch (e) { console.error("mejl misslyckades", e); await db.from("kursbokning").update({ mejlat: false }).eq("id", b.bokning_id); }
   revalidatePath("/paket/naturfoto"); revalidatePath("/paket"); revalidatePath(`/aktiviteter/${kurs}`); revalidatePath("/admin/kurser");
   return { ok: true, data: { nummer: b.nummer, summa: b.summa, swish } };
 }

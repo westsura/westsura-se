@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createHash } from "node:crypto";
 import { redirect } from "next/navigation";
 import { skapaInloggningslank } from "@/lib/inloggningslank";
-import { bokningsrader, fyllAktivitetsmejl, barnAlderText, STANDARD_BEKRAFTELSE } from "@/lib/aktivitet";
+import { bokningsrader, fyllAktivitetsmejl, barnAlderText, STANDARD_BEKRAFTELSE, standardMejlBokning } from "@/lib/aktivitet";
 import { supabaseServer, supabaseAdmin } from "@/lib/supabase";
 import { kravAdmin } from "@/lib/admin";
 import { OMRADEN, ROLLNAMN, type Roll } from "@/lib/roller";
@@ -1029,6 +1029,23 @@ export async function sparaPaketordning(ids: string[]): Promise<{ ok: boolean; f
   if (error) return { ok: false, fel: error.message };
   revalidatePath("/paket"); revalidatePath("/admin/kurser");
   return { ok: true };
+}
+
+/** Skickar bokningsmejlet (med Swish- eller fakturainstruktionen) till kunden igen. */
+export async function skickaKursbokningsmejlIgen(bokningId: string): Promise<{ ok: boolean; fel?: string }> {
+  await kravAdmin("vardskap", "ekonomi");
+  const db = supabaseAdmin();
+  const { data: b } = await db.from("kursbokning").select("*, kurs:kurs_id(*)").eq("id", bokningId).maybeSingle();
+  if (!b) return { ok: false, fel: "Hittade inte bokningen." };
+  const k = b.kurs as { namn: string; datum_text: string; med_boende: boolean; barnpris: number | null; barn_alder_fran: number | null; barn_alder_till: number | null; mejl_bokning: string | null; betalning: string };
+  const swish = b.betalning === "swish";
+  const bokning = bokningsrader({ antal: b.antal, barn: b.antal_barn, rum: k.med_boende ? (b.rumstyp === "enkel" ? "enkelrum" : "delat dubbelrum") : null,
+    prisPerPerson: b.pris_per_person, barnpris: b.barnpris ?? k.barnpris, barnAlder: k.barnpris != null ? barnAlderText(k.barn_alder_fran, k.barn_alder_till) : null, summa: b.summa, nummer: b.nummer, earlybird: b.earlybird });
+  const text = fyllAktivitetsmejl(k.mejl_bokning || standardMejlBokning(swish ? "swish" : "faktura"), { namn: b.namn, aktivitet: k.namn, datum: k.datum_text, bokning, summa: b.summa, nummer: b.nummer });
+  const ok = await mejlFranAdmin({ till: b.epost, amne: `${swish ? "Bokning — betala med Swish för att säkra platsen" : "Bokningsbekräftelse"}: ${k.namn}`, rubrik: swish ? "Tack för din bokning" : `Välkommen på ${k.namn.toLowerCase()}`, text });
+  await db.from("kursbokning").update({ mejlat: ok }).eq("id", bokningId);
+  revalidatePath("/admin/kurser");
+  return ok ? { ok: true } : { ok: false, fel: "Mejlet gick inte iväg den här gången heller. Kontrollera adressen eller mejla kunden själv." };
 }
 
 /** Förslag till bekräftelsemejl när en Swishbetalning har kommit in (granskas innan det skickas). */

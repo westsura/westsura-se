@@ -206,7 +206,7 @@ export async function mejlAdminValkommen(o: { epost: string; namn: string; omrad
 /** Bokning av kurs/aktivitet: kundens mejl (texten kommer från aktiviteten och kan skrivas om i admin) och besked till herrgården. */
 export async function mejlKursbokning(o: { epost: string; namn: string; telefon: string; kurs: string; nummer: number; swish: boolean; summa: number; kundtext: string; bokning: string; deltagare?: string; kost?: string; meddelande?: string }) {
   const kr = (n: number) => n.toLocaleString("sv-SE") + " kr";
-  await mejlFranAdmin({ till: o.epost, amne: `${o.swish ? "Bokning — betala med Swish för att säkra platsen" : "Bokningsbekräftelse"}: ${o.kurs}`, rubrik: o.swish ? "Tack för din bokning" : `Välkommen på ${o.kurs.toLowerCase()}`, text: o.kundtext });
+  const kundOk = await mejlFranAdmin({ till: o.epost, amne: `${o.swish ? "Bokning — betala med Swish för att säkra platsen" : "Bokningsbekräftelse"}: ${o.kurs}`, rubrik: o.swish ? "Tack för din bokning" : `Välkommen på ${o.kurs.toLowerCase()}`, text: o.kundtext });
   await skicka([site.email], `Bokning ${o.nummer}: ${o.kurs} — ${o.namn}`, html("Ny bokning", [
     `${fritext(o.namn)} · ${fritext(o.epost)} · ${fritext(o.telefon)}`,
     `<strong>${fritext(o.kurs)}</strong><br>${fritext(o.bokning)}`,
@@ -217,6 +217,7 @@ export async function mejlKursbokning(o: { epost: string; namn: string; telefon:
       ? `Väntar på Swish ${kr(o.summa)} märkt "${fritext(o.namn)}, ${o.nummer}". Klicka <em>Betalning mottagen</em> under Kurser &amp; aktiviteter i admin när den har kommit in — då går bekräftelsen till kunden.`
       : `Fakturaunderlaget ligger under Fakturering i admin. Deltagarlistan finns under Kurser &amp; aktiviteter.`,
   ].filter(Boolean), ""), o.epost);
+  return kundOk;
 }
 
 /* ---------- Hundekipage ---------- */
