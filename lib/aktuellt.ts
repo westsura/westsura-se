@@ -5,7 +5,7 @@ import type { Sittning } from "@/lib/sittning";
 export type Evenemang = {
   id: string; slug: string; titel: string; ingress: string | null; beskrivning: string | null; program: string | null;
   datum: string; datum_till: string | null; tid: string | null; pris: number | null; platser: number; kvar: number;
-  bild: string | null; bild_alt: string | null; anmalan: boolean;
+  bild: string | null; bild_alt: string | null; bild_fokus: string | null; anmalan: boolean;
   barnpris: number | null; barn_alder: number; skapad: string | null;
   /** Egen text till startsidan (tom rad mellan styckena). Saknas den visas ingress + början av texten. */
   kort: string | null;
@@ -16,7 +16,7 @@ export type Evenemang = {
   sittningar: Sittning[];
 };
 
-const FALT = "id, slug, titel, ingress, beskrivning, program, datum, datum_till, tid, pris, barnpris, barn_alder, platser, bild, bild_alt, anmalan, skapad, kort, lanktext, bilder";
+const FALT = "id, slug, titel, ingress, beskrivning, program, datum, datum_till, tid, pris, barnpris, barn_alder, platser, bild, bild_alt, bild_fokus, anmalan, skapad, kort, lanktext, bilder";
 type Rad = Omit<Evenemang, "kvar" | "sittningar">;
 
 async function komplettera(rader: Rad[]): Promise<Evenemang[]> {

@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { sparaTillfalle } from "@/app/admin/actions";
+import BildFokus from "@/components/BildFokus";
 
 type T = {
   id: string; typ: string; titel: string; beskrivning: string | null; datum: string; tid: string | null; platser: number; pris: number | null;
   publicerad: boolean; synlighet?: string; samling?: string | null; program?: string | null; algjakt?: boolean;
   slug?: string | null; ingress?: string | null; bild?: string | null; bild_alt?: string | null; anmalan?: boolean;
   barnpris?: number | null; barn_alder?: number; gastplatser?: number; gastpris?: number | null;
-  kort?: string | null; lanktext?: string | null;
+  kort?: string | null; lanktext?: string | null; bild_fokus?: string | null;
 };
 
 /** Förminskar en bild i webbläsaren till högst 2000 px och JPEG, så att uppladdningen går snabbt. */
@@ -79,6 +80,10 @@ export default function TillfalleForm({ tillfalle, del = "jakt" }: { tillfalle?:
             </div>
             <p className="hint">Liggande bild fungerar bäst. Den förminskas automatiskt och används även när länken delas på Facebook.</p>
           </div>
+          {forhand && !taBort && (
+            <div className="field field--full"><label>Bildens utsnitt i bannern</label>
+              <BildFokus key={forhand} src={forhand} standard={forhand === tillfalle?.bild ? tillfalle?.bild_fokus : null} /></div>
+          )}
           <div className="field field--full"><label>Bildtext för syntolkning</label><input name="bild_alt" defaultValue={tillfalle?.bild_alt ?? ""} placeholder="Valfritt — t.ex. marknadsstånd vid herrgårdens gula fasad" /></div>
         </>
       )}

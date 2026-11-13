@@ -3,6 +3,8 @@ import { kravAdmin, kr } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/supabase";
 import KursForm, { NyKurs, type KursRad } from "./KursForm";
 import BekraftaBetalning from "./BekraftaBetalning";
+import Paketordning from "./Paketordning";
+import { FASTA_PAKET, sorteraPaket } from "@/lib/paketordning";
 import { KURSSTATUS, barnAlderText } from "@/lib/aktivitet";
 import TaBortKnapp from "@/components/TaBortKnapp";
 import { avbokaKursbokning } from "@/app/admin/actions";
@@ -15,10 +17,14 @@ type Bokning = { id: string; nummer: number; kurs_id: string; namn: string; epos
 export default async function Kurser() {
   await kravAdmin("vardskap", "ekonomi");
   const adm = supabaseAdmin();
-  const [{ data: kurser }, { data: bokningar }] = await Promise.all([
+  const [{ data: kurser }, { data: bokningar }, { data: ordning }] = await Promise.all([
     adm.from("kurs").select("*").order("datum_fran", { nullsFirst: false }).order("skapad"),
     adm.from("kursbokning").select("*").order("skapad"),
+    adm.from("paketordning").select("id, ordning"),
   ]);
+  // Paketsidans poster i samma standardordning som sidan: naturfoto, aktiviteterna, övriga paket.
+  const aktiviteter = ((kurser ?? []) as KursRad[]).filter((k) => k.id !== "naturfoto").map((k) => ({ id: k.id, namn: k.namn, info: k.publicerad ? k.datum_text : "ej publicerad" }));
+  const paketposter = sorteraPaket([FASTA_PAKET[0], ...aktiviteter, ...FASTA_PAKET.slice(1)], (ordning ?? []) as { id: string; ordning: number }[]);
   const B = (bokningar ?? []) as Bokning[];
 
   return (
@@ -28,6 +34,7 @@ export default async function Kurser() {
         <p className="admin__meta">Faktura: bindande bokning med fakturaunderlag direkt. Swish: platsen reserveras och bekräftas när du klickar Betalning mottagen.</p>
       </header>
       <NyKurs />
+      <Paketordning key={paketposter.map((p) => p.id).join()} poster={paketposter} />
       {((kurser ?? []) as KursRad[]).map((k) => {
         const aktiva = B.filter((b) => b.kurs_id === k.id && b.status !== "avbokad");
         const avbokade = B.filter((b) => b.kurs_id === k.id && b.status === "avbokad");

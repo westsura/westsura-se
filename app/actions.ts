@@ -210,7 +210,7 @@ export async function bokaKurs(fd: FormData): Promise<Svar<{ nummer: number; sum
     p_deltagare: deltagare || null, p_kost: kost || null, p_meddelande: meddelande || null, p_faktura: faktura, p_barn: barn,
   });
   if (error) return { ok: false, fel: error.code === "P0001" ? error.message : "Det gick inte att boka just nu. Ring oss så hjälper vi dig." };
-  const b = (data as { bokning_id: string; nummer: number; pris_per_person: number; summa: number; earlybird: boolean }[])[0];
+  const b = (data as { bokning_id: string; nummer: number; pris_per_person: number; summa: number; earlybird: boolean; barnpris: number | null }[])[0];
   const { data: k } = await db.from("kurs").select("namn, datum_text, med_boende, fakturatext, betalning, barnpris, barn_alder_fran, barn_alder_till, mejl_bokning, benamning").eq("id", kurs).single();
   const rum = k?.med_boende === false ? "" : rumstyp === "enkel" ? "enkelrum" : "delat dubbelrum";
   const swish = k?.betalning === "swish";
@@ -229,14 +229,14 @@ export async function bokaKurs(fd: FormData): Promise<Svar<{ nummer: number; sum
       if (felU || !u) throw new Error(felU?.message ?? "inget underlag");
       const text = `${k?.namn ?? "Aktivitet"}${rum ? ", " + rum : ""}${b.earlybird ? ", Early Bird" : ""}${k?.fakturatext ? " — " + k.fakturatext : ""}`;
       const rader = [{ underlag_id: u.id, ordning: 0, beskrivning: text, antal: antal - barnBokade, enhet: "pers", a_pris: b.pris_per_person, moms: 25 }];
-      if (barnBokade) rader.push({ underlag_id: u.id, ordning: 1, beskrivning: `${text}, ${barnAlderText(k?.barn_alder_fran ?? null, k?.barn_alder_till ?? null)}`, antal: barnBokade, enhet: "pers", a_pris: k!.barnpris!, moms: 25 });
+      if (barnBokade) rader.push({ underlag_id: u.id, ordning: 1, beskrivning: `${text}, ${barnAlderText(k?.barn_alder_fran ?? null, k?.barn_alder_till ?? null)}`, antal: barnBokade, enhet: "pers", a_pris: b.barnpris ?? k!.barnpris!, moms: 25 });
       await db.from("fakturarad").insert(rader.filter((r) => r.antal > 0));
       await db.from("kursbokning").update({ underlag_id: u.id }).eq("id", b.bokning_id);
     } catch (e) { console.error("kunde inte skapa fakturaunderlag för bokning", b.nummer, e); }
   }
 
   try {
-    const bokning = bokningsrader({ antal, barn: barnBokade, rum: rum || null, prisPerPerson: b.pris_per_person, barnpris: k?.barnpris ?? null,
+    const bokning = bokningsrader({ antal, barn: barnBokade, rum: rum || null, prisPerPerson: b.pris_per_person, barnpris: b.barnpris ?? k?.barnpris ?? null,
       barnAlder: k?.barnpris != null ? barnAlderText(k.barn_alder_fran, k.barn_alder_till) : null, summa: b.summa, nummer: b.nummer, earlybird: b.earlybird });
     const text = fyllAktivitetsmejl(k?.mejl_bokning || standardMejlBokning(swish ? "swish" : "faktura"),
       { namn, aktivitet: k?.namn ?? "", datum: k?.datum_text ?? "", bokning, summa: b.summa, nummer: b.nummer });

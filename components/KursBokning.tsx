@@ -12,7 +12,7 @@ export type Kurs = {
   /** Helgkurs med boende (rumstyp väljs) eller dagskurs (ett pris per person). */
   med_boende?: boolean;
   benamning?: string;
-  barnpris?: number | null; barn_alder_fran?: number | null; barn_alder_till?: number | null;
+  barnpris?: number | null; earlybird_barnpris?: number | null; barn_alder_fran?: number | null; barn_alder_till?: number | null;
   betalning?: string;
 };
 
@@ -33,6 +33,7 @@ export default function KursBokning({ kurs }: { kurs: Kurs }) {
   const idag = new Date().toISOString().slice(0, 10);
   const eb = !!kurs.earlybird_till && idag <= kurs.earlybird_till;
   const nBarn = harBarn ? Math.min(barn, antal) : 0;
+  const bp = (eb ? kurs.earlybird_barnpris ?? kurs.barnpris : kurs.barnpris) ?? 0;
   const pp = rum === "enkel" ? (eb ? kurs.earlybird_enkel ?? kurs.pris_enkel : kurs.pris_enkel) : (eb ? kurs.earlybird_dubbel ?? kurs.pris_dubbel : kurs.pris_dubbel);
 
   if (klar) {
@@ -100,8 +101,8 @@ export default function KursBokning({ kurs }: { kurs: Kurs }) {
       {!swish && <Fakturafalt prefix="kf" full />}
 
       <div className="field--full sumrow sumrow--total" style={{ display: "flex", justifyContent: "space-between", fontWeight: 600 }}>
-        <span>{nBarn ? `${antal - nBarn} × ${kr(pp)} + ${nBarn} × ${kr(kurs.barnpris!)}` : `${antal} × ${kr(pp)}`}{eb ? " · Early Bird" : ""}</span>
-        <span>{kr(pp * (antal - nBarn) + (kurs.barnpris ?? 0) * nBarn)}</span>
+        <span>{nBarn ? `${antal - nBarn} × ${kr(pp)} + ${nBarn} × ${kr(bp)}` : `${antal} × ${kr(pp)}`}{eb ? " · Early Bird" : ""}</span>
+        <span>{kr(pp * (antal - nBarn) + bp * nBarn)}</span>
       </div>
 
       <label className="checkfield field--full">

@@ -4,16 +4,17 @@ import { site, kungCitat } from "@/lib/site";
 
 /* ---------- Hero ---------- */
 export function Hero({
-  src, alt, label, title, lede, sub = false, remote = false,
-}: { src: string; alt: string; label?: string; title: string; lede?: string; sub?: boolean; remote?: boolean }) {
+  src, alt, label, title, lede, sub = false, remote = false, fokus,
+}: { src: string; alt: string; label?: string; title: string; lede?: string; sub?: boolean; remote?: boolean; /** CSS object-position, t.ex. "50% 30%" */ fokus?: string | null }) {
+  const stil = fokus ? { objectPosition: fokus } : undefined;
   return (
     <section className={`hero${sub ? " hero--sub" : ""}`}>
       <div className="hero__img">
         {remote ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt={alt} />
+          <img src={src} alt={alt} style={stil} />
         ) : (
-          <Image src={src} alt={alt} fill sizes="100vw" priority />
+          <Image src={src} alt={alt} fill sizes="100vw" priority style={stil} />
         )}
       </div>
       <div className="hero__inner">

@@ -120,7 +120,7 @@ export default async function EvenemangSida({ params }: { params: Promise<{ slug
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
-      <Hero remote={bild.startsWith("http")} src={bild} alt={e.bild_alt ?? e.titel} sub
+      <Hero fokus={e.bild_fokus} remote={bild.startsWith("http")} src={bild} alt={e.bild_alt ?? e.titel} sub
         label={nar(e)} title={e.titel.toLowerCase()} lede={e.ingress ?? undefined} />
 
       {/* All text i en lugn spalt, praktisk ruta bredvid. Bilderna samlas i galleriet längre ner. */}

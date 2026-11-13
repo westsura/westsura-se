@@ -64,7 +64,7 @@ export default async function Home() {
             )}
             <div className="fig fig--43">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={forsta?.bild ?? "/bilder/julmarknad-fasad.jpg"} alt={forsta?.bild_alt ?? "Marknadsstånd med lokala varor vid herrgårdens gula fasad"} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={forsta?.bild ?? "/bilder/julmarknad-fasad.jpg"} alt={forsta?.bild_alt ?? "Marknadsstånd med lokala varor vid herrgårdens gula fasad"} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: forsta?.bild_fokus ?? undefined }} />
             </div>
           </div>
           {!!fler.length && (

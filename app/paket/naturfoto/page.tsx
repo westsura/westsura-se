@@ -23,7 +23,7 @@ export default async function Naturfoto() {
   let kurs: Kurs | null = null;
   try {
     const db = supabasePublik();
-    const { data } = await db.from("kurs").select("id, namn, datum_text, platser, oppen, pris_dubbel, pris_enkel, earlybird_dubbel, earlybird_enkel, earlybird_till, betalning, barnpris, barn_alder_fran, barn_alder_till").eq("id", "naturfoto").maybeSingle();
+    const { data } = await db.from("kurs").select("id, namn, datum_text, platser, oppen, pris_dubbel, pris_enkel, earlybird_dubbel, earlybird_enkel, earlybird_till, betalning, barnpris, earlybird_barnpris, barn_alder_fran, barn_alder_till").eq("id", "naturfoto").maybeSingle();
     if (data) {
       const { data: kvar } = await db.rpc("kurs_platser_kvar", { k: "naturfoto" });
       kurs = { ...(data as Omit<Kurs, "kvar">), kvar: typeof kvar === "number" ? kvar : data.platser };

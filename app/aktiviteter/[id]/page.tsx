@@ -12,10 +12,10 @@ export const revalidate = 60;
 
 type KursSida = Kurs & {
   med_boende: boolean; publicerad: boolean; ingress: string | null; beskrivning: string | null; bild: string | null; bild_alt: string | null;
-  kursledare: string | null; ingar: string | null; villkor: string | null; bilder: { src: string; alt: string }[];
+  kursledare: string | null; ingar: string | null; villkor: string | null; bild_fokus: string | null; bilder: { src: string; alt: string }[];
 };
 const STANDARDBILD = "/bilder/herrgarden.jpg";
-const FALT = "id, namn, datum_text, platser, oppen, pris_dubbel, pris_enkel, earlybird_dubbel, earlybird_enkel, earlybird_till, med_boende, publicerad, ingress, beskrivning, bild, bild_alt, kursledare, ingar, villkor, benamning, barnpris, barn_alder_fran, barn_alder_till, betalning, bilder";
+const FALT = "id, namn, datum_text, platser, oppen, pris_dubbel, pris_enkel, earlybird_dubbel, earlybird_enkel, earlybird_till, med_boende, publicerad, ingress, beskrivning, bild, bild_alt, kursledare, ingar, villkor, bild_fokus, benamning, barnpris, earlybird_barnpris, barn_alder_fran, barn_alder_till, betalning, bilder";
 
 async function hamta(id: string): Promise<KursSida | null> {
   const db = supabasePublik();
@@ -51,7 +51,7 @@ export default async function KursSidan({ params }: { params: Promise<{ id: stri
 
   return (
     <>
-      <Hero remote={bild.startsWith("http")} src={bild} alt={k.bild_alt ?? k.namn} sub label={`${(k.benamning ?? "aktivitet").replace(/^./, (c) => c.toUpperCase())} · ${k.datum_text}`} title={k.namn.toLowerCase()} lede={k.ingress ?? undefined} />
+      <Hero fokus={k.bild_fokus} remote={bild.startsWith("http")} src={bild} alt={k.bild_alt ?? k.namn} sub label={`${(k.benamning ?? "aktivitet").replace(/^./, (c) => c.toUpperCase())} · ${k.datum_text}`} title={k.namn.toLowerCase()} lede={k.ingress ?? undefined} />
 
       <section className="section">
         <div className="container split split--start split--form">
@@ -92,7 +92,7 @@ export default async function KursSidan({ params }: { params: Promise<{ id: stri
                 {ebAktiv && k.earlybird_dubbel != null ? <>{kr(k.earlybird_dubbel)}<small>per person · Early Bird t.o.m. {ebDatum} (ordinarie {kr(k.pris_dubbel)})</small></> : <>{kr(k.pris_dubbel)}<small>per person</small></>}
               </p>
             )}
-            {k.barnpris != null && <p className="small" style={{ marginBottom: 4 }}><b>{barnAlderText(k.barn_alder_fran ?? null, k.barn_alder_till ?? null).replace(/^./, (c) => c.toUpperCase())}: {kr(k.barnpris)}</b></p>}
+            {k.barnpris != null && <p className="small" style={{ marginBottom: 4 }}><b>{barnAlderText(k.barn_alder_fran ?? null, k.barn_alder_till ?? null).replace(/^./, (c) => c.toUpperCase())}: {ebAktiv && k.earlybird_barnpris != null ? <>{kr(k.earlybird_barnpris)} Early Bird <span style={{ fontWeight: 400 }}>(ordinarie {kr(k.barnpris)})</span></> : kr(k.barnpris)}</b></p>}
             <p className="small">Pris per person. Begränsat antal platser.{k.betalning === "swish" ? ` Betalas i förskott med Swish.` : " Faktura efter bokning."}</p>
             <KursBokning kurs={k} />
           </div>

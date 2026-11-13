@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { sparaKurs, skapaKurs, taBortKurs } from "@/app/admin/actions";
+import BildFokus from "@/components/BildFokus";
 import { standardMejlBokning, STANDARD_BEKRAFTELSE, standardVillkor, MEJLPLATSHALLARE } from "@/lib/aktivitet";
 
 export type KursRad = {
@@ -12,6 +13,7 @@ export type KursRad = {
   kursledare: string | null; ingar: string | null; villkor: string | null; fakturatext: string | null;
   benamning: string; barnpris: number | null; barn_alder_fran: number | null; barn_alder_till: number | null;
   betalning: string; mejl_bokning: string | null; mejl_bekraftelse: string | null; bilder: { src: string; alt: string }[];
+  bild_fokus: string | null; earlybird_barnpris: number | null;
 };
 
 /** Redigera en kurs/aktivitet: datum, platser, priser (även barn), betalsätt, mejltexter — och sidans innehåll. */
@@ -21,6 +23,7 @@ export default function KursForm({ k }: { k: KursRad }) {
   const [betalning, setBetalning] = useState(k.betalning);
   const [barn, setBarn] = useState(k.barnpris != null);
   const [visaTexter, setVisaTexter] = useState(false);
+  const [bildForhand, setBildForhand] = useState<string | null>(k.bild);
   const [visaSida, setVisaSida] = useState(!k.publicerad && k.id !== "naturfoto");
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -28,8 +31,16 @@ export default function KursForm({ k }: { k: KursRad }) {
 
   return (
     <form className="admin__panel form" onSubmit={(e) => {
-      e.preventDefault(); const fd = new FormData(e.currentTarget); setMedd(null);
-      start(async () => { const r = await sparaKurs(k.id, fd); setMedd(r.ok ? "Sparat — sidan är uppdaterad." : r.fel ?? "Kunde inte spara."); if (r.ok) router.refresh(); });
+      e.preventDefault(); const form = e.currentTarget; const fd = new FormData(form); setMedd(null);
+      start(async () => {
+        const r = await sparaKurs(k.id, fd);
+        setMedd(r.ok ? "Sparat — sidan är uppdaterad." : r.fel ?? "Kunde inte spara.");
+        if (r.ok) {
+          // Töm bildväljarna, annars laddas samma bilder upp igen nästa gång man sparar.
+          form.querySelectorAll<HTMLInputElement>('input[type="file"], input[name="ta_bort_bild"]').forEach((i) => { if (i.type === "file") i.value = ""; else i.checked = false; });
+          router.refresh();
+        }
+      });
     }}>
       <div className="field"><label>Namn</label><input name="namn" defaultValue={k.namn} required /></div>
       {egenSida && (
@@ -64,6 +75,8 @@ export default function KursForm({ k }: { k: KursRad }) {
       {barn ? (
         <>
           <div className="field"><label>Barnpris (kr/barn)</label><input type="number" name="barnpris" min={0} defaultValue={k.barnpris ?? ""} required /></div>
+          <div className="field"><label>Early Bird, barn</label><input type="number" name="earlybird_barnpris" min={0} defaultValue={k.earlybird_barnpris ?? ""} placeholder="Tomt = samma som barnpriset" />
+            <p className="hint">Gäller t.o.m. samma datum som Early Bird för vuxna.</p></div>
           <div className="field"><label>Ålder från</label><input type="number" name="barn_alder_fran" min={0} max={17} defaultValue={k.barn_alder_fran ?? ""} placeholder="T.ex. 4" /></div>
           <div className="field"><label>Ålder till och med</label><input type="number" name="barn_alder_till" min={0} max={17} defaultValue={k.barn_alder_till ?? ""} placeholder="T.ex. 12" /></div>
         </>
@@ -103,9 +116,10 @@ export default function KursForm({ k }: { k: KursRad }) {
             <div className="field field--full"><label className="checkfield checkfield--bare"><input type="checkbox" name="publicerad" defaultChecked={k.publicerad} /><span>Publicerad — sidan syns på westsura.se/aktiviteter/{k.id} och under Paket</span></label></div>
             <div className="field field--full"><label>Ingress</label><input name="ingress" defaultValue={k.ingress ?? ""} placeholder="En mening som lockar — visas överst på sidan och på kortet under Paket" /></div>
             <div className="field"><label>Ledare / värd</label><input name="kursledare" defaultValue={k.kursledare ?? ""} placeholder="Namn — och gärna en rad om personen" /></div>
-            <div className="field"><label>Bild</label>
-              {k.bild && /* eslint-disable-next-line @next/next/no-img-element */ <img src={k.bild} alt="" style={{ width: 160, height: 107, objectFit: "cover", marginBottom: 8 }} />}
-              <input type="file" name="bildfil" accept="image/jpeg,image/png,image/webp" /></div>
+            <div className="field"><label>Huvudbild</label>
+              <input type="file" name="bildfil" accept="image/jpeg,image/png,image/webp" onChange={(e) => { const f = e.target.files?.[0]; if (f) setBildForhand(URL.createObjectURL(f)); }} /></div>
+            <div className="field field--full"><label>Bildens utsnitt i bannern</label>
+              <BildFokus key={bildForhand ?? "ingen"} src={bildForhand} standard={bildForhand === k.bild ? k.bild_fokus : null} /></div>
             <div className="field field--full"><label>Bildtext för syntolkning</label><input name="bild_alt" defaultValue={k.bild_alt ?? ""} /></div>
             <div className="field field--full"><label>Text</label><textarea name="beskrivning" defaultValue={k.beskrivning ?? ""} style={{ minHeight: 200 }} placeholder={"Berätta om aktiviteten. Tom rad mellan styckena. Skriv ## före en rad för mellanrubrik, t.ex. ## Om kursledaren"} /></div>
             <div className="field field--full"><label>Det här ingår</label><textarea name="ingar" defaultValue={k.ingar ?? ""} className="ta--s" placeholder={"En rad per punkt, t.ex.\nKursdag med lunch och fika\nMaterial"} /></div>

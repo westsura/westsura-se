@@ -4,6 +4,7 @@ import { Hero } from "@/components/Blocks";
 import PaketBokning, { type PaketEnhet } from "@/components/PaketBokning";
 import { img, site } from "@/lib/site";
 import { supabasePublik } from "@/lib/supabase";
+import { sorteraPaket } from "@/lib/paketordning";
 
 export const metadata: Metadata = {
   title: "Paket — naturfoto, kanot, golf och mat över öppen eld",
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/paket" },
 };
 
-const paket: { id: string; bild: string; alt: string; label: string; titel: string; pris: string; per: string; text: string[]; ingar: string[]; extra?: string; lank?: string }[] = [
+const paket: { id: string; bild: string; fokus?: string | null; alt: string; label: string; titel: string; pris: string; per: string; text: string[]; ingar: string[]; extra?: string; lank?: string }[] = [
   {
     id: "naturfoto", bild: "/bilder/naturfoto-lappuggla-liten.jpg", alt: "Två lappugglor på en stubbe i kvällsljus", label: "Grundkurs i naturfoto · maj 2027", titel: "från fina bilder till fantastiska",
     pris: "från 5 495 kr", per: "per person · Early Bird t.o.m. 31 oktober",
@@ -67,6 +68,7 @@ export default async function Paket() {
   let prislista: { id: string; namn: string; pris: number; ingar_natt: boolean }[] = [];
   let enheter: PaketEnhet[] = [];
   let kurser: typeof paket = [];
+  let ordning: { id: string; ordning: number }[] = [];
   try {
     const db = supabasePublik();
     const [{ data: p }, { data: e }, { data: k }] = await Promise.all([
@@ -75,13 +77,15 @@ export default async function Paket() {
       db.from("kurs").select("datum_text, pris_dubbel, earlybird_dubbel, earlybird_till").eq("id", "naturfoto").maybeSingle(),
     ]);
     // Övriga publicerade kurser — var och en med egen sida under /kurser.
-    const { data: ovriga } = await db.from("kurs").select("id, namn, datum_text, pris_dubbel, earlybird_dubbel, earlybird_till, med_boende, ingress, ingar, bild, bild_alt, benamning")
+    const { data: ovriga } = await db.from("kurs").select("id, namn, datum_text, pris_dubbel, earlybird_dubbel, earlybird_till, med_boende, ingress, ingar, bild, bild_alt, bild_fokus, benamning")
       .eq("publicerad", true).neq("id", "naturfoto").order("datum_fran", { nullsFirst: false });
+    const { data: o } = await db.from("paketordning").select("id, ordning");
+    ordning = (o ?? []) as typeof ordning;
     const idag = new Date().toISOString().slice(0, 10);
-    kurser = ((ovriga ?? []) as { id: string; namn: string; datum_text: string; pris_dubbel: number; earlybird_dubbel: number | null; earlybird_till: string | null; med_boende: boolean; ingress: string | null; ingar: string | null; bild: string | null; bild_alt: string | null; benamning: string | null }[]).map((x) => {
+    kurser = ((ovriga ?? []) as { id: string; namn: string; datum_text: string; pris_dubbel: number; earlybird_dubbel: number | null; earlybird_till: string | null; med_boende: boolean; ingress: string | null; ingar: string | null; bild: string | null; bild_alt: string | null; bild_fokus: string | null; benamning: string | null }[]).map((x) => {
       const eb = x.earlybird_till && x.earlybird_dubbel != null && idag <= x.earlybird_till;
       return {
-        id: x.id, bild: x.bild ?? "/bilder/herrgarden.jpg", alt: x.bild_alt ?? x.namn, label: `${(x.benamning || "aktivitet").replace(/^./, (c) => c.toUpperCase())} · ${x.datum_text}`, titel: x.namn.toLowerCase(),
+        id: x.id, bild: x.bild ?? "/bilder/herrgarden.jpg", fokus: x.bild_fokus, alt: x.bild_alt ?? x.namn, label: `${(x.benamning || "aktivitet").replace(/^./, (c) => c.toUpperCase())} · ${x.datum_text}`, titel: x.namn.toLowerCase(),
         pris: `${x.med_boende ? "från " : ""}${(eb ? x.earlybird_dubbel! : x.pris_dubbel).toLocaleString("sv-SE")} kr`, per: eb ? "per person · Early Bird" : "per person",
         text: x.ingress ? [x.ingress] : [], ingar: (x.ingar ?? "").split("\n").map((r) => r.trim()).filter(Boolean).slice(0, 4),
         extra: "Begränsat antal platser. Bindande bokning.", lank: `/aktiviteter/${x.id}`,
@@ -108,13 +112,13 @@ export default async function Paket() {
 
       <section className="section">
         <div className="container">
-          {[paket[0], ...kurser, ...paket.slice(1)].map((p) => {
+          {sorteraPaket([paket[0], ...kurser, ...paket.slice(1)], ordning).map((p) => {
             const db = prislista.find((x) => x.id === p.id);
             return (
             <article key={p.id} className="paket" id={p.id}>
               <div className="paket__img">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.bild} alt={p.alt} loading="lazy" />
+                <img src={p.bild} alt={p.alt} loading="lazy" style={p.fokus ? { objectPosition: p.fokus } : undefined} />
               </div>
               <div className="paket__body">
                 <p className="label">{p.label}</p>
